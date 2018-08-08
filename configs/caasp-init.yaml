@@ -1,0 +1,6 @@
+##
+## sample caasp-init configuration file
+##
+apiVersion: caas.suse.com/v1alpha2
+kind: CaaSInitConfiguration
+# seeder: some-node.com

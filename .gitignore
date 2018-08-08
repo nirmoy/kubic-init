@@ -1,0 +1,15 @@
+
+# the main binary and images
+cmd/caasp-init/caasp-init
+caasp-init-latest.tar.gz
+
+# the qcow2 images
+deployments/images/*.qcow*
+
+# vendored deps, IDEs and other dirs
+vendor/
+.idea
+
+# terraform stuff
+.terraform
+*.tfstate*
