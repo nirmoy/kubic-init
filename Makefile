@@ -48,10 +48,10 @@ CONTAINER_VOLUMES = \
 # Build targets
 #############################################################
 
+all: $(CAASP_INIT_EXE)
+
 test:
 	echo $(GOPATH_THIS_USER)
-
-all: $(CAASP_INIT_EXE)
 
 dep-exe:
 ifndef DEP_EXE
