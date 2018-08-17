@@ -2,39 +2,39 @@
 GOPATH_THIS_USER = $(shell basename `realpath ..`)
 
 # go source files, ignore vendor directory
-CAASP_INIT_EXE  = cmd/caasp-init/caasp-init
-CAASP_INIT_SH   = build/image/entrypoint.sh
-CAASP_INIT_MAIN = cmd/caasp-init/main.go
-CAASP_INIT_SRCS = $(shell find . -type f -name '*.go' -not -path "./vendor/*")
-.DEFAULT_GOAL: $(CAASP_INIT_EXE)
+KUBIC_INIT_EXE  = cmd/kubic-init/kubic-init
+KUBIC_INIT_SH   = build/image/entrypoint.sh
+KUBIC_INIT_MAIN = cmd/kubic-init/main.go
+KUBIC_INIT_SRCS = $(shell find . -type f -name '*.go' -not -path "./vendor/*")
+.DEFAULT_GOAL: $(KUBIC_INIT_EXE)
 
 # should be non-empty when dep is installed
 DEP_EXE := $(shell command -v dep 2> /dev/null)
 
 # These will be provided to the target
-CAASP_INIT_VERSION := 1.0.0
-CAASP_INIT_BUILD   := `git rev-parse HEAD 2>/dev/null`
+KUBIC_INIT_VERSION := 1.0.0
+KUBIC_INIT_BUILD   := `git rev-parse HEAD 2>/dev/null`
 
 # Use linker flags to provide version/build settings to the target
-CAASP_INIT_LDFLAGS = -ldflags "-X=main.Version=$(CAASP_INIT_VERSION) -X=main.Build=$(CAASP_INIT_BUILD)"
+KUBIC_INIT_LDFLAGS = -ldflags "-X=main.Version=$(KUBIC_INIT_VERSION) -X=main.Build=$(KUBIC_INIT_BUILD)"
 
-MANIFEST_LOCAL = deployments/kubelet/caasp-init-manifest.yaml
-MANIFEST_REM   = deployments/caasp-init-manifest.yaml
+MANIFEST_LOCAL = deployments/kubelet/kubic-init-manifest.yaml
+MANIFEST_REM   = deployments/kubic-init-manifest.yaml
 MANIFEST_DIR   = /etc/kubernetes/manifests
 
 KUBE_DROPIN_SRC = init/kubelet.drop-in.conf
 KUBE_DROPIN_DST = /etc/systemd/system/kubelet.service.d/kubelet.drop-in.conf
 
-IMAGE_BASENAME = caasp-init
+IMAGE_BASENAME = kubic-init
 IMAGE_NAME     = $(GOPATH_THIS_USER)/$(IMAGE_BASENAME)
 IMAGE_TAR_GZ   = $(IMAGE_BASENAME)-latest.tar.gz
 
 TF_LIBVIRT_FULL_DIR  = deployments/tf-libvirt-full
 TF_LIBVIRT_NODES_DIR = deployments/tf-libvirt-nodes
-TF_VARS              = -var 'caasp_init_image=$(IMAGE_TAR_GZ)'
+TF_VARS              = -var 'kubic_init_image=$(IMAGE_TAR_GZ)'
 
 CONTAINER_VOLUMES = \
-		-v `pwd`/configs:/etc/caasp \
+		-v `pwd`/configs:/etc/kubic \
         -v /etc/kubernetes:/etc/kubernetes \
         -v /etc/hosts:/etc/hosts:ro \
         -v /var/lib/kubelet:/var/lib/kubelet \
@@ -48,7 +48,7 @@ CONTAINER_VOLUMES = \
 # Build targets
 #############################################################
 
-all: $(CAASP_INIT_EXE)
+all: $(KUBIC_INIT_EXE)
 
 test:
 	echo $(GOPATH_THIS_USER)
@@ -72,27 +72,27 @@ dep-update: dep-exe Gopkg.toml
 vendor: dep-exe
 	@[ -d vendor ] || dep ensure -v
 
-$(CAASP_INIT_EXE): $(CAASP_INIT_SRCS) Gopkg.lock vendor
-	@echo ">>> Building $(CAASP_INIT_EXE)..."
-	go build $(CAASP_INIT_LDFLAGS) -o $(CAASP_INIT_EXE) $(CAASP_INIT_MAIN)
+$(KUBIC_INIT_EXE): $(KUBIC_INIT_SRCS) Gopkg.lock vendor
+	@echo ">>> Building $(KUBIC_INIT_EXE)..."
+	go build $(KUBIC_INIT_LDFLAGS) -o $(KUBIC_INIT_EXE) $(KUBIC_INIT_MAIN)
 
 .PHONY: fmt
 fmt:
-	@gofmt -l -w $(CAASP_INIT_SRCS)
+	@gofmt -l -w $(KUBIC_INIT_SRCS)
 
 .PHONY: simplify
 simplify:
-	@gofmt -s -l -w $(CAASP_INIT_SRCS)
+	@gofmt -s -l -w $(KUBIC_INIT_SRCS)
 
 .PHONY: check
 check:
-	@test -z $(shell gofmt -l $(CAASP_INIT_MAIN) | tee /dev/stderr) || echo "[WARN] Fix formatting issues with 'make fmt'"
+	@test -z $(shell gofmt -l $(KUBIC_INIT_MAIN) | tee /dev/stderr) || echo "[WARN] Fix formatting issues with 'make fmt'"
 	@for d in $$(go list ./... | grep -v /vendor/); do golint $${d}; done
-	@go tool vet ${CAASP_INIT_SRCS}
+	@go tool vet ${KUBIC_INIT_SRCS}
 
 .PHONY: check
 clean: docker-reset kubelet-reset docker-image-clean
-	rm -f $(CAASP_INIT_EXE)
+	rm -f $(KUBIC_INIT_EXE)
 
 #############################################################
 # Some simple run targets
@@ -103,10 +103,10 @@ kubeadm-reset:
 	@echo ">>> Resetting everything..."
 	@sudo kubeadm reset -f
 
-local-run: $(CAASP_INIT_EXE)
-	@echo ">>> Running $(CAASP_INIT_EXE) as _root_"
-	sudo $(CAASP_INIT_EXE) \
-		--config configs/caasp-init.yaml \
+local-run: $(KUBIC_INIT_EXE)
+	@echo ">>> Running $(KUBIC_INIT_EXE) as _root_"
+	sudo $(KUBIC_INIT_EXE) \
+		--config configs/kubic-init.yaml \
 		--kubeadm-config configs/master-config.yaml
 
 local-reset: kubeadm-reset
@@ -133,11 +133,11 @@ docker-run: $(IMAGE_TAR_GZ) docker-reset $(KUBE_DROPIN_DST)
 
 docker-reset: kubeadm-reset
 
-$(IMAGE_TAR_GZ): $(CAASP_INIT_EXE) $(CAASP_INIT_SH) Dockerfile
+$(IMAGE_TAR_GZ): $(KUBIC_INIT_EXE) $(KUBIC_INIT_SH) Dockerfile
 	@echo ">>> Creating Docker image..."
 	docker build \
-		--build-arg CAASP_INIT_EXE=$(CAASP_INIT_EXE) \
-		--build-arg CAASP_INIT_SH=$(CAASP_INIT_SH) \
+		--build-arg KUBIC_INIT_EXE=$(KUBIC_INIT_EXE) \
+		--build-arg KUBIC_INIT_SH=$(KUBIC_INIT_SH) \
 		-t $(IMAGE_NAME):latest .
 	@echo ">>> Creating tar for image..."
 	docker save $(IMAGE_NAME):latest | gzip > $(IMAGE_TAR_GZ)

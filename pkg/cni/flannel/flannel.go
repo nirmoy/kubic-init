@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/inercia/caasp-init/pkg/cni"
+	"github.com/ereslibre/kubic-init/pkg/cni"
 	apps "k8s.io/api/apps/v1"
 	"k8s.io/api/core/v1"
 	rbac "k8s.io/api/rbac/v1"
@@ -20,7 +20,7 @@ import (
 const (
 	// FlannelClusterRoleName sets the name for the flannel ClusterRole
 	// TODO: This k8s-generic, well-known constant should be fetchable from another source, not be in this package
-	FlannelClusterRoleName = "suse:caasp:flannel"
+	FlannelClusterRoleName = "suse:kubic:flannel"
 
 	// FlannelServiceAccountName describes the name of the ServiceAccount for the flannel addon
 	FlannelServiceAccountName = "flannel"

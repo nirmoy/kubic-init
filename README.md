@@ -1,7 +1,7 @@
 
 # Description
 
-(A proof-of-concept of) a "init" container for CaaSP.
+(A proof-of-concept of) a "init" container for Kubic.
 
 # Development
 
@@ -19,17 +19,17 @@ This project follows the conventions presented in https://github.com/golang-stan
 ### Building
 
 A simple `make` should be enough. This should compile [the main
-function](cmd/caasp-init/main.go) and generate a `caasp-init` binary as
+function](cmd/kubic-init/main.go) and generate a `kubic-init` binary as
 well as a _Docker_ image.
 
-### Running `caasp-init`
+### Running `kubic-init`
 
-You have several ways of running the `caasp-init`.
+You have several ways of running the `kubic-init`.
 
-1. You can run the `caasp-init` container locally with a
+1. You can run the `kubic-init` container locally with a
 `make docker-run`. This will:
  
-   * build the `caasp-init` image
+   * build the `kubic-init` image
    * install a [_drop-in_](init/kubelet.drop-in.conf) unit for
    kubelet, so it can be started with the right parameters.
    * stop the `kubelet`
@@ -53,8 +53,8 @@ the help of Terraform. You can start these nodes with a
    * start Kubic-based VMs, generating some config files from
    the [`cloud-init` templates](deployments/cloud-init)
    * copy some config files and drop-in units, install packages, etc...
-   * copy the `caasp-init:latest` image and load it in the Docker daemon.
-   * start the `caasp-init` container from a Docker-based
+   * copy the `kubic-init:latest` image and load it in the Docker daemon.
+   * start the `kubic-init` container from a Docker-based
    _systemd_ unit.  
 
    Do a `make tf-nodes-destroy` once you are done.   
@@ -77,7 +77,7 @@ Before we have a functional POC we need to implement:
 * [ ] Install some requirements in the base Kubic images
 * [ ] All the `TODO`s in this repo...
 
-### Bumping the Kubernetes version used by `caasp-init`
+### Bumping the Kubernetes version used by `kubic-init`
 
 Update the constraints in `Gopkg.toml`.
 

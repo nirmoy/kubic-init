@@ -22,9 +22,9 @@ users:
     lock_passwd: false
     passwd: ${password}
 
-### TODO: this should be replaced by the suse_caasp module
+### TODO: this should be replaced by the suse_kubic module
 write_files:
-  - path: "/etc/caasp/caasp-init.yaml"
+  - path: "/etc/kubic/kubic-init.yaml"
     permissions: "0644"
     owner: "root"
     content: |

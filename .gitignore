@@ -1,7 +1,7 @@
 
 # the main binary and images
-cmd/caasp-init/caasp-init
-caasp-init-latest.tar.gz
+cmd/kubic-init/kubic-init
+kubic-init-latest.tar.gz
 
 # the qcow2 images
 deployments/images/*.qcow*

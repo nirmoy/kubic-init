@@ -1,6 +1,6 @@
 # Description
 
-Terraform script for running a CaaSP cluster with
+Terraform script for running a Kubic cluster with
 all the machines as VMs.
 
  

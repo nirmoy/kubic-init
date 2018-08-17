@@ -1,5 +1,5 @@
 ##
-## sample caasp-init configuration file
+## sample kubic-init configuration file
 ##
 apiVersion: caas.suse.com/v1alpha2
 kind: CaaSInitConfiguration

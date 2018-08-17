@@ -1,7 +1,7 @@
-# configuration file in /etc/sysconfig/caasp-init
+# configuration file in /etc/sysconfig/kubic-init
 
 # TODO: replace for an official image
-IMAGE_CAASP_INIT="inercia/caasp-init:latest"
+IMAGE_KUBIC_INIT="inercia/kubic-init:latest"
 
 # unified image for running hyperkube
 # IMAGE_UNIFIED_K8S=""

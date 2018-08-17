@@ -33,18 +33,18 @@ runcmd:
   - /usr/bin/systemctl enable --now ntpd
   - sed -i -e 's/DHCLIENT_SET_HOSTNAME="yes"/DHCLIENT_SET_HOSTNAME="no"/g' /etc/sysconfig/network/dhcp
 
-### TODO: this should be replaced by the suse_caasp module
+### TODO: this should be replaced by the suse_kubic module
 write_files:
-  - path: "/etc/caasp/caasp-init.yaml"
+  - path: "/etc/kubic/kubic-init.yaml"
     permissions: "0644"
     owner: "root"
     content: |
       apiVersion: caas.suse.com/v1alpha1
       kind: CaaSInitConfiguration
 
-### TODO: this should be replaced by the suse_caasp module
+### TODO: this should be replaced by the suse_kubic module
 write_files:
-  - path: "/etc/caasp/kubeadm.yaml"
+  - path: "/etc/kubic/kubeadm.yaml"
     permissions: "0644"
     owner: "root"
     content: |

@@ -13,14 +13,14 @@
 # license that conforms to the Open Source Definition (Version 1.9)
 # published by the Open Source Initiative.
 #
-# NOTE: we assume that "images/caasp-beta.qcow2" will end up in
-#       a volume named "caasp-beta.qcow2"
+# NOTE: we assume that "images/kubic-beta.qcow2" will end up in
+#       a volume named "kubic-beta.qcow2"
 #
-IMG_SRC_BASE="http://download.suse.de/install/SUSE-CaaSP-1.0-Beta3/"
+IMG_SRC_BASE="http://download.suse.de/install/SUSE-Kubic-1.0-Beta3/"
 IMG_SRC_FILENAME=
 IMG_REGEX="openSUSE-Tumbleweed-Kubic*x86_64*MicroOS-kvm-and-xen-Build"
 IMG_GLOB=$(echo "$IMG_REGEX" | sed -e 's|\.\*|\*|g')*.qcow2
-IMG_LOCAL_NAME="images/caasp.qcow2"
+IMG_LOCAL_NAME="images/kubic.qcow2"
 IMG_REFRESH=1
 IMG_PURGE=
 UPLOAD_IMG=
@@ -122,7 +122,7 @@ WGET_REC_OPTS="-r \
                --accept=*.qcow2 \
                --accept-regex=$IMG_REGEX"
 
-[ -n "$IMG_LOCAL_NAME" ] || IMG_LOCAL_NAME=$(mktemp /tmp/caasp-image.XXXXXX)
+[ -n "$IMG_LOCAL_NAME" ] || IMG_LOCAL_NAME=$(mktemp /tmp/kubic-image.XXXXXX)
 
 images() {
   ls -1 -t $IMG_GLOB 2>/dev/null
@@ -155,7 +155,7 @@ if [ -n "$RUN_AT" ] ; then
     abort "--src-filename required when using --run-at ... did you forget to load the right Terraform variables?"
 
   log "Downloading at $RUN_AT"
-  IMG_LOCAL_NAME=$(rem_cmd mktemp /tmp/caasp-image.XXXXXX)
+  IMG_LOCAL_NAME=$(rem_cmd mktemp /tmp/kubic-image.XXXXXX)
   log "... ignoring --local argument: will download to $IMG_LOCAL_NAME"
   rem_cmd "$WGET --no-verbose -O '$IMG_LOCAL_NAME' '$IMG_SRC_BASE/$IMG_SRC_FILENAME'"
 else

@@ -29,7 +29,7 @@ variable "img_pool" {
 
 variable "img_url_base" {
   type        = "string"
-  default     = "https://download.opensuse.org/repositories/devel:/CaaSP:/images/images/"
+  default     = "https://download.opensuse.org/repositories/devel:/Kubic:/images/images/"
   description = "URL to the KVM image used"
 }
 
@@ -83,10 +83,10 @@ variable "password" {
   description = "password for sshing to the VMs"
 }
 
-variable "caasp_init_image" {
+variable "kubic_init_image" {
   type        = "string"
   default     = "linux"
-  description = "a caasp-init Docker image"
+  description = "a kubic-init Docker image"
 }
 
 variable "seed_memory" {
@@ -209,18 +209,18 @@ resource "null_resource" "upload_config_seeder" {
   }
 
   provisioner "file" {
-    source      = "../../init/caasp-init.systemd.conf"
-    destination = "/etc/systemd/system/caasp-init.service"
+    source      = "../../init/kubic-init.systemd.conf"
+    destination = "/etc/systemd/system/kubic-init.service"
   }
 
   provisioner "file" {
-    source = "../../init/caasp-init.sysconfig"
-    destination = "/etc/sysconfig/caasp-init"
+    source = "../../init/kubic-init.sysconfig"
+    destination = "/etc/sysconfig/kubic-init"
   }
 
   provisioner "file" {
-    source      = "../../${var.caasp_init_image}"
-    destination = "/tmp/${var.caasp_init_image}"
+    source      = "../../${var.kubic_init_image}"
+    destination = "/tmp/${var.kubic_init_image}"
   }
 
   # TODO: this is only for development
@@ -228,8 +228,8 @@ resource "null_resource" "upload_config_seeder" {
     inline = [
       "systemctl daemon-reload",
       "systemctl enable --now docker",
-      "while ! docker load -i /tmp/${var.caasp_init_image} ; do echo '(will try to load the caasp-init image again)' ; sleep 5 ; done",
-      "systemctl enable --now caasp-init",
+      "while ! docker load -i /tmp/${var.kubic_init_image} ; do echo '(will try to load the kubic-init image again)' ; sleep 5 ; done",
+      "systemctl enable --now kubic-init",
     ]
   }
 }
@@ -321,18 +321,18 @@ resource "null_resource" "upload_config_nodes" {
   }
 
   provisioner "file" {
-    source      = "../../init/caasp-init.systemd.conf"
-    destination = "/etc/systemd/system/caasp-init.service"
+    source      = "../../init/kubic-init.systemd.conf"
+    destination = "/etc/systemd/system/kubic-init.service"
   }
 
   provisioner "file" {
-    source = "../../init/caasp-init.sysconfig"
-    destination = "/etc/sysconfig/caasp-init"
+    source = "../../init/kubic-init.sysconfig"
+    destination = "/etc/sysconfig/kubic-init"
   }
 
   provisioner "file" {
-    source      = "../../${var.caasp_init_image}"
-    destination = "/tmp/${var.caasp_init_image}"
+    source      = "../../${var.kubic_init_image}"
+    destination = "/tmp/${var.kubic_init_image}"
   }
 
   # TODO: this is only for development
@@ -340,8 +340,8 @@ resource "null_resource" "upload_config_nodes" {
     inline = [
       "systemctl daemon-reload",
       "systemctl enable --now docker",
-      "while ! docker load -i /tmp/${var.caasp_init_image} ; do echo '(will try to load the caasp-init image again)' ; sleep 5 ; done",
-      "systemctl enable --now caasp-init",
+      "while ! docker load -i /tmp/${var.kubic_init_image} ; do echo '(will try to load the kubic-init image again)' ; sleep 5 ; done",
+      "systemctl enable --now kubic-init",
     ]
   }
 
