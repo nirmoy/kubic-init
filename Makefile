@@ -50,9 +50,6 @@ CONTAINER_VOLUMES = \
 
 all: $(KUBIC_INIT_EXE)
 
-test:
-	echo $(GOPATH_THIS_USER)
-
 dep-exe:
 ifndef DEP_EXE
 	@echo ">>> dep does not seem to be installed. installing dep..."
