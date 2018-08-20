@@ -26,7 +26,7 @@ import (
 	configutil "k8s.io/kubernetes/cmd/kubeadm/app/util/config"
 	"k8s.io/kubernetes/pkg/version"
 
-	kubicboot "github.com/ereslibre/kubic-init/pkg/bootstrap"
+	kubicboot "github.com/kubic-project/kubic-init/pkg/bootstrap"
 )
 
 // [caas] use a constant set of featureGates

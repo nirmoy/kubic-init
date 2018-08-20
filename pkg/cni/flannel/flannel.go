@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/ereslibre/kubic-init/pkg/cni"
+	"github.com/kubic-project/kubic-init/pkg/cni"
 	apps "k8s.io/api/apps/v1"
 	"k8s.io/api/core/v1"
 	rbac "k8s.io/api/rbac/v1"
