@@ -20,13 +20,13 @@ spec:
       operator: Exists
   containers:
     - name: kubic-init
-      image: 'inercia/kubic-init:latest'
+      image: 'kubic-project/kubic-init:latest'
       imagePullPolicy: Always
       resources:
         requests:
           memory: 128Mi
         limits:
-          memory: 128Mi
+          memory: 128Mif
       env:
         - name: DOCKER_HOST
           value: 'tcp://localhost:2375'
