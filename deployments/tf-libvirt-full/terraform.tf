@@ -29,7 +29,8 @@ variable "img_pool" {
 
 variable "img_url_base" {
   type        = "string"
-  default     = "https://download.opensuse.org/repositories/devel:/Kubic:/images/images/"
+  #default     = "https://download.opensuse.org/repositories/devel:/kubic:/images/images/"
+  default     = "https://download.opensuse.org/repositories/devel:/CaaSP:/images/images/"
   description = "URL to the KVM image used"
 }
 
