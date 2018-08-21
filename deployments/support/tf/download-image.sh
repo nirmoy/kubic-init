@@ -18,8 +18,8 @@
 #
 IMG_SRC_BASE="http://download.suse.de/install/SUSE-Kubic-1.0-Beta3/"
 IMG_SRC_FILENAME=
-IMG_REGEX="openSUSE-Tumbleweed-Kubic*x86_64*MicroOS-kvm-and-xen-Build"
-IMG_GLOB=$(echo "$IMG_REGEX" | sed -e 's|\.\*|\*|g')*.qcow2
+IMG_REGEX="MicroOS-kvm-and-xen-Build"
+IMG_GLOB=*$(echo "$IMG_REGEX" | sed -e 's|\.\*|\*|g')*.qcow2
 IMG_LOCAL_NAME="images/kubic.qcow2"
 IMG_REFRESH=1
 IMG_PURGE=

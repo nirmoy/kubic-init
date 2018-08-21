@@ -1,5 +1,10 @@
 # NOTE: this only works when installed in a GOPATH dir
 GOPATH_THIS_USER = $(shell basename `realpath ..`)
+GOPATH_THIS_REPO = $(shell basename `pwd`)
+
+IMAGE_BASENAME = $(GOPATH_THIS_REPO)
+IMAGE_NAME     = $(GOPATH_THIS_USER)/$(IMAGE_BASENAME)
+IMAGE_TAR_GZ   = $(IMAGE_BASENAME)-latest.tar.gz
 
 # go source files, ignore vendor directory
 KUBIC_INIT_EXE  = cmd/kubic-init/kubic-init
@@ -25,13 +30,9 @@ MANIFEST_DIR   = /etc/kubernetes/manifests
 KUBE_DROPIN_SRC = init/kubelet.drop-in.conf
 KUBE_DROPIN_DST = /etc/systemd/system/kubelet.service.d/kubelet.drop-in.conf
 
-IMAGE_BASENAME = kubic-init
-IMAGE_NAME     = $(GOPATH_THIS_USER)/$(IMAGE_BASENAME)
-IMAGE_TAR_GZ   = $(IMAGE_BASENAME)-latest.tar.gz
-
 TF_LIBVIRT_FULL_DIR  = deployments/tf-libvirt-full
 TF_LIBVIRT_NODES_DIR = deployments/tf-libvirt-nodes
-TF_VARS              = -var 'kubic_init_image=$(IMAGE_TAR_GZ)'
+TF_ARGS_DEFAULT      = -var 'kubic_init_image=$(IMAGE_TAR_GZ)'
 
 CONTAINER_VOLUMES = \
 		-v `pwd`/configs:/etc/kubic \
@@ -49,9 +50,6 @@ CONTAINER_VOLUMES = \
 #############################################################
 
 all: $(KUBIC_INIT_EXE)
-
-test:
-	echo $(GOPATH_THIS_USER)
 
 dep-exe:
 ifndef DEP_EXE
@@ -199,13 +197,13 @@ tf-full-plan: $(TF_LIBVIRT_FULL_DIR)/.terraform
 tf-full-run: tf-full-apply
 tf-full-apply: $(TF_LIBVIRT_FULL_DIR)/.terraform $(IMAGE_TAR_GZ)
 	@echo ">>> Deploying a full cluster with Terraform..."
-	cd $(TF_LIBVIRT_FULL_DIR) && terraform apply $(TF_VARS)
+	cd $(TF_LIBVIRT_FULL_DIR) && terraform apply $(TF_ARGS_DEFAULT) $(TF_ARGS)
 
 tf-full-reapply:
-	cd $(TF_LIBVIRT_FULL_DIR) && terraform apply $(TF_VARS)
+	cd $(TF_LIBVIRT_FULL_DIR) && terraform apply $(TF_ARGS_DEFAULT) $(TF_ARGS)
 
 tf-full-destroy: $(TF_LIBVIRT_FULL_DIR)/.terraform
-	cd $(TF_LIBVIRT_FULL_DIR) && terraform destroy -force $(TF_VARS)
+	cd $(TF_LIBVIRT_FULL_DIR) && terraform destroy -force $(TF_ARGS_DEFAULT) $(TF_ARGS)
 
 tf-full-nuke:
 	-make tf-full-destroy
@@ -222,13 +220,13 @@ tf-nodes-plan: $(TF_LIBVIRT_NODES_DIR)/.terraform
 tf-nodes-run: tf-nodes-apply
 tf-nodes-apply: $(TF_LIBVIRT_NODES_DIR)/.terraform $(IMAGE_TAR_GZ)
 	@echo ">>> Deploying only-nodes with Terraform..."
-	cd $(TF_LIBVIRT_NODES_DIR) && terraform apply $(TF_VARS)
+	cd $(TF_LIBVIRT_NODES_DIR) && terraform apply $(TF_ARGS_DEFAULT) $(TF_ARGS)
 
 tf-nodes-reapply:
-	cd $(TF_LIBVIRT_NODES_DIR) && terraform apply $(TF_VARS)
+	cd $(TF_LIBVIRT_NODES_DIR) && terraform apply $(TF_ARGS_DEFAULT) $(TF_ARGS)
 
 tf-nodes-destroy: $(TF_LIBVIRT_NODES_DIR)/.terraform
-	cd $(TF_LIBVIRT_NODES_DIR) && terraform destroy -force $(TF_VARS)
+	cd $(TF_LIBVIRT_NODES_DIR) && terraform destroy -force $(TF_ARGS_DEFAULT) $(TF_ARGS)
 
 tf-nodes-nuke:
 	-make tf-nodes-destroy

@@ -20,7 +20,7 @@ spec:
       operator: Exists
   containers:
     - name: kubic-init
-      image: 'inercia/kubic-init:latest'
+      image: 'kubic-project/kubic-init:latest'
       imagePullPolicy: Always
       resources:
         requests:

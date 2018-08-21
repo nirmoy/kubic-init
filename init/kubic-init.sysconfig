@@ -1,7 +1,7 @@
 # configuration file in /etc/sysconfig/kubic-init
 
 # TODO: replace for an official image
-IMAGE_KUBIC_INIT="inercia/kubic-init:latest"
+IMAGE_KUBIC_INIT="kubic-project/kubic-init:latest"
 
 # unified image for running hyperkube
 # IMAGE_UNIFIED_K8S=""

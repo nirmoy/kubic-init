@@ -1,7 +1,7 @@
-FROM opensuse:leap
+FROM opensuse:tumbleweed
 
-ARG EXTRA_REPO0="https://download.opensuse.org/repositories/devel:/CaaSP:/Head:/ControllerNode/openSUSE_Leap_15.0/"
-ARG EXTRA_REPO1="https://download.opensuse.org/repositories/home:/m_meister:/branches:/devel:/CaaSP:/Head:/ControllerNode/openSUSE_Leap_15.0/"
+ARG EXTRA_REPO0="https://download.opensuse.org/repositories/devel:/kubic/openSUSE_Tumbleweed/"
+#ARG EXTRA_REPO1="https://download.opensuse.org/repositories/devel:/CaaSP:/Head:/ControllerNode/openSUSE_Leap_15.0/"
 ARG RUN_RPMS="docker-kubic kubernetes-client kubernetes-kubeadm cri-tools ca-certificates iptables systemd"
 ARG KUBIC_INIT_EXE="cmd/kubic-init/kubic-init"
 ARG KUBIC_INIT_SH="build/image/entrypoint.sh"
@@ -9,9 +9,7 @@ ARG KUBIC_INIT_SH="build/image/entrypoint.sh"
 ### Install some packages we need for running kubeadm
 RUN \
   zypper ar --refresh --enable --no-gpgcheck ${EXTRA_REPO0} extra-repo0 && \
-  zypper ar --refresh --enable --no-gpgcheck ${EXTRA_REPO1} extra-repo1 && \
   zypper ref -r extra-repo0 && \
-  zypper ref -r extra-repo1 && \
   zypper in -y --no-recommends ${RUN_RPMS}
 
 ### Prepare the container for running docker and kubeadm
