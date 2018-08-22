@@ -30,7 +30,7 @@ variable "img_pool" {
 variable "img_url_base" {
   type = "string"
   #default     = "https://download.opensuse.org/repositories/devel:/kubic:/images/images/"
-  default     = "https://download.opensuse.org/repositories/devel:/CaaSP:/images/images/"
+  default = "https://download.opensuse.org/repositories/devel:/CaaSP:/images/images/"
   description = "URL to the KVM image used"
 }
 
@@ -82,6 +82,18 @@ variable "password" {
   type = "string"
   default = "linux"
   description = "password for sshing to the VMs"
+}
+
+variable "rpms" {
+  type = "string"
+  default = "kubernetes-kubelet docker-kubic"
+  description = "space-separated list of extra RPMs to install (set to '' for skipping)"
+}
+
+variable "devel" {
+  type = "string"
+  default = "1"
+  description = "enable somem steps for development environments (non-empty=true)"
 }
 
 variable "kubic_init_image" {
@@ -192,19 +204,21 @@ resource "libvirt_domain" "node" {
 }
 
 resource "null_resource" "upload_config_nodes" {
-  count = "${var.nodes_count}"
+  count = "${length(var.devel) == 0 ? 0 : var.nodes_count}"
 
   connection {
     host = "${element(libvirt_domain.node.*.network_interface.0.addresses.0, count.index)}"
     password = "${var.password}"
   }
 
-  # TODO: we must install docker... remove this
+  # TODO: we must install docker, kubelet, etc... remove this once we have them in the base image
   provisioner "remote-exec" {
     inline = [
       "for repo in /etc/zypp/repos.d/*.repo ; do echo 'gpgcheck=off' >> $repo ; done",
-      "transactional-update --no-selfupdate pkg install -y kubernetes-kubelet",
-      "echo 'Rebooting with the new packages...' && shutdown -r now",
+      "btrfs property set -ts /.snapshots/1/snapshot ro false",
+      "mount -o remount,rw /",
+      "zypper ref",
+      "zypper install -y ${var.rpms}",
     ]
   }
 
@@ -243,7 +257,6 @@ resource "null_resource" "upload_config_nodes" {
       "systemctl enable --now kubic-init",
     ]
   }
-
 }
 
 output "nodes" {

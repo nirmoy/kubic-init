@@ -111,7 +111,10 @@ local-reset: kubeadm-reset
 
 # we must "patch" the local kubelet by adding a drop-in unit
 # otherwise, the kubelet will be run with the wrong arguments
-$(KUBE_DROPIN_DST): $(KUBE_DROPIN_SRC)
+/var/lib/kubelet/config.yaml: /etc/kubernetes/kubelet-config.yaml
+	sudo cp -f /etc/kubernetes/kubelet-config.yaml /var/lib/kubelet/config.yaml
+
+$(KUBE_DROPIN_DST): $(KUBE_DROPIN_SRC) /var/lib/kubelet/config.yaml
 	@echo ">>> Adding drop-in unit for the local kubelet"
 	sudo mkdir -p `dirname $(KUBE_DROPIN_DST)`
 	sudo cp -f $(KUBE_DROPIN_SRC) $(KUBE_DROPIN_DST)

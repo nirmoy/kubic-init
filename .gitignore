@@ -13,3 +13,5 @@ vendor/
 # terraform stuff
 .terraform
 *.tfstate*
+
+robots.txt*
