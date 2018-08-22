@@ -1,8 +1,16 @@
-FROM opensuse:tumbleweed
+FROM opensuse:leap
 
-ARG EXTRA_REPO0="https://download.opensuse.org/repositories/devel:/kubic/openSUSE_Tumbleweed/"
-#ARG EXTRA_REPO1="https://download.opensuse.org/repositories/devel:/CaaSP:/Head:/ControllerNode/openSUSE_Leap_15.0/"
-ARG RUN_RPMS="docker-kubic kubernetes-client kubernetes-kubeadm cri-tools ca-certificates iptables systemd"
+# TODO: for some reason, systemctl cannot run in a opensuse:tumbleweed container
+# TODO: even when we are mounting /var/run in the container. As a result, kubeadm
+# TODO: cannot start kubelet
+
+# for Tumbleweed
+# ARG EXTRA_REPO0="https://download.opensuse.org/repositories/devel:/kubic/openSUSE_Tumbleweed/"
+
+# for Leap
+ARG EXTRA_REPO0="https://download.opensuse.org/repositories/devel:/CaaSP:/Head:/ControllerNode/openSUSE_Leap_15.0/"
+
+ARG RUN_RPMS="docker-kubic kubernetes-client cri-tools ca-certificates iptables systemd"
 ARG KUBIC_INIT_EXE="cmd/kubic-init/kubic-init"
 ARG KUBIC_INIT_SH="build/image/entrypoint.sh"
 
