@@ -8,6 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	kubeadmapi "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm"
 	kubeadmconstants "k8s.io/kubernetes/cmd/kubeadm/app/constants"
+	"k8s.io/kubernetes/cmd/kubeadm/app/features"
 	"k8s.io/kubernetes/cmd/kubeadm/app/preflight"
 	"k8s.io/kubernetes/cmd/kubeadm/app/util/apiclient"
 	kubeconfigutil "k8s.io/kubernetes/cmd/kubeadm/app/util/kubeconfig"
@@ -74,9 +75,10 @@ func Join(nodeCfg *kubeadmapi.NodeConfiguration, ignorePreflightErrorsSet sets.S
 		return err
 	}
 
-	// if features.Enabled(nodeCfg.FeatureGates, features.DynamicKubeletConfig)
-	if err = PhaseKubeletDynamicConf(&nodeCfg.NodeRegistration, client); err != nil {
-		return err
+	if features.Enabled(nodeCfg.FeatureGates, features.DynamicKubeletConfig) {
+		if err = PhaseKubeletDynamicConf(&nodeCfg.NodeRegistration, client); err != nil {
+			return err
+		}
 	}
 
 	return nil

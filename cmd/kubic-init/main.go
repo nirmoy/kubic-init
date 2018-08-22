@@ -34,9 +34,9 @@ import (
 var defaultFeatureGates = (features.CoreDNS + "=true," +
 	features.HighAvailability + "=false," +
 	features.SelfHosting + "=true," +
-	// TODO: disabled until https://github.com/kubernetes/kubeadm/issues/923
+// TODO: disabled until https://github.com/kubernetes/kubeadm/issues/923
 	features.StoreCertsInSecrets + "=false," +
-	// TODO: results in some errors... needs some research
+// TODO: results in some errors... needs some research
 	features.DynamicKubeletConfig + "=false")
 
 // [caas] Hardcoded list of errors to ignore
@@ -116,6 +116,8 @@ func newBootstrapCmd(out io.Writer) *cobra.Command {
 
 			featureGates, err := features.NewFeatureGate(&features.InitFeatureGates, defaultFeatureGates)
 			kubeadmutil.CheckErr(err)
+
+			glog.V(1).Infoln("[caas] feature gates: %+v", featureGates)
 
 			ignorePreflightErrorsSet, err := validation.ValidateIgnorePreflightErrors(defaultIgnoredPreflightErrors, false)
 			kubeadmutil.CheckErr(err)

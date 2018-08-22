@@ -117,9 +117,10 @@ func Init(cfg *kubeadmapiv1alpha2.MasterConfiguration, masterCfg *kubeadmapi.Mas
 		return err
 	}
 
-	// if features.Enabled(cfg.FeatureGates, features.DynamicKubeletConfig) {
-	if err = PhaseKubeletDynamicConf(&masterCfg.NodeRegistration, client); err != nil {
-		return err
+	if features.Enabled(masterCfg.FeatureGates, features.DynamicKubeletConfig) {
+		if err = PhaseKubeletDynamicConf(&masterCfg.NodeRegistration, client); err != nil {
+			return err
+		}
 	}
 
 	if err = PhaseNodeBootstrap(masterCfg, client); err != nil {
