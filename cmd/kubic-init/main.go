@@ -7,7 +7,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/golang/glog"
 	"github.com/renstrom/dedent"
 	"github.com/spf13/cobra"
@@ -64,8 +63,8 @@ func newBootstrapCmd(out io.Writer) *cobra.Command {
 			ignorePreflightErrorsSet, err := validation.ValidateIgnorePreflightErrors(kubiccfg.DefaultIgnoredPreflightErrors, skipPreFlight)
 			kubeadmutil.CheckErr(err)
 
-			if len(kubicCfg.Seeder) > 0 {
-				glog.V(1).Infoln("[caas] joining the seeder at %s", kubicCfg.Seeder)
+			if len(kubicCfg.ClusterFormation.Seeder) > 0 {
+				glog.V(1).Infoln("[caas] joining the seeder at %s", kubicCfg.ClusterFormation.Seeder)
 
 				nodeCfg.FeatureGates = featuresGates
 
@@ -74,8 +73,6 @@ func newBootstrapCmd(out io.Writer) *cobra.Command {
 
 				joiner, err := kubeadmcmd.NewJoin("", args, nodeCfg, ignorePreflightErrorsSet)
 				kubeadmutil.CheckErr(err)
-
-				glog.V(5).Infof("Current node configuration:\n%s", spew.Sdump(nodeCfg))
 
 				err = joiner.Run(out)
 				kubeadmutil.CheckErr(err)
@@ -92,8 +89,6 @@ func newBootstrapCmd(out io.Writer) *cobra.Command {
 
 				initter, err := kubeadmcmd.NewInit("", masterCfg, ignorePreflightErrorsSet, skipTokenPrint, dryRun)
 				kubeadmutil.CheckErr(err)
-
-				glog.V(5).Infof("Current master configuration:\n%s", spew.Sdump(masterCfg))
 
 				err = initter.Run(out)
 				kubeadmutil.CheckErr(err)
@@ -122,8 +117,6 @@ func newBootstrapCmd(out io.Writer) *cobra.Command {
 	flagSet := cmd.PersistentFlags()
 	flagSet.StringVar(&kubicCfgFile, "config", "",
 		"Path to kubic-init config file.")
-	flagSet.StringVar(&kubicCfg.Seeder, "seeder", "",
-		"Cluster seeder.")
 	flagSet.BoolVar(&block, "block", block, "Block after boostrapping")
 	// Note: All flags that are not bound to the masterCfg object should be whitelisted in cmd/kubeadm/app/apis/kubeadm/validation/validation.go
 

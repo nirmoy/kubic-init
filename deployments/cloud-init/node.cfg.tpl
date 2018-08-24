@@ -30,7 +30,9 @@ write_files:
     content: |
       apiVersion: caas.suse.com/v1alpha1
       kind: CaaSInitConfiguration
-      seed: ${seeder}
+      clusterFormation:
+        seed: ${seeder}
+        token: ${token}
 
 runcmd:
   - /usr/bin/systemctl enable --now ntpd

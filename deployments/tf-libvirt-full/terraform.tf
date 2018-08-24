@@ -142,6 +142,21 @@ resource "null_resource" "download_kubic_image" {
   }
 }
 
+
+###########################
+# Token                   #
+###########################
+
+data "external" "token_gen" {
+  program = [
+    "python",
+    "../support/tf/gen-token.py"]
+}
+
+output "token" {
+  value = "${data.external.token_gen.result.token}"
+}
+
 ##############
 # Seed node #
 ##############
@@ -160,6 +175,7 @@ data "template_file" "seed_cloud_init_user_data" {
   vars {
     password = "${var.password}"
     hostname = "${var.prefix}-seed"
+    token = "${data.external.token_gen.result.token}"
   }
 }
 
@@ -275,6 +291,7 @@ data "template_file" "node_cloud_init_user_data" {
 
   vars {
     seeder = "${libvirt_domain.seed.network_interface.0.addresses.0}"
+    token = "${data.external.token_gen.result.token}"
     password = "${var.password}"
     hostname = "${var.prefix}-node-${count.index}"
   }
