@@ -36,8 +36,9 @@ featureGates:
   SelfHosting: true
   ### TODO: disable until https://github.com/kubernetes/kubeadm/issues/923
   StoreCertsInSecrets: false
-  HighAvailability: true
+  HighAvailability: false
   CoreDNS: true
+  DynamicKubeletConfig: false
 kubernetesVersion: v1.11.0
 #imageRepository: k8s.gcr.io
 #kubeProxy:

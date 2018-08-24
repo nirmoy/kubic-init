@@ -2,16 +2,18 @@
 GOPATH_THIS_USER = $(shell basename `realpath ..`)
 GOPATH_THIS_REPO = $(shell basename `pwd`)
 
-IMAGE_BASENAME = $(GOPATH_THIS_REPO)
-IMAGE_NAME     = $(GOPATH_THIS_USER)/$(IMAGE_BASENAME)
-IMAGE_TAR_GZ   = $(IMAGE_BASENAME)-latest.tar.gz
-
 # go source files, ignore vendor directory
 KUBIC_INIT_EXE  = cmd/kubic-init/kubic-init
 KUBIC_INIT_SH   = build/image/entrypoint.sh
 KUBIC_INIT_MAIN = cmd/kubic-init/main.go
 KUBIC_INIT_SRCS = $(shell find . -type f -name '*.go' -not -path "./vendor/*")
+KUBIC_INIT_CFGS = $(shell find ./configs -type f -not -name "README*")
 .DEFAULT_GOAL: $(KUBIC_INIT_EXE)
+
+IMAGE_BASENAME = $(GOPATH_THIS_REPO)
+IMAGE_NAME     = $(GOPATH_THIS_USER)/$(IMAGE_BASENAME)
+IMAGE_TAR_GZ   = $(IMAGE_BASENAME)-latest.tar.gz
+IMAGE_DEPS     = $(KUBIC_INIT_EXE) $(KUBIC_INIT_SH) $(KUBIC_INIT_CFGS) Dockerfile
 
 # should be non-empty when dep is installed
 DEP_EXE := $(shell command -v dep 2> /dev/null)
@@ -38,6 +40,7 @@ CONTAINER_VOLUMES = \
 		-v `pwd`/configs:/etc/kubic \
         -v /etc/kubernetes:/etc/kubernetes \
         -v /etc/hosts:/etc/hosts:ro \
+        -v /usr/bin/kubelet:/usr/bin/kubelet:ro \
         -v /var/lib/kubelet:/var/lib/kubelet \
         -v /etc/cni/net.d:/etc/cni/net.d \
         -v /var/lib/dockershim:/var/lib/dockershim \
@@ -97,13 +100,14 @@ clean: docker-reset kubelet-reset docker-image-clean
 # (for testing things locally)
 #############################################################
 
-kubeadm-reset:
+kubeadm-reset: $(KUBIC_INIT_EXE)
 	@echo ">>> Resetting everything..."
-	@sudo kubeadm reset -f
+	sudo $(KUBIC_INIT_EXE) reset -v 5 -f
 
 local-run: $(KUBIC_INIT_EXE)
 	@echo ">>> Running $(KUBIC_INIT_EXE) as _root_"
-	sudo $(KUBIC_INIT_EXE) \
+	sudo $(KUBIC_INIT_EXE) bootstrap \
+		-v 5 \
 		--config configs/kubic-init.yaml \
 		--kubeadm-config configs/master-config.yaml
 
@@ -131,7 +135,7 @@ docker-run: $(IMAGE_TAR_GZ) docker-reset $(KUBE_DROPIN_DST)
 
 docker-reset: kubeadm-reset
 
-$(IMAGE_TAR_GZ): $(KUBIC_INIT_EXE) $(KUBIC_INIT_SH) Dockerfile
+$(IMAGE_TAR_GZ): $(IMAGE_DEPS)
 	@echo ">>> Creating Docker image..."
 	docker build \
 		--build-arg KUBIC_INIT_EXE=$(KUBIC_INIT_EXE) \

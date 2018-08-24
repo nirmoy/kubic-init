@@ -12,31 +12,29 @@ import (
 	"github.com/renstrom/dedent"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-
 	apimachineryversion "k8s.io/apimachinery/pkg/version"
 	utilflag "k8s.io/apiserver/pkg/util/flag"
 	kubeadmscheme "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/scheme"
 	kubeadmapiv1alpha2 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1alpha2"
 	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/validation"
 	kubeadmcmd "k8s.io/kubernetes/cmd/kubeadm/app/cmd"
-	kubeadmoptions "k8s.io/kubernetes/cmd/kubeadm/app/cmd/options"
 	kubeadmupcmd "k8s.io/kubernetes/cmd/kubeadm/app/cmd/upgrade"
 	"k8s.io/kubernetes/cmd/kubeadm/app/features"
 	kubeadmutil "k8s.io/kubernetes/cmd/kubeadm/app/util"
-	configutil "k8s.io/kubernetes/cmd/kubeadm/app/util/config"
 	"k8s.io/kubernetes/pkg/version"
-
-	kubicboot "github.com/kubic-project/kubic-init/pkg/bootstrap"
 )
+
+// The environment variable used for passing the seeder
+const seederEnvVar = "SEED_NODE"
 
 // [caas] use a constant set of featureGates
 // A set of key=value pairs that describe feature gates for various features.
 var defaultFeatureGates = (features.CoreDNS + "=true," +
 	features.HighAvailability + "=false," +
 	features.SelfHosting + "=true," +
-	// TODO: disabled until https://github.com/kubernetes/kubeadm/issues/923
+// TODO: disabled until https://github.com/kubernetes/kubeadm/issues/923
 	features.StoreCertsInSecrets + "=false," +
-	// TODO: results in some errors... needs some research
+// TODO: results in some errors... needs some research
 	features.DynamicKubeletConfig + "=false")
 
 // [caas] Hardcoded list of errors to ignore
@@ -88,6 +86,11 @@ func ConfigFileAndDefaultsToCaasConfig(cfgPath string, internalcfg *CaasInitConf
 		}
 	}
 
+	// Overwrite some values with environment variables
+	if seederEnv, found := os.LookupEnv(seederEnvVar); found {
+		internalcfg.Seeder = seederEnv
+	}
+
 	return internalcfg, nil
 }
 
@@ -95,14 +98,17 @@ func ConfigFileAndDefaultsToCaasConfig(cfgPath string, internalcfg *CaasInitConf
 func newBootstrapCmd(out io.Writer) *cobra.Command {
 	kubicCfg := &CaasInitConfiguration{}
 
-	externalMasterCfg := &kubeadmapiv1alpha2.MasterConfiguration{}
-	kubeadmscheme.Scheme.Default(externalMasterCfg)
+	masterCfg := &kubeadmapiv1alpha2.MasterConfiguration{}
+	kubeadmscheme.Scheme.Default(masterCfg)
 
 	nodeCfg := &kubeadmapiv1alpha2.NodeConfiguration{}
 	kubeadmscheme.Scheme.Default(nodeCfg)
 
 	var kubicCfgFile string
 	var kubeadmCfgFile string
+	var skipTokenPrint = false
+	var skipPreFlight = false
+	var dryRun = false
 	block := true
 
 	cmd := &cobra.Command{
@@ -114,52 +120,43 @@ func newBootstrapCmd(out io.Writer) *cobra.Command {
 			kubicCfg, err = ConfigFileAndDefaultsToCaasConfig(kubicCfgFile, kubicCfg)
 			kubeadmutil.CheckErr(err)
 
-			featureGates, err := features.NewFeatureGate(&features.InitFeatureGates, defaultFeatureGates)
+			featuresGates, err := features.NewFeatureGate(&features.InitFeatureGates, defaultFeatureGates)
 			kubeadmutil.CheckErr(err)
+			glog.V(3).Infoln("[caas] feature gates: %+v", featuresGates)
 
-			ignorePreflightErrorsSet, err := validation.ValidateIgnorePreflightErrors(defaultIgnoredPreflightErrors, false)
+			ignorePreflightErrorsSet, err := validation.ValidateIgnorePreflightErrors(defaultIgnoredPreflightErrors, skipPreFlight)
 			kubeadmutil.CheckErr(err)
 
 			if len(kubicCfg.Seeder) > 0 {
-
 				glog.V(1).Infoln("[caas] joining the seeder at %s", kubicCfg.Seeder)
+				nodeCfg.DiscoveryTokenAPIServers = []string{kubicCfg.Seeder}
+				nodeCfg.FeatureGates = featuresGates
 
-				// TODO: convert the "seeder" to a discovery-thing
-
-				nodeCfg, err := configutil.NodeConfigFileAndDefaultsToInternalConfig(kubeadmCfgFile, nodeCfg)
+				joiner, err := kubeadmcmd.NewJoin(kubeadmCfgFile, args, nodeCfg, ignorePreflightErrorsSet)
 				kubeadmutil.CheckErr(err)
 
-				// set some args and do some checks
-				nodeCfg.FeatureGates = featureGates
-				nodeCfg.DiscoveryTokenAPIServers = args
-				if nodeCfg.NodeRegistration.Name == "" {
-					glog.V(1).Infoln("[join] found NodeName empty")
-					glog.V(1).Infoln("[join] considered OS hostname as NodeName")
-				}
+				// TODO: override any nodeCfg parameters we want at this point...
 
-				err = kubicboot.Join(nodeCfg, ignorePreflightErrorsSet)
+				err = joiner.Run(out)
 				kubeadmutil.CheckErr(err)
 
 				glog.V(1).Infoln("[caas] this node should have joined the cluster at this point")
+
 			} else {
 				glog.V(1).Infoln("[caas] seeding the cluster from this node")
 
-				// Either use the config file if specified, or convert the defaults in the external to an internal externalMasterCfg representation
-				cfg, err := configutil.ConfigFileAndDefaultsToInternalConfig(kubeadmCfgFile, externalMasterCfg)
+				masterCfg.FeatureGates = featuresGates
+
+				initter, err := kubeadmcmd.NewInit(kubeadmCfgFile, masterCfg, ignorePreflightErrorsSet, skipTokenPrint, dryRun)
 				kubeadmutil.CheckErr(err)
 
-				cfg.FeatureGates = featureGates
+				// TODO: override any masterCfg parameters we want at this point...
 
-				// Create the options object for the bootstrap token-related flags, and override the default value for .Description
-				bto := kubeadmoptions.NewBootstrapTokenOptions()
-				bto.Description = "The default bootstrap token generated by 'kubeadm init'."
-
-				err = kubicboot.Init(externalMasterCfg, cfg, bto, ignorePreflightErrorsSet)
+				err = initter.Run(out)
 				kubeadmutil.CheckErr(err)
 
-				// TODO: load CNI, Dex, etc...
-
-				glog.V(1).Infoln("[caas] the seeder is ready at this point")
+				// TODO: create a kubernetes client
+				// TODO: deploy CNI, Dex, etc... with this client
 			}
 
 			if block {
@@ -173,13 +170,13 @@ func newBootstrapCmd(out io.Writer) *cobra.Command {
 
 	flagSet := cmd.PersistentFlags()
 	flagSet.StringVar(&kubicCfgFile, "config", "",
-		"Path to kubic config file.")
+		"Path to kubic-init config file.")
 	flagSet.StringVar(&kubeadmCfgFile, "kubeadm-config", "",
-		"Path to kubeadm config file. WARNING: Usage of a configuration file is experimental.")
+		"Path to kubeadm config file.")
 	flagSet.StringVar(&kubicCfg.Seeder, "seeder", "",
 		"Cluster seeder.")
 	flagSet.BoolVar(&block, "block", block, "Block after boostrapping")
-	// Note: All flags that are not bound to the externalMasterCfg object should be whitelisted in cmd/kubeadm/app/apis/kubeadm/validation/validation.go
+	// Note: All flags that are not bound to the masterCfg object should be whitelisted in cmd/kubeadm/app/apis/kubeadm/validation/validation.go
 
 	return cmd
 }
@@ -195,10 +192,10 @@ func newCmdVersion(out io.Writer) *cobra.Command {
 				ClientVersion: &clientVersion,
 			}
 
-			const flag = "output"
-			_, err := cmd.Flags().GetString(flag)
+			const cflag = "output"
+			_, err := cmd.Flags().GetString(cflag)
 			if err != nil {
-				glog.Fatalf("error accessing flag %s for command %s: %v", flag, cmd.Name(), err)
+				glog.Fatalf("error accessing flag %s for command %s: %v", cflag, cmd.Name(), err)
 			}
 
 			fmt.Fprintf(out, "kubic-init version: %#v\n", v.ClientVersion)
