@@ -72,7 +72,10 @@ Before we have a functional POC we need to implement:
 * [X] Seeder
 * [ ] Join for nodes
 * [ ] Accept/reject nodes
-* [ ] [CNI](pkg/cni), Dex and all the other critical pods.
+* [ ] [CNI](pkg/cni)
+  * [X] Load CNI manifests
+  * [ ] Prepare and use an updated `flannel` image
+* [ ] Dex and all the other critical pods.
 * [ ] Use `podman` instead of Docker
 * [ ] Install some requirements in the base Kubic images
 * [ ] All the `TODO`s in this repo...

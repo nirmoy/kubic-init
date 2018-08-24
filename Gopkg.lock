@@ -9,12 +9,12 @@
   revision = "bb23615498cded5e105af4ce27de75b089cbe851"
 
 [[projects]]
-  digest = "1:4c02d1560570c0230c5d8d439147d2e17f1e6e56f63863f0db186b12eb088f20"
+  digest = "1:159796020d9f8663165cfd247c6f8fc85b1f2e99fd4227866b2d57a5befe090b"
   name = "github.com/Microsoft/go-winio"
   packages = ["."]
   pruneopts = "U"
-  revision = "a6d595ae73cf27a1b8fc32930668708f45ce1c85"
-  version = "v0.4.9"
+  revision = "97e4973ce50b2ff5f09635a57e2b88a037aae829"
+  version = "v0.4.11"
 
 [[projects]]
   digest = "1:85b68a6ac7e02371404c0bc0391cbdb830fb68ec1afb3e1aa5afd63f85885e09"
@@ -79,12 +79,12 @@
   version = "v3.3.9"
 
 [[projects]]
-  digest = "1:18f5633b476e7563914911f12a1e1064f6158d11331b81077134d54816c7775c"
+  digest = "1:2f7f7dc60a1e4160196e4ba7e773ace2ffd874fedcc4e79682863892d6362e1f"
   name = "github.com/davecgh/go-spew"
   packages = ["spew"]
   pruneopts = "U"
-  revision = "346938d642f2ec3594ed81d874461961cd0faa76"
-  version = "v1.1.0"
+  revision = "8991bc29aa16c548c550c7ff78260e27b9ab7c73"
+  version = "v1.1.1"
 
 [[projects]]
   digest = "1:2f4361909701dd07c2532b8efd8d523452c0ad39edcad8d58292ec12066cf64f"
@@ -199,7 +199,7 @@
   revision = "24b0969c4cb722950103eed87108c8d291a8df00"
 
 [[projects]]
-  digest = "1:f52d858cb070f520e791ba9984956af2f5a34e9180a9e5e638e6dff655f49707"
+  digest = "1:fad4583dd602eb6d4169ced12de014f1e7e0017d80ec2238ca1fa3e952376d05"
   name = "github.com/golang/protobuf"
   packages = [
     "proto",
@@ -209,16 +209,16 @@
     "ptypes/timestamp",
   ]
   pruneopts = "U"
-  revision = "b4deda0973fb4c70b50d226b1af49f3da59f5265"
-  version = "v1.1.0"
+  revision = "aa810b61a9c79d51363740d207bb46cf8e620ed5"
+  version = "v1.2.0"
 
 [[projects]]
   branch = "master"
-  digest = "1:be28c0531a755f2178acf1e327e6f5a8a3968feb5f2567cdc968064253141751"
+  digest = "1:1e5b1e14524ed08301977b7b8e10c719ed853cbf3f24ecb66fae783a46f207a6"
   name = "github.com/google/btree"
   packages = ["."]
   pruneopts = "U"
-  revision = "e89373fe6b4a7413d7acd6da1725b83ef713e6e4"
+  revision = "4030bb1f1f0c35b30ca7009e9ebd06849dd45306"
 
 [[projects]]
   branch = "master"
@@ -454,12 +454,12 @@
   version = "v0.0.3"
 
 [[projects]]
-  digest = "1:34bb8180f0a69bdb12780ab1444079848d604143309e5f42b3e6623c67e91fe3"
+  digest = "1:5f9add8528f54f3885640c3d28c6ac666ed9c9b22b675940ed9a6bf2dc69143d"
   name = "github.com/spf13/pflag"
   packages = ["."]
   pruneopts = "U"
-  revision = "583c0c0531f06d5278b7d917446061adc344b5cd"
-  version = "v1.0.1"
+  revision = "9a97c102cda95a86cec2345a6f09f55a939babf5"
+  version = "v1.0.2"
 
 [[projects]]
   digest = "1:62c701abe81873c12bc5da5c3f204d7293bb88e31977d5e7e258cfbbd2ca496a"
@@ -494,11 +494,11 @@
     "ssh/terminal",
   ]
   pruneopts = "U"
-  revision = "de0752318171da717af4ce24d0a2e8626afaeb11"
+  revision = "614d502a4dac94afa3a6ce146bd1736da82514c6"
 
 [[projects]]
   branch = "master"
-  digest = "1:d651475205b0b6dfadda01a0dae0f040dc7cc5aeac9deea50522b5d5bcc66511"
+  digest = "1:7c27a2f3fda503dc554a5a67d47943848eb3c2bfd4bb09b1f9ba054a1412df60"
   name = "golang.org/x/net"
   packages = [
     "context",
@@ -513,18 +513,18 @@
     "trace",
   ]
   pruneopts = "U"
-  revision = "f9ce57c11b242f0f1599cf25c89d8cb02c45295a"
+  revision = "faa378e6dbaed88bd8100f8bcf09939375c6e8fa"
 
 [[projects]]
   branch = "master"
-  digest = "1:3cb4f85ebc2d9f276ae8846ee0df323a557e98a50b691e30140c1d6949116c5b"
+  digest = "1:9c5d97457a318e83b1cc95a8bb9d839b9267465d740ac19b9d58c800cab5cb51"
   name = "golang.org/x/sys"
   packages = [
     "unix",
     "windows",
   ]
   pruneopts = "U"
-  revision = "904bdc257025c7b3f43c19360ad3ab85783fad78"
+  revision = "11551d06cbcc94edc80a0facaccbda56473c19c1"
 
 [[projects]]
   digest = "1:c2e1117b4ed0c703cec077c362bb170f03cb1c251bec7ee5c257976f191df129"
@@ -564,7 +564,7 @@
   name = "google.golang.org/genproto"
   packages = ["googleapis/rpc/status"]
   pruneopts = "U"
-  revision = "383e8b2c3b9e36c4076b235b32537292176bae20"
+  revision = "c66870c02cf823ceb633bcd05be3c7cda29976f4"
 
 [[projects]]
   digest = "1:019d89af01cc4d739b07351620f49988310b6e3f560c4dc84be5eba001c02902"
@@ -675,7 +675,7 @@
   name = "k8s.io/apiextensions-apiserver"
   packages = ["pkg/features"]
   pruneopts = "U"
-  revision = "4d05e43ad98c1edcf2f52291685bd9bbc12fd2cd"
+  revision = "d9373c11a3843f060d1105239b1b143f895c61f1"
 
 [[projects]]
   digest = "1:71c18ef1a0cb5c06ef28b802d029df6ba3e5dab1eb14394c9053e58b247d0c0c"
@@ -982,12 +982,13 @@
   name = "k8s.io/utils"
   packages = ["exec"]
   pruneopts = "U"
-  revision = "045dc31ee5c40e8240241ce28dc24d7b56130373"
+  revision = "982821ea41da7e7c15f3d3738921eb2e7e241ccd"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "github.com/davecgh/go-spew/spew",
     "github.com/golang/glog",
     "github.com/renstrom/dedent",
     "github.com/spf13/cobra",
@@ -997,44 +998,19 @@
     "k8s.io/api/rbac/v1",
     "k8s.io/apimachinery/pkg/apis/meta/v1",
     "k8s.io/apimachinery/pkg/runtime",
-    "k8s.io/apimachinery/pkg/util/sets",
-    "k8s.io/apimachinery/pkg/util/wait",
-    "k8s.io/apimachinery/pkg/version",
     "k8s.io/apiserver/pkg/util/flag",
     "k8s.io/client-go/kubernetes",
     "k8s.io/client-go/kubernetes/scheme",
-    "k8s.io/client-go/util/cert",
-    "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm",
     "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/scheme",
     "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1alpha2",
     "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/validation",
     "k8s.io/kubernetes/cmd/kubeadm/app/cmd",
-    "k8s.io/kubernetes/cmd/kubeadm/app/cmd/options",
     "k8s.io/kubernetes/cmd/kubeadm/app/cmd/upgrade",
     "k8s.io/kubernetes/cmd/kubeadm/app/constants",
-    "k8s.io/kubernetes/cmd/kubeadm/app/discovery",
     "k8s.io/kubernetes/cmd/kubeadm/app/features",
-    "k8s.io/kubernetes/cmd/kubeadm/app/images",
-    "k8s.io/kubernetes/cmd/kubeadm/app/phases/addons/dns",
-    "k8s.io/kubernetes/cmd/kubeadm/app/phases/addons/proxy",
-    "k8s.io/kubernetes/cmd/kubeadm/app/phases/bootstraptoken/clusterinfo",
-    "k8s.io/kubernetes/cmd/kubeadm/app/phases/bootstraptoken/node",
-    "k8s.io/kubernetes/cmd/kubeadm/app/phases/certs",
-    "k8s.io/kubernetes/cmd/kubeadm/app/phases/controlplane",
-    "k8s.io/kubernetes/cmd/kubeadm/app/phases/etcd",
-    "k8s.io/kubernetes/cmd/kubeadm/app/phases/kubeconfig",
-    "k8s.io/kubernetes/cmd/kubeadm/app/phases/kubelet",
-    "k8s.io/kubernetes/cmd/kubeadm/app/phases/markmaster",
-    "k8s.io/kubernetes/cmd/kubeadm/app/phases/patchnode",
-    "k8s.io/kubernetes/cmd/kubeadm/app/phases/selfhosting",
-    "k8s.io/kubernetes/cmd/kubeadm/app/phases/uploadconfig",
-    "k8s.io/kubernetes/cmd/kubeadm/app/preflight",
     "k8s.io/kubernetes/cmd/kubeadm/app/util",
     "k8s.io/kubernetes/cmd/kubeadm/app/util/apiclient",
-    "k8s.io/kubernetes/cmd/kubeadm/app/util/config",
     "k8s.io/kubernetes/cmd/kubeadm/app/util/kubeconfig",
-    "k8s.io/kubernetes/pkg/version",
-    "k8s.io/utils/exec",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1

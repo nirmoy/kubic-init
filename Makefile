@@ -36,6 +36,9 @@ TF_LIBVIRT_FULL_DIR  = deployments/tf-libvirt-full
 TF_LIBVIRT_NODES_DIR = deployments/tf-libvirt-nodes
 TF_ARGS_DEFAULT      = -var 'kubic_init_image=$(IMAGE_TAR_GZ)'
 
+# increase to 8 for detailed kubeadm logs...
+LOCAL_VERBOSE_LEVEL = 5
+
 CONTAINER_VOLUMES = \
 		-v `pwd`/configs:/etc/kubic \
         -v /etc/kubernetes:/etc/kubernetes \
@@ -100,19 +103,6 @@ clean: docker-reset kubelet-reset docker-image-clean
 # (for testing things locally)
 #############################################################
 
-kubeadm-reset: $(KUBIC_INIT_EXE)
-	@echo ">>> Resetting everything..."
-	sudo $(KUBIC_INIT_EXE) reset -v 5 -f
-
-local-run: $(KUBIC_INIT_EXE)
-	@echo ">>> Running $(KUBIC_INIT_EXE) as _root_"
-	sudo $(KUBIC_INIT_EXE) bootstrap \
-		-v 5 \
-		--config configs/kubic-init.yaml \
-		--kubeadm-config configs/master-config.yaml
-
-local-reset: kubeadm-reset
-
 # we must "patch" the local kubelet by adding a drop-in unit
 # otherwise, the kubelet will be run with the wrong arguments
 /var/lib/kubelet/config.yaml: /etc/kubernetes/kubelet-config.yaml
@@ -123,6 +113,17 @@ $(KUBE_DROPIN_DST): $(KUBE_DROPIN_SRC) /var/lib/kubelet/config.yaml
 	sudo mkdir -p `dirname $(KUBE_DROPIN_DST)`
 	sudo cp -f $(KUBE_DROPIN_SRC) $(KUBE_DROPIN_DST)
 	sudo systemctl daemon-reload
+
+kubeadm-reset: local-reset
+local-reset: $(KUBIC_INIT_EXE)
+	@echo ">>> Resetting everything..."
+	sudo $(KUBIC_INIT_EXE) reset -v $(LOCAL_VERBOSE_LEVEL) -f
+
+local-run: $(KUBIC_INIT_EXE) $(KUBE_DROPIN_DST) local-reset
+	@echo ">>> Running $(KUBIC_INIT_EXE) as _root_"
+	sudo $(KUBIC_INIT_EXE) bootstrap \
+		-v $(LOCAL_VERBOSE_LEVEL) \
+		--config configs/kubic-init.yaml
 
 docker-run: $(IMAGE_TAR_GZ) docker-reset $(KUBE_DROPIN_DST)
 	@echo ">>> Running $(IMAGE_NAME):latest in the local Docker"
