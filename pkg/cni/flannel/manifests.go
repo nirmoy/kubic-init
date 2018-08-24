@@ -33,8 +33,8 @@ data:
     }
   net-conf.json: |
     {
-      "Network":   "{{ .ClusterCIDR }}",
-      "SubnetLen": {{ .ClusterCIDRLen') }},
+      "Network":   "{{ .Network }}",
+      "SubnetLen": {{ .SubnetLen }},
       "Backend":
       {
         "Type": "{{ .Backend }}"

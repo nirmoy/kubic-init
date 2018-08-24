@@ -98,8 +98,16 @@ func newBootstrapCmd(out io.Writer) *cobra.Command {
 				err = initter.Run(out)
 				kubeadmutil.CheckErr(err)
 
-				// TODO: create a kubernetes client
-				// TODO: deploy CNI, Dex, etc... with this client
+				// create a kubernetes client
+				// create a connection to the API server and wait for it to come up
+				client, err := kubeconfigutil.ClientSetFromFile(kubeadmconstants.GetAdminKubeConfigPath())
+				kubeadmutil.CheckErr(err)
+
+				glog.V(1).Infof("[caas] deploying CNI DaemonSet with '%s' driver", kubicCfg.Cni.Driver)
+				err = cni.Registry.Load(kubicCfg.Cni.Driver, kubicCfg, client)
+				kubeadmutil.CheckErr(err)
+
+				// TODO: deploy Dex, etc...
 			}
 
 			if block {

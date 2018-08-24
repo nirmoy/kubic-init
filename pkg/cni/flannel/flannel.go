@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/kubic-project/kubic-init/pkg/cni"
 	apps "k8s.io/api/apps/v1"
 	"k8s.io/api/core/v1"
 	rbac "k8s.io/api/rbac/v1"
@@ -12,9 +11,11 @@ import (
 	kuberuntime "k8s.io/apimachinery/pkg/runtime"
 	clientset "k8s.io/client-go/kubernetes"
 	clientsetscheme "k8s.io/client-go/kubernetes/scheme"
-	kubeadmapi "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm"
 	kubeadmutil "k8s.io/kubernetes/cmd/kubeadm/app/util"
 	"k8s.io/kubernetes/cmd/kubeadm/app/util/apiclient"
+
+	"github.com/kubic-project/kubic-init/pkg/cni"
+	"github.com/kubic-project/kubic-init/pkg/config"
 )
 
 const (
@@ -26,26 +27,34 @@ const (
 	FlannelServiceAccountName = "flannel"
 
 	FlannelImage = "sles12/flannel:0.9.1"
+
+	FlannelHealthPort = 8471
 )
 
+func init() {
+	// self-register in the CNI plugins registry
+	cni.Registry.Register("flannel", EnsureFlannelAddon)
+}
+
 // EnsureFlannelAddon creates the flannel addons
-func EnsureFlannelAddon(cfg *kubeadmapi.MasterConfiguration, client clientset.Interface) error {
+func EnsureFlannelAddon(cfg *config.KubicInitConfiguration, client clientset.Interface) error {
 	if err := CreateServiceAccount(client); err != nil {
 		return fmt.Errorf("error when creating flannel service account: %v", err)
 	}
 
-	cidr_ip, cidr_net, err := net.ParseCIDR(cfg.Networking.PodSubnet)
+	// Get the flannel subnet from the Network section of the kubeadm's master config
+	cidr_ip, cidr_net, err := net.ParseCIDR(cfg.Cni.PodSubnet)
 	if err != nil {
-		return fmt.Errorf("could not parse Pod CIDR: %v", err)
+		return fmt.Errorf("could not parse Pod CIDR from '%s': %v", cfg.Cni.PodSubnet, err)
 	}
 	cidr_len, _ := cidr_net.Mask.Size()
 
-	var proxyConfigMapBytes, proxyDaemonSetBytes []byte
-	proxyConfigMapBytes, err = kubeadmutil.ParseTemplate(FlannelConfigMap19,
+	var flannelConfigMapBytes, flannelDaemonSetBytes []byte
+	flannelConfigMapBytes, err = kubeadmutil.ParseTemplate(FlannelConfigMap19,
 		struct {
-			Network string
-			SubnetLen  int
-			Backend  string
+			Network   string
+			SubnetLen int
+			Backend   string
 		}{
 			cidr_ip.String(),
 			cidr_len,
@@ -55,26 +64,29 @@ func EnsureFlannelAddon(cfg *kubeadmapi.MasterConfiguration, client clientset.In
 		return fmt.Errorf("error when parsing flannel configmap template: %v", err)
 	}
 
-	proxyDaemonSetBytes, err = kubeadmutil.ParseTemplate(FlannelDaemonSet19,
-		struct{
-			Image string
-			LogLevel int
+	flannelDaemonSetBytes, err = kubeadmutil.ParseTemplate(FlannelDaemonSet19,
+		struct {
+			Image       string
+			LogLevel    int
 			HealthzPort int
-			ConfDir string
-			BinDir string
+			ConfDir     string
+			BinDir      string
 		}{
 			FlannelImage,
 			1, // TODO: replace by some config arg
-			8471,
-			cni.DefaultConfDir,
-			cni.DefaultBinDir,
+			FlannelHealthPort,
+			config.DefaultCniConfDir,
+			config.DefaultCniBinDir,
 		})
+
 	if err != nil {
 		return fmt.Errorf("error when parsing flannel daemonset template: %v", err)
 	}
-	if err := createFlannelAddon(proxyConfigMapBytes, proxyDaemonSetBytes, client); err != nil {
+
+	if err := createFlannelAddon(flannelConfigMapBytes, flannelDaemonSetBytes, client); err != nil {
 		return err
 	}
+
 	if err := CreateRBACRules(client); err != nil {
 		return fmt.Errorf("error when creating flannel RBAC rules: %v", err)
 	}
@@ -100,29 +112,29 @@ func CreateRBACRules(client clientset.Interface) error {
 }
 
 func createFlannelAddon(configMapBytes, daemonSetbytes []byte, client clientset.Interface) error {
-	kubeproxyConfigMap := &v1.ConfigMap{}
-	if err := kuberuntime.DecodeInto(clientsetscheme.Codecs.UniversalDecoder(), configMapBytes, kubeproxyConfigMap); err != nil {
+	flannelConfigMap := &v1.ConfigMap{}
+	if err := kuberuntime.DecodeInto(clientsetscheme.Codecs.UniversalDecoder(), configMapBytes, flannelConfigMap); err != nil {
 		return fmt.Errorf("unable to decode flannel configmap %v", err)
 	}
 
 	// Create the ConfigMap for flannel or update it in case it already exists
-	if err := apiclient.CreateOrUpdateConfigMap(client, kubeproxyConfigMap); err != nil {
+	if err := apiclient.CreateOrUpdateConfigMap(client, flannelConfigMap); err != nil {
 		return err
 	}
 
-	kubeproxyDaemonSet := &apps.DaemonSet{}
-	if err := kuberuntime.DecodeInto(clientsetscheme.Codecs.UniversalDecoder(), daemonSetbytes, kubeproxyDaemonSet); err != nil {
+	flannelDaemonSet := &apps.DaemonSet{}
+	if err := kuberuntime.DecodeInto(clientsetscheme.Codecs.UniversalDecoder(), daemonSetbytes, flannelDaemonSet); err != nil {
 		return fmt.Errorf("unable to decode flannel daemonset %v", err)
 	}
 
 	// Create the DaemonSet for flannel or update it in case it already exists
-	return apiclient.CreateOrUpdateDaemonSet(client, kubeproxyDaemonSet)
+	return apiclient.CreateOrUpdateDaemonSet(client, flannelDaemonSet)
 }
 
 func createClusterRoleBindings(client clientset.Interface) error {
 	return apiclient.CreateOrUpdateClusterRoleBinding(client, &rbac.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "kubeadm:node-proxier",
+			Name: FlannelClusterRoleName,
 		},
 		RoleRef: rbac.RoleRef{
 			APIGroup: rbac.GroupName,
