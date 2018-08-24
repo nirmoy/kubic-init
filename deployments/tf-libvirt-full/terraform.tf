@@ -18,85 +18,97 @@
 #####################
 
 variable "libvirt_uri" {
-  default     = "qemu:///system"
+  default = "qemu:///system"
   description = "libvirt connection url - default to localhost"
 }
 
 variable "img_pool" {
-  default     = "default"
+  default = "default"
   description = "pool to be used to store all the volumes"
 }
 
 variable "img_url_base" {
-  type        = "string"
+  type = "string"
   #default     = "https://download.opensuse.org/repositories/devel:/kubic:/images/images/"
-  default     = "https://download.opensuse.org/repositories/devel:/CaaSP:/images/images/"
+  default = "https://download.opensuse.org/repositories/devel:/CaaSP:/images/images/"
   description = "URL to the KVM image used"
 }
 
 variable "img_src_filename" {
-  type        = "string"
-  default     = ""
+  type = "string"
+  default = ""
   description = "Force a specific filename"
 }
 
 variable "img" {
-  type        = "string"
-  default     = "../images/kubic.qcow2"
+  type = "string"
+  default = "../images/kubic.qcow2"
   description = "remote URL or local copy (can be used in conjuction with img_url_base) of the image to use."
 }
 
 variable "img_refresh" {
-  default     = "true"
+  default = "true"
   description = "Try to get the latest image (true/false)"
 }
 
 variable "img_down_extra_args" {
-  default     = ""
+  default = ""
   description = "Extra arguments for the images downloader"
 }
 
 variable "img_sudo_virsh" {
-  default     = "local"
+  default = "local"
   description = "Run virsh wioth sudo on [local|remote|both]"
 }
 
 variable "nodes_count" {
-  default     = 1
+  default = 1
   description = "Number of non-seed nodes to be created"
 }
 
 variable "prefix" {
-  type        = "string"
-  default     = "kubic"
+  type = "string"
+  default = "kubic"
   description = "a prefix for resources"
 }
 
 variable "network" {
-  type        = "string"
-  default     = "default"
+  type = "string"
+  default = "default"
   description = "an existing network to use for the VMs"
 }
 
 variable "password" {
-  type        = "string"
-  default     = "linux"
+  type = "string"
+  default = "linux"
   description = "password for sshing to the VMs"
 }
 
+variable "rpms" {
+  type = "string"
+  default = "kubernetes-kubelet docker-kubic"
+  description = "space-separated list of extra RPMs to install (set to '' for skipping)"
+}
+
+variable "devel" {
+  type = "string"
+  default = "1"
+  description = "enable somem steps for development environments (non-empty=true)"
+}
+
 variable "kubic_init_image" {
-  type        = "string"
-  default     = "linux"
+  type = "string"
+  default = "linux"
   description = "a kubic-init Docker image"
 }
 
 variable "seed_memory" {
-  default     = 3072
+  default = 3072
   description = "RAM of the seed node (in bytes)"
 }
 
 variable "default_node_memory" {
-  default     = 1536
+  default = 1536
   description = "default amount of RAM of the Nodes (in bytes)"
 }
 
@@ -135,10 +147,11 @@ resource "null_resource" "download_kubic_image" {
 ##############
 
 resource "libvirt_volume" "seed" {
-  name             = "${var.prefix}_seed.qcow2"
-  pool             = "${var.img_pool}"
+  name = "${var.prefix}_seed.qcow2"
+  pool = "${var.img_pool}"
   base_volume_name = "${var.prefix}_base_${basename(var.img)}"
-  depends_on       = ["null_resource.download_kubic_image"]
+  depends_on = [
+    "null_resource.download_kubic_image"]
 }
 
 data "template_file" "seed_cloud_init_user_data" {
@@ -151,14 +164,14 @@ data "template_file" "seed_cloud_init_user_data" {
 }
 
 resource "libvirt_cloudinit" "seed" {
-  name      = "${var.prefix}_seed_cloud_init.iso"
-  pool      = "${var.img_pool}"
+  name = "${var.prefix}_seed_cloud_init.iso"
+  pool = "${var.img_pool}"
   user_data = "${data.template_file.seed_cloud_init_user_data.rendered}"
 }
 
 resource "libvirt_domain" "seed" {
-  name      = "${var.prefix}-seed"
-  memory    = "${var.seed_memory}"
+  name = "${var.prefix}-seed"
+  memory = "${var.seed_memory}"
   cloudinit = "${libvirt_cloudinit.seed.id}"
 
   #cpu {
@@ -172,29 +185,33 @@ resource "libvirt_domain" "seed" {
     volume_id = "${libvirt_volume.seed.id}"
   }
   network_interface {
-    network_name   = "${var.network}"
+    network_name = "${var.network}"
     wait_for_lease = 1
   }
   graphics {
-    type        = "vnc"
+    type = "vnc"
     listen_type = "address"
   }
 }
 
 resource "null_resource" "upload_config_seeder" {
-  depends_on = ["libvirt_domain.seed"]
+  count = "${length(var.devel) == 0 ? 0 : 1}"
+  depends_on = [
+    "libvirt_domain.seed"]
 
   connection {
-    host     = "${libvirt_domain.seed.network_interface.0.addresses.0}"
+    host = "${libvirt_domain.seed.network_interface.0.addresses.0}"
     password = "${var.password}"
   }
 
-  # TODO: we must install docker... remove this
+  # TODO: we must install docker, kubelet, etc... remove this once we have them in the base image
   provisioner "remote-exec" {
     inline = [
       "for repo in /etc/zypp/repos.d/*.repo ; do echo 'gpgcheck=off' >> $repo ; done",
-      "transactional-update --no-selfupdate pkg install -y kubernetes-kubelet",
-      "echo 'Rebooting with the new packages...' && shutdown -r now",
+      "btrfs property set -ts /.snapshots/1/snapshot ro false",
+      "mount -o remount,rw /",
+      "zypper ref",
+      "zypper install -y ${var.rpms}",
     ]
   }
 
@@ -205,12 +222,12 @@ resource "null_resource" "upload_config_seeder" {
   }
 
   provisioner "file" {
-    source      = "../../init/kubelet.drop-in.conf"
+    source = "../../init/kubelet.drop-in.conf"
     destination = "/etc/systemd/system/kubelet.service.d/kubelet.conf"
   }
 
   provisioner "file" {
-    source      = "../../init/kubic-init.systemd.conf"
+    source = "../../init/kubic-init.systemd.conf"
     destination = "/etc/systemd/system/kubic-init.service"
   }
 
@@ -220,7 +237,7 @@ resource "null_resource" "upload_config_seeder" {
   }
 
   provisioner "file" {
-    source      = "../../${var.kubic_init_image}"
+    source = "../../${var.kubic_init_image}"
     destination = "/tmp/${var.kubic_init_image}"
   }
 
@@ -244,69 +261,74 @@ output "seeder" {
 ###########################
 
 resource "libvirt_volume" "node" {
-  count            = "${var.nodes_count}"
-  name             = "${var.prefix}_node_${count.index}.qcow2"
-  pool             = "${var.img_pool}"
+  count = "${var.nodes_count}"
+  name = "${var.prefix}_node_${count.index}.qcow2"
+  pool = "${var.img_pool}"
   base_volume_name = "${var.prefix}_base_${basename(var.img)}"
-  depends_on       = ["null_resource.download_kubic_image"]
+  depends_on = [
+    "null_resource.download_kubic_image"]
 }
 
 data "template_file" "node_cloud_init_user_data" {
-  count    = "${var.nodes_count}"
+  count = "${var.nodes_count}"
   template = "${file("../cloud-init/node.cfg.tpl")}"
 
   vars {
-    seeder        = "${libvirt_domain.seed.network_interface.0.addresses.0}"
-    password      = "${var.password}"
-    hostname      = "${var.prefix}-node-${count.index}"
+    seeder = "${libvirt_domain.seed.network_interface.0.addresses.0}"
+    password = "${var.password}"
+    hostname = "${var.prefix}-node-${count.index}"
   }
 
-  depends_on = ["libvirt_domain.seed"]
+  depends_on = [
+    "libvirt_domain.seed"]
 }
 
 resource "libvirt_cloudinit" "node" {
-  count     = "${var.nodes_count}"
-  name      = "${var.prefix}_node_cloud_init_${count.index}.iso"
-  pool      = "${var.img_pool}"
+  count = "${var.nodes_count}"
+  name = "${var.prefix}_node_cloud_init_${count.index}.iso"
+  pool = "${var.img_pool}"
   user_data = "${element(data.template_file.node_cloud_init_user_data.*.rendered, count.index)}"
 }
 
 resource "libvirt_domain" "node" {
-  count      = "${var.nodes_count}"
-  name       = "${var.prefix}-node-${count.index}"
-  memory     = "${lookup(var.nodes_memory, count.index, var.default_node_memory)}"
-  cloudinit  = "${element(libvirt_cloudinit.node.*.id, count.index)}"
-  depends_on = ["libvirt_domain.seed"]
+  count = "${var.nodes_count}"
+  name = "${var.prefix}-node-${count.index}"
+  memory = "${lookup(var.nodes_memory, count.index, var.default_node_memory)}"
+  cloudinit = "${element(libvirt_cloudinit.node.*.id, count.index)}"
+  depends_on = [
+    "libvirt_domain.seed"]
 
   disk {
     volume_id = "${element(libvirt_volume.node.*.id, count.index)}"
   }
 
   network_interface {
-    network_name   = "${var.network}"
+    network_name = "${var.network}"
     wait_for_lease = 1
   }
 
   graphics {
-    type        = "vnc"
+    type = "vnc"
     listen_type = "address"
   }
 }
 
 resource "null_resource" "upload_config_nodes" {
-  count = "${var.nodes_count}"
+  count = "${length(var.devel) == 0 ? 0 : var.nodes_count}"
 
   connection {
-    host     = "${element(libvirt_domain.node.*.network_interface.0.addresses.0, count.index)}"
+    host = "${element(libvirt_domain.node.*.network_interface.0.addresses.0, count.index)}"
     password = "${var.password}"
   }
 
-  # TODO: we must install docker... remove this
+  # TODO: we must install docker, kubelet, etc... remove this once we have them in the base image
   provisioner "remote-exec" {
     inline = [
       "for repo in /etc/zypp/repos.d/*.repo ; do echo 'gpgcheck=off' >> $repo ; done",
-      "transactional-update --no-selfupdate pkg install -y kubernetes-kubelet",
-      "echo 'Rebooting with the new packages...' && shutdown -r now",
+      "btrfs property set -ts /.snapshots/1/snapshot ro false",
+      "mount -o remount,rw /",
+      "zypper ref",
+      "zypper install -y ${var.rpms}",
     ]
   }
 
@@ -317,12 +339,12 @@ resource "null_resource" "upload_config_nodes" {
   }
 
   provisioner "file" {
-    source      = "../../init/kubelet.drop-in.conf"
+    source = "../../init/kubelet.drop-in.conf"
     destination = "/etc/systemd/system/kubelet.service.d/kubelet.conf"
   }
 
   provisioner "file" {
-    source      = "../../init/kubic-init.systemd.conf"
+    source = "../../init/kubic-init.systemd.conf"
     destination = "/etc/systemd/system/kubic-init.service"
   }
 
@@ -332,7 +354,7 @@ resource "null_resource" "upload_config_nodes" {
   }
 
   provisioner "file" {
-    source      = "../../${var.kubic_init_image}"
+    source = "../../${var.kubic_init_image}"
     destination = "/tmp/${var.kubic_init_image}"
   }
 
@@ -349,6 +371,7 @@ resource "null_resource" "upload_config_nodes" {
 }
 
 output "nodes" {
-  value = ["${libvirt_domain.node.*.network_interface.0.addresses.0}"]
+  value = [
+    "${libvirt_domain.node.*.network_interface.0.addresses.0}"]
 }
 
