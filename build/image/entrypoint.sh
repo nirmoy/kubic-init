@@ -2,7 +2,6 @@
 
 KUBIC_INIT_EXE=/usr/local/bin/kubic-init
 KUBIC_INIT_CONF="/etc/kubic/kubic-init.yaml"
-MASTER_CONF="/etc/kubic/master-config.yaml"
 
 ARGS="--v=5"
 
@@ -39,12 +38,6 @@ case $CMD in
             log "Using kubic-init config from $KUBIC_INIT_CONF"
             dump $KUBIC_INIT_CONF
             ARGS="$ARGS --config=$KUBIC_INIT_CONF"
-        fi
-
-        if [ -f $MASTER_CONF ] ; then
-            log "Using master configuration at $MASTER_CONF"
-            dump $MASTER_CONF
-            ARGS="$ARGS --kubeadm-config=$MASTER_CONF"
         fi
 
         chk $KUBIC_INIT_EXE
