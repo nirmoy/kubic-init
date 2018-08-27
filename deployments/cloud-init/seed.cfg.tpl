@@ -41,5 +41,7 @@ write_files:
     content: |
       apiVersion: caas.suse.com/v1alpha1
       kind: CaaSInitConfiguration
+      clusterFormation:
+        token: ${token}
 
 final_message: "The system is finally up, after $UPTIME seconds"

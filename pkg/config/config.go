@@ -3,7 +3,9 @@ package config
 import (
 	"fmt"
 	"io/ioutil"
+	"net/url"
 	"os"
+	"strings"
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/golang/glog"
@@ -19,10 +21,21 @@ type CniConfiguration struct {
 	ServiceSubnet string `json:"serviceSubnet,omitempty"`
 }
 
+type ClusterFormationConfiguration struct {
+	Seeder string `json:"seeder,omitempty"`
+	Token  string `json:"token,omitempty"`
+}
+
+type CertsConfiguration struct {
+	// TODO
+	CaHash string `json:"caCrtHash,omitempty"`
+}
+
 // The kubic-init configuration
 type KubicInitConfiguration struct {
-	Seeder string           `json:"seeder,omitempty"`
-	Cni    CniConfiguration `json:"cni,omitempty"`
+	Cni              CniConfiguration              `json:"cni,omitempty"`
+	ClusterFormation ClusterFormationConfiguration `json:"clusterFormation,omitempty"`
+	Certificates     CertsConfiguration            `json:"certificates,omitempty"`
 }
 
 // Load a Kubic configuration file, setting some default values
@@ -50,16 +63,41 @@ func ConfigFileAndDefaultsToKubicInitConfig(cfgPath string) (*KubicInitConfigura
 
 		seeder := decoded["seeder"]
 		if seeder != nil && len(seeder.(string)) > 0 {
-			if len(internalcfg.Seeder) == 0 {
-				internalcfg.Seeder = seeder.(string)
-				glog.V(2).Infof("[caas] setting seeder as %s", internalcfg.Seeder)
+			if len(internalcfg.ClusterFormation.Seeder) == 0 {
+				internalcfg.ClusterFormation.Seeder = seeder.(string)
+				glog.V(2).Infof("[caas] setting seeder as %s", internalcfg.ClusterFormation.Seeder)
 			}
 		}
 	}
 
 	// Overwrite some values with environment variables
 	if seederEnv, found := os.LookupEnv(DefaultEnvVarSeeder); found {
-		internalcfg.Seeder = seederEnv
+		glog.V(3).Infof("[caas] setting cluster seeder %s", seederEnv)
+		internalcfg.ClusterFormation.Seeder = seederEnv
+	}
+	if tokenEnv, found := os.LookupEnv(DefaultEnvVarToken); found {
+		glog.V(3).Infof("[caas] setting cluster token '%s'", tokenEnv)
+		internalcfg.ClusterFormation.Token = tokenEnv
+	}
+
+	// The seeder is a IP:PORT, so parse the current seeder and reformat it appropriately
+	if len(internalcfg.ClusterFormation.Seeder) > 0 {
+		seeder := internalcfg.ClusterFormation.Seeder
+		if !strings.HasPrefix(seeder, "http") {
+			seeder = fmt.Sprintf("https://%s", internalcfg.ClusterFormation.Seeder)
+		}
+		u, err := url.Parse(seeder)
+		if err != nil {
+			return nil, err
+		}
+		port := u.Port()
+
+		// if no port has been provided, use the API server default port
+		if len(port) == 0 {
+			port = fmt.Sprintf("%d", DefaultAPIServerPort)
+		}
+
+		internalcfg.ClusterFormation.Seeder = fmt.Sprintf("%s:%s", u.Hostname(), port)
 	}
 
 	// Load the CNI configuration (or set default values)
@@ -86,11 +124,34 @@ func ConfigFileAndDefaultsToKubicInitConfig(cfgPath string) (*KubicInitConfigura
 // Copy some settings to a master configuration
 func KubicInitConfigToMasterConfig(kubicCfg *KubicInitConfiguration, masterCfg *kubeadmapiv1alpha2.MasterConfiguration) error {
 	masterCfg.Networking.PodSubnet = kubicCfg.Cni.PodSubnet
+
+	if len(kubicCfg.ClusterFormation.Token) > 0 {
+		glog.V(8).Infof("[caas] adding a default bootstrap token: %s", kubicCfg.ClusterFormation.Token)
+		var err error
+		bto := kubeadmapiv1alpha2.BootstrapToken{}
+		kubeadmapiv1alpha2.SetDefaults_BootstrapToken(&bto)
+		bto.Token, err = kubeadmapiv1alpha2.NewBootstrapTokenString(kubicCfg.ClusterFormation.Token)
+		if err != nil {
+			return err
+		}
+
+		masterCfg.BootstrapTokens = []kubeadmapiv1alpha2.BootstrapToken{bto}
+	}
+
 	return nil
 }
 
 // Copy some settings to a node configuration
 func KubicInitConfigToNodeConfig(kubicCfg *KubicInitConfiguration, nodeCfg *kubeadmapiv1alpha2.NodeConfiguration) error {
-	nodeCfg.DiscoveryTokenAPIServers = []string{kubicCfg.Seeder}
+	nodeCfg.DiscoveryTokenAPIServers = []string{kubicCfg.ClusterFormation.Seeder}
+	nodeCfg.Token = kubicCfg.ClusterFormation.Token
+
+	// Disable the ca.crt verification if no hash has been provided
+	// TODO: users should be able to provide some other methods, like a ca.crt, etc
+	if len(kubicCfg.Certificates.CaHash) == 0 {
+		glog.V(1).Infoln("WARNING: we will not verify the identity of the seeder")
+		nodeCfg.DiscoveryTokenUnsafeSkipCAVerification = true
+	}
+
 	return nil
 }

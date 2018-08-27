@@ -36,8 +36,13 @@ TF_LIBVIRT_FULL_DIR  = deployments/tf-libvirt-full
 TF_LIBVIRT_NODES_DIR = deployments/tf-libvirt-nodes
 TF_ARGS_DEFAULT      = -var 'kubic_init_image=$(IMAGE_TAR_GZ)'
 
+# sudo command (and version passing env vars)
+SUDO = sudo
+SUDO_E = $(SUDO) -E
+
 # increase to 8 for detailed kubeadm logs...
-LOCAL_VERBOSE_LEVEL = 5
+# Example: make local-run VERBOSE_LEVEL=8
+VERBOSE_LEVEL = 5
 
 CONTAINER_VOLUMES = \
 		-v `pwd`/configs:/etc/kubic \
@@ -106,25 +111,34 @@ clean: docker-reset kubelet-reset docker-image-clean
 # we must "patch" the local kubelet by adding a drop-in unit
 # otherwise, the kubelet will be run with the wrong arguments
 /var/lib/kubelet/config.yaml: /etc/kubernetes/kubelet-config.yaml
-	sudo cp -f /etc/kubernetes/kubelet-config.yaml /var/lib/kubelet/config.yaml
+	$(SUDO) cp -f /etc/kubernetes/kubelet-config.yaml /var/lib/kubelet/config.yaml
 
 $(KUBE_DROPIN_DST): $(KUBE_DROPIN_SRC) /var/lib/kubelet/config.yaml
 	@echo ">>> Adding drop-in unit for the local kubelet"
-	sudo mkdir -p `dirname $(KUBE_DROPIN_DST)`
-	sudo cp -f $(KUBE_DROPIN_SRC) $(KUBE_DROPIN_DST)
-	sudo systemctl daemon-reload
+	$(SUDO) mkdir -p `dirname $(KUBE_DROPIN_DST)`
+	$(SUDO) cp -f $(KUBE_DROPIN_SRC) $(KUBE_DROPIN_DST)
+	$(SUDO) systemctl daemon-reload
 
 kubeadm-reset: local-reset
 local-reset: $(KUBIC_INIT_EXE)
 	@echo ">>> Resetting everything..."
-	sudo $(KUBIC_INIT_EXE) reset -v $(LOCAL_VERBOSE_LEVEL) -f
+	$(SUDO_E) $(KUBIC_INIT_EXE) reset -v $(VERBOSE_LEVEL) -f
 
+
+# Usage:
+#  - create a local seeder: make local-run
+#  - create a local seeder with a specific token: TOKEN=XXXX make local-run
+#  - join an existing seeder: env SEEDER=1.2.3.4 TOKEN=XXXX make local-run
 local-run: $(KUBIC_INIT_EXE) $(KUBE_DROPIN_DST) local-reset
 	@echo ">>> Running $(KUBIC_INIT_EXE) as _root_"
-	sudo $(KUBIC_INIT_EXE) bootstrap \
-		-v $(LOCAL_VERBOSE_LEVEL) \
+	$(SUDO_E) $(KUBIC_INIT_EXE) bootstrap \
+		-v $(VERBOSE_LEVEL) \
 		--config configs/kubic-init.yaml
 
+# Usage:
+#  - create a local seeder: make docker-run
+#  - create a local seeder with a specific token: TOKEN=XXXX make docker-run
+#  - join an existing seeder: env SEEDER=1.2.3.4 TOKEN=XXXX make docker-run
 docker-run: $(IMAGE_TAR_GZ) docker-reset $(KUBE_DROPIN_DST)
 	@echo ">>> Running $(IMAGE_NAME):latest in the local Docker"
 	docker run -it --rm \
@@ -133,7 +147,8 @@ docker-run: $(IMAGE_TAR_GZ) docker-reset $(KUBE_DROPIN_DST)
 		--security-opt seccomp:unconfined \
 		--cap-add=SYS_ADMIN \
 		--name=$(IMAGE_BASENAME) \
-		-e SEED_NODE \
+		-e SEEDER \
+		-e TOKEN \
 		$(CONTAINER_VOLUMES) \
 		$(IMAGE_NAME):latest
 
@@ -156,15 +171,15 @@ docker-image-clean:
 # TODO: build the image for podman
 # TODO: implement podman-reset
 podman-run: podman-image podman-reset $(KUBE_DROPIN_DST)
-	sudo podman run -it --rm \
+	$(SUDO_E) podman run -it --rm \
 		--privileged=true \
 		--net=host \
 		--security-opt seccomp:unconfined \
 		--cap-add=SYS_ADMIN \
 		--name=$(IMAGE_BASENAME) \
 		-h master \
-		-e SEED_NODE \
-		-e SEED_TOKEN \
+		-e SEEDER \
+		-e TOKEN \
 		$(CONTAINER_VOLUMES) \
 		$(IMAGE_NAME):latest
 
@@ -173,8 +188,8 @@ kubelet-run: $(IMAGE_TAR_GZ) kubelet-reset $(KUBE_DROPIN_DST)
 	docker push $(IMAGE_NAME):latest
 	@echo ">>> Copying manifest to $(MANIFEST_DIR) (will require root password)"
 	mkdir -p $(MANIFEST_DIR)
-	sudo cp -f $(MANIFEST_LOCAL) $(MANIFEST_DIR)/`basename $(MANIFEST_REM)`
-	sudo systemctl restart kubelet
+	$(SUDO) cp -f $(MANIFEST_LOCAL) $(MANIFEST_DIR)/`basename $(MANIFEST_REM)`
+	$(SUDO) systemctl restart kubelet
 	@echo ">>> Manifest copied. Waiting for kubelet to start things..."
 	@while ! docker ps | grep $(IMAGE_BASENAME) | grep -q -v pause ; do echo "Waiting container..." ; sleep 2 ; done
 	@docker logs -f "`docker ps | grep $(IMAGE_BASENAME) | grep -v pause | cut -d' ' -f1`"
@@ -182,11 +197,11 @@ kubelet-run: $(IMAGE_TAR_GZ) kubelet-reset $(KUBE_DROPIN_DST)
 kubelet-reset: kubeadm-reset
 	@echo ">>> Resetting everything..."
 	@echo ">>> Stopping the kubelet..."
-	@sudo systemctl stop kubelet
+	@$(SUDO) systemctl stop kubelet
 	@while [ ! -e /var/run/docker.sock   ] ; do echo "Waiting for dockers socket..."     ; sleep 2 ; done
 	@while [ -e /var/run/dockershim.sock ] ; do echo "Waiting until the kubelet is down..." ; sleep 2 ; done
 	@echo ">>> Restoring a safe kubelet configuration..."
-	sudo cp /etc/kubernetes/kubelet-config.yaml /var/lib/kubelet/config.yaml
+	$(SUDO) cp /etc/kubernetes/kubelet-config.yaml /var/lib/kubelet/config.yaml
 	@-rm -f $(MANIFEST_DIR)/$(MANIFEST_REM)
 
 
@@ -202,6 +217,8 @@ $(TF_LIBVIRT_FULL_DIR)/.terraform:
 tf-full-plan: $(TF_LIBVIRT_FULL_DIR)/.terraform
 	cd $(TF_LIBVIRT_FULL_DIR) && terraform plan
 
+# Usage:
+# - create a only-one-seeder cluster: make tf-full-run TF_ARGS="-var nodes_count=0"
 tf-full-run: tf-full-apply
 tf-full-apply: $(TF_LIBVIRT_FULL_DIR)/.terraform $(IMAGE_TAR_GZ)
 	@echo ">>> Deploying a full cluster with Terraform..."

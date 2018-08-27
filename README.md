@@ -9,20 +9,23 @@
 
 This project follows the conventions presented in https://github.com/golang-standards/project-layout.
 
-## Development
-
-### Dependencies
+## Dependencies
 
 * `dep` (will be installed automatically if not detected)
 * `go >= 1.10`
 
-### Building
+For running the `kubic-init` (either locally, in a container or in a Terraform
+deployment) please make sure the `kubelet` version running in the host system
+is the same `kubic-init` was compiled against. You can check current kubernetes
+version in the [Gopkg.toml requirements file](Gopkg.toml).
+
+## Building
 
 A simple `make` should be enough. This should compile [the main
 function](cmd/kubic-init/main.go) and generate a `kubic-init` binary as
 well as a _Docker_ image.
 
-### Running `kubic-init`
+## Running `kubic-init`
 
 You have several ways of running the `kubic-init`.
 
@@ -71,16 +74,20 @@ Before we have a functional POC we need to implement:
 * [X] Development environment
 * [X] Seeder
 * [ ] Join for nodes
+  * [X] Simple joins
+  * [ ] Support certificates and safer flows
 * [ ] Accept/reject nodes
 * [ ] [CNI](pkg/cni)
   * [X] Load CNI manifests
   * [ ] Prepare and use an updated `flannel` image
 * [ ] Dex and all the other critical pods.
 * [ ] Use `podman` instead of Docker
-* [ ] Install some requirements in the base Kubic images
+* [ ] Base Kubic image
+  * [ ] Install all the packages we need
+  * [ ] Base our Docker images in Tumbleweed
 * [ ] All the `TODO`s in this repo...
 
-### Bumping the Kubernetes version used by `kubic-init`
+## Bumping the Kubernetes version used by `kubic-init`
 
 Update the constraints in `Gopkg.toml`.
 

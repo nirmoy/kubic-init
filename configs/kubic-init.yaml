@@ -3,8 +3,16 @@
 ##
 apiVersion: caas.suse.com/v1alpha2
 kind: CaaSInitConfiguration
-# seeder: some-node.com
 # cni:
 #   driver: flannel
 #   podSubnet: "172.16.0.0/13"
 #   serviceSubnet: "172.24.0.0/16"
+# certificates:
+#   # a caCrt can be used for verifying the identity of the seeder
+#   caCrt:
+#   # (or we can use the "hash" of the ca.crt instead)
+#   caCrtHash:
+# clusterFormation:
+#   seeder: some-node.com
+#   # token for both discovery-token and tls-bootstrap-token
+#   token: 94dcda.c271f4ff502789ca

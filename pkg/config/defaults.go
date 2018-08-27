@@ -2,8 +2,18 @@ package config
 
 import "k8s.io/kubernetes/cmd/kubeadm/app/features"
 
-// The environment variable used for passing the seeder
-const DefaultEnvVarSeeder = "SEED_NODE"
+const (
+	// Default API server port
+	DefaultAPIServerPort = 6443
+)
+
+const (
+	// The environment variable used for passing the seeder
+	DefaultEnvVarSeeder = "SEEDER"
+
+	// The environment variable used for passing the token
+	DefaultEnvVarToken = "TOKEN"
+)
 
 // CNI and network defaults
 const (
