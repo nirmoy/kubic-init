@@ -22,7 +22,7 @@ users:
     lock_passwd: false
     passwd: ${password}
 
-### TODO: this should be replaced by the suse_kubic module
+### TODO: this should be replaced by a "kubic" module
 write_files:
   - path: "/etc/kubic/kubic-init.yaml"
     permissions: "0644"

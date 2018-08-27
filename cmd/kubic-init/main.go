@@ -4,99 +4,37 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/golang/glog"
 	"github.com/renstrom/dedent"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	apimachineryversion "k8s.io/apimachinery/pkg/version"
 	utilflag "k8s.io/apiserver/pkg/util/flag"
 	kubeadmscheme "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/scheme"
 	kubeadmapiv1alpha2 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1alpha2"
 	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/validation"
 	kubeadmcmd "k8s.io/kubernetes/cmd/kubeadm/app/cmd"
 	kubeadmupcmd "k8s.io/kubernetes/cmd/kubeadm/app/cmd/upgrade"
+	kubeadmconstants "k8s.io/kubernetes/cmd/kubeadm/app/constants"
 	"k8s.io/kubernetes/cmd/kubeadm/app/features"
 	kubeadmutil "k8s.io/kubernetes/cmd/kubeadm/app/util"
-	"k8s.io/kubernetes/pkg/version"
+	kubeconfigutil "k8s.io/kubernetes/cmd/kubeadm/app/util/kubeconfig"
+
+	"github.com/kubic-project/kubic-init/pkg/cni"
+	_ "github.com/kubic-project/kubic-init/pkg/cni/flannel"
+	kubiccfg "github.com/kubic-project/kubic-init/pkg/config"
 )
 
-// The environment variable used for passing the seeder
-const seederEnvVar = "SEED_NODE"
-
-// [caas] use a constant set of featureGates
-// A set of key=value pairs that describe feature gates for various features.
-var defaultFeatureGates = (features.CoreDNS + "=true," +
-	features.HighAvailability + "=false," +
-	features.SelfHosting + "=true," +
-// TODO: disabled until https://github.com/kubernetes/kubeadm/issues/923
-	features.StoreCertsInSecrets + "=false," +
-// TODO: results in some errors... needs some research
-	features.DynamicKubeletConfig + "=false")
-
-// [caas] Hardcoded list of errors to ignore
-var defaultIgnoredPreflightErrors = []string{
-	"Service-Docker",
-	"Swap",
-	"FileExisting-crictl",
-	"Port-10250",
-}
-
-// Version provides the version information of kubic-init
-type Version struct {
-	ClientVersion *apimachineryversion.Info `json:"clientVersion"`
-}
-
-// The kubic-init configuration
-type CaasInitConfiguration struct {
-	Seeder string
-}
-
-// Load a Kubic configuration file, setting some default values
-func ConfigFileAndDefaultsToCaasConfig(cfgPath string, internalcfg *CaasInitConfiguration) (*CaasInitConfiguration, error) {
-	var err error
-
-	if len(cfgPath) > 0 {
-		glog.V(1).Infof("[caas] loading configuration from %s", cfgPath)
-		if os.Stat(cfgPath); err != nil {
-			return nil, fmt.Errorf("%q does not exist: %v", cfgPath, err)
-		}
-
-		b, err := ioutil.ReadFile(cfgPath)
-		if err != nil {
-			return nil, fmt.Errorf("unable to read config from %q [%v]", cfgPath, err)
-		}
-
-		decoded, err := kubeadmutil.LoadYAML(b)
-		if err != nil {
-			return nil, fmt.Errorf("unable to decode config from bytes: %v", err)
-		}
-
-		// TODO: check the decoded['kind']
-
-		seeder := decoded["seeder"]
-		if seeder != nil && len(seeder.(string)) > 0 {
-			if len(internalcfg.Seeder) == 0 {
-				internalcfg.Seeder = seeder.(string)
-				glog.V(2).Infof("[caas] setting seeder as %s", internalcfg.Seeder)
-			}
-		}
-	}
-
-	// Overwrite some values with environment variables
-	if seederEnv, found := os.LookupEnv(seederEnvVar); found {
-		internalcfg.Seeder = seederEnv
-	}
-
-	return internalcfg, nil
-}
+// to be set from the build process
+var Version string
+var Build string
 
 // newBootstrapCmd returns a "kubic-init bootstrap" command.
 func newBootstrapCmd(out io.Writer) *cobra.Command {
-	kubicCfg := &CaasInitConfiguration{}
+	kubicCfg := &kubiccfg.KubicInitConfiguration{}
 
 	masterCfg := &kubeadmapiv1alpha2.MasterConfiguration{}
 	kubeadmscheme.Scheme.Default(masterCfg)
@@ -105,7 +43,6 @@ func newBootstrapCmd(out io.Writer) *cobra.Command {
 	kubeadmscheme.Scheme.Default(nodeCfg)
 
 	var kubicCfgFile string
-	var kubeadmCfgFile string
 	var skipTokenPrint = false
 	var skipPreFlight = false
 	var dryRun = false
@@ -117,25 +54,28 @@ func newBootstrapCmd(out io.Writer) *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			var err error
 
-			kubicCfg, err = ConfigFileAndDefaultsToCaasConfig(kubicCfgFile, kubicCfg)
+			kubicCfg, err = kubiccfg.ConfigFileAndDefaultsToKubicInitConfig(kubicCfgFile)
 			kubeadmutil.CheckErr(err)
 
-			featuresGates, err := features.NewFeatureGate(&features.InitFeatureGates, defaultFeatureGates)
+			featuresGates, err := features.NewFeatureGate(&features.InitFeatureGates, kubiccfg.DefaultFeatureGates)
 			kubeadmutil.CheckErr(err)
-			glog.V(3).Infoln("[caas] feature gates: %+v", featuresGates)
+			glog.V(3).Infof("[caas] feature gates: %+v", featuresGates)
 
-			ignorePreflightErrorsSet, err := validation.ValidateIgnorePreflightErrors(defaultIgnoredPreflightErrors, skipPreFlight)
+			ignorePreflightErrorsSet, err := validation.ValidateIgnorePreflightErrors(kubiccfg.DefaultIgnoredPreflightErrors, skipPreFlight)
 			kubeadmutil.CheckErr(err)
 
 			if len(kubicCfg.Seeder) > 0 {
 				glog.V(1).Infoln("[caas] joining the seeder at %s", kubicCfg.Seeder)
-				nodeCfg.DiscoveryTokenAPIServers = []string{kubicCfg.Seeder}
+
 				nodeCfg.FeatureGates = featuresGates
 
-				joiner, err := kubeadmcmd.NewJoin(kubeadmCfgFile, args, nodeCfg, ignorePreflightErrorsSet)
+				err = kubiccfg.KubicInitConfigToNodeConfig(kubicCfg, nodeCfg)
 				kubeadmutil.CheckErr(err)
 
-				// TODO: override any nodeCfg parameters we want at this point...
+				joiner, err := kubeadmcmd.NewJoin("", args, nodeCfg, ignorePreflightErrorsSet)
+				kubeadmutil.CheckErr(err)
+
+				glog.V(5).Infof("Current node configuration:\n%s", spew.Sdump(nodeCfg))
 
 				err = joiner.Run(out)
 				kubeadmutil.CheckErr(err)
@@ -147,16 +87,27 @@ func newBootstrapCmd(out io.Writer) *cobra.Command {
 
 				masterCfg.FeatureGates = featuresGates
 
-				initter, err := kubeadmcmd.NewInit(kubeadmCfgFile, masterCfg, ignorePreflightErrorsSet, skipTokenPrint, dryRun)
+				err = kubiccfg.KubicInitConfigToMasterConfig(kubicCfg, masterCfg)
 				kubeadmutil.CheckErr(err)
 
-				// TODO: override any masterCfg parameters we want at this point...
+				initter, err := kubeadmcmd.NewInit("", masterCfg, ignorePreflightErrorsSet, skipTokenPrint, dryRun)
+				kubeadmutil.CheckErr(err)
+
+				glog.V(5).Infof("Current master configuration:\n%s", spew.Sdump(masterCfg))
 
 				err = initter.Run(out)
 				kubeadmutil.CheckErr(err)
 
-				// TODO: create a kubernetes client
-				// TODO: deploy CNI, Dex, etc... with this client
+				// create a kubernetes client
+				// create a connection to the API server and wait for it to come up
+				client, err := kubeconfigutil.ClientSetFromFile(kubeadmconstants.GetAdminKubeConfigPath())
+				kubeadmutil.CheckErr(err)
+
+				glog.V(1).Infof("[caas] deploying CNI DaemonSet with '%s' driver", kubicCfg.Cni.Driver)
+				err = cni.Registry.Load(kubicCfg.Cni.Driver, kubicCfg, client)
+				kubeadmutil.CheckErr(err)
+
+				// TODO: deploy Dex, etc...
 			}
 
 			if block {
@@ -171,8 +122,6 @@ func newBootstrapCmd(out io.Writer) *cobra.Command {
 	flagSet := cmd.PersistentFlags()
 	flagSet.StringVar(&kubicCfgFile, "config", "",
 		"Path to kubic-init config file.")
-	flagSet.StringVar(&kubeadmCfgFile, "kubeadm-config", "",
-		"Path to kubeadm config file.")
 	flagSet.StringVar(&kubicCfg.Seeder, "seeder", "",
 		"Cluster seeder.")
 	flagSet.BoolVar(&block, "block", block, "Block after boostrapping")
@@ -186,19 +135,7 @@ func newCmdVersion(out io.Writer) *cobra.Command {
 		Use:   "version",
 		Short: "Print the version of kubic-init",
 		Run: func(cmd *cobra.Command, args []string) {
-			glog.V(1).Infoln("[version] retrieving version info")
-			clientVersion := version.Get()
-			v := Version{
-				ClientVersion: &clientVersion,
-			}
-
-			const cflag = "output"
-			_, err := cmd.Flags().GetString(cflag)
-			if err != nil {
-				glog.Fatalf("error accessing flag %s for command %s: %v", cflag, cmd.Name(), err)
-			}
-
-			fmt.Fprintf(out, "kubic-init version: %#v\n", v.ClientVersion)
+			fmt.Fprintf(out, "kubic-init version: %s (build: %s)", Version, Build)
 		},
 	}
 	cmd.Flags().StringP("output", "o", "", "Output format; available options are 'yaml', 'json' and 'short'")

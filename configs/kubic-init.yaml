@@ -4,3 +4,7 @@
 apiVersion: caas.suse.com/v1alpha2
 kind: CaaSInitConfiguration
 # seeder: some-node.com
+# cni:
+#   driver: flannel
+#   podSubnet: "172.16.0.0/13"
+#   serviceSubnet: "172.24.0.0/16"
