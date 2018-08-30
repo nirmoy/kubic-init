@@ -29,8 +29,7 @@ variable "img_pool" {
 
 variable "img_url_base" {
   type = "string"
-  #default     = "https://download.opensuse.org/repositories/devel:/kubic:/images/images/"
-  default = "https://download.opensuse.org/repositories/devel:/CaaSP:/images/images/"
+  default = "https://download.opensuse.org/repositories/devel:/kubic:/images:/experimental/images/"
   description = "URL to the KVM image used"
 }
 
@@ -84,12 +83,6 @@ variable "password" {
   description = "password for sshing to the VMs"
 }
 
-variable "rpms" {
-  type = "string"
-  default = "kubernetes-kubelet docker-kubic"
-  description = "space-separated list of extra RPMs to install (set to '' for skipping)"
-}
-
 variable "devel" {
   type = "string"
   default = "1"
@@ -99,7 +92,7 @@ variable "devel" {
 variable "kubic_init_image" {
   type = "string"
   default = "kubic-init-latest.tar.gz"
-  description = "a kubic-init Docker image"
+  description = "a kubic-init container image"
 }
 
 variable "default_node_memory" {
@@ -222,19 +215,8 @@ resource "null_resource" "upload_config_nodes" {
   count = "${length(var.devel) == 0 ? 0 : var.nodes_count}"
 
   connection {
-    host = "${element(libvirt_domain.node.*.network_interface.0.addresses.0, count.index)}"
+    host = "${element(libvirt_domain.node.*.network_interface.0.addresses[0], count.index)}"
     password = "${var.password}"
-  }
-
-  # TODO: we must install docker, kubelet, etc... remove this once we have them in the base image
-  provisioner "remote-exec" {
-    inline = [
-      "for repo in /etc/zypp/repos.d/*.repo ; do echo 'gpgcheck=off' >> $repo ; done",
-      "btrfs property set -ts /.snapshots/1/snapshot ro false",
-      "mount -o remount,rw /",
-      "zypper ref",
-      "zypper install -y ${var.rpms}",
-    ]
   }
 
   provisioner "remote-exec" {
@@ -267,8 +249,12 @@ resource "null_resource" "upload_config_nodes" {
   provisioner "remote-exec" {
     inline = [
       "systemctl daemon-reload",
-      "systemctl enable --now docker",
-      "while ! docker load -i /tmp/${var.kubic_init_image} ; do echo '(will try to load the kubic-init image again)' ; sleep 5 ; done",
+      "mkdir -p /var/lib/etcd",
+      "echo br_netfilter > /etc/modules-load.d/br_netfilter.conf",
+      "modprobe br_netfilter",
+      "sysctl -w net.ipv4.ip_forward=1",
+      "sed -i 's/driver = \"\"/driver = \"btrfs\"/' /etc/containers/storage.conf",
+      "while ! podman load -i /tmp/${var.kubic_init_image} ; do echo '(will try to load the kubic-init image again)' ; sleep 5 ; done",
       "systemctl enable --now kubic-init",
     ]
   }
@@ -276,6 +262,5 @@ resource "null_resource" "upload_config_nodes" {
 
 output "nodes" {
   value = [
-    "${libvirt_domain.node.*.network_interface.0.addresses.0}"]
+    "${libvirt_domain.node.*.network_interface.0.addresses[0]}"]
 }
-

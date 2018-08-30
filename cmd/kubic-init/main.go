@@ -83,6 +83,7 @@ func newBootstrapCmd(out io.Writer) *cobra.Command {
 				glog.V(1).Infoln("[caas] seeding the cluster from this node")
 
 				masterCfg.FeatureGates = featuresGates
+				masterCfg.NodeRegistration.CRISocket = "/var/run/crio/crio.sock"
 
 				err = kubiccfg.KubicInitConfigToMasterConfig(kubicCfg, masterCfg)
 				kubeadmutil.CheckErr(err)
