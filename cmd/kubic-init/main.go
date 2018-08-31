@@ -58,13 +58,13 @@ func newBootstrapCmd(out io.Writer) *cobra.Command {
 
 			featuresGates, err := features.NewFeatureGate(&features.InitFeatureGates, kubiccfg.DefaultFeatureGates)
 			kubeadmutil.CheckErr(err)
-			glog.V(3).Infof("[caas] feature gates: %+v", featuresGates)
+			glog.V(3).Infof("[kubic] feature gates: %+v", featuresGates)
 
 			ignorePreflightErrorsSet, err := validation.ValidateIgnorePreflightErrors(kubiccfg.DefaultIgnoredPreflightErrors, skipPreFlight)
 			kubeadmutil.CheckErr(err)
 
 			if len(kubicCfg.ClusterFormation.Seeder) > 0 {
-				glog.V(1).Infoln("[caas] joining the seeder at %s", kubicCfg.ClusterFormation.Seeder)
+				glog.V(1).Infoln("[kubic] joining the seeder at %s", kubicCfg.ClusterFormation.Seeder)
 
 				nodeCfg.FeatureGates = featuresGates
 
@@ -77,10 +77,10 @@ func newBootstrapCmd(out io.Writer) *cobra.Command {
 				err = joiner.Run(out)
 				kubeadmutil.CheckErr(err)
 
-				glog.V(1).Infoln("[caas] this node should have joined the cluster at this point")
+				glog.V(1).Infoln("[kubic] this node should have joined the cluster at this point")
 
 			} else {
-				glog.V(1).Infoln("[caas] seeding the cluster from this node")
+				glog.V(1).Infoln("[kubic] seeding the cluster from this node")
 
 				masterCfg.FeatureGates = featuresGates
 				masterCfg.NodeRegistration.CRISocket = "/var/run/crio/crio.sock"
@@ -99,7 +99,7 @@ func newBootstrapCmd(out io.Writer) *cobra.Command {
 				client, err := kubeconfigutil.ClientSetFromFile(kubeadmconstants.GetAdminKubeConfigPath())
 				kubeadmutil.CheckErr(err)
 
-				glog.V(1).Infof("[caas] deploying CNI DaemonSet with '%s' driver", kubicCfg.Cni.Driver)
+				glog.V(1).Infof("[kubic] deploying CNI DaemonSet with '%s' driver", kubicCfg.Cni.Driver)
 				err = cni.Registry.Load(kubicCfg.Cni.Driver, kubicCfg, client)
 				kubeadmutil.CheckErr(err)
 
@@ -107,7 +107,7 @@ func newBootstrapCmd(out io.Writer) *cobra.Command {
 			}
 
 			if block {
-				glog.V(1).Infoln("[caas] control plane ready... looping forever")
+				glog.V(1).Infoln("[kubic] control plane ready... looping forever")
 				for {
 					time.Sleep(time.Second)
 				}

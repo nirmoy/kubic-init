@@ -44,7 +44,7 @@ func ConfigFileAndDefaultsToKubicInitConfig(cfgPath string) (*KubicInitConfigura
 	var internalcfg = &KubicInitConfiguration{}
 
 	if len(cfgPath) > 0 {
-		glog.V(1).Infof("[caas] loading kubic-init configuration from '%s'", cfgPath)
+		glog.V(1).Infof("[kubic] loading kubic-init configuration from '%s'", cfgPath)
 		if os.Stat(cfgPath); err != nil {
 			return nil, fmt.Errorf("%q does not exist: %v", cfgPath, err)
 		}
@@ -65,18 +65,18 @@ func ConfigFileAndDefaultsToKubicInitConfig(cfgPath string) (*KubicInitConfigura
 		if seeder != nil && len(seeder.(string)) > 0 {
 			if len(internalcfg.ClusterFormation.Seeder) == 0 {
 				internalcfg.ClusterFormation.Seeder = seeder.(string)
-				glog.V(2).Infof("[caas] setting seeder as %s", internalcfg.ClusterFormation.Seeder)
+				glog.V(2).Infof("[kubic] setting seeder as %s", internalcfg.ClusterFormation.Seeder)
 			}
 		}
 	}
 
 	// Overwrite some values with environment variables
 	if seederEnv, found := os.LookupEnv(DefaultEnvVarSeeder); found {
-		glog.V(3).Infof("[caas] setting cluster seeder %s", seederEnv)
+		glog.V(3).Infof("[kubic] setting cluster seeder %s", seederEnv)
 		internalcfg.ClusterFormation.Seeder = seederEnv
 	}
 	if tokenEnv, found := os.LookupEnv(DefaultEnvVarToken); found {
-		glog.V(3).Infof("[caas] setting cluster token '%s'", tokenEnv)
+		glog.V(3).Infof("[kubic] setting cluster token '%s'", tokenEnv)
 		internalcfg.ClusterFormation.Token = tokenEnv
 	}
 
@@ -102,17 +102,17 @@ func ConfigFileAndDefaultsToKubicInitConfig(cfgPath string) (*KubicInitConfigura
 
 	// Load the CNI configuration (or set default values)
 	if len(internalcfg.Cni.Driver) == 0 {
-		glog.V(3).Infof("[caas] using default CNI driver %s", DefaultCniDriver)
+		glog.V(3).Infof("[kubic] using default CNI driver %s", DefaultCniDriver)
 		internalcfg.Cni.Driver = DefaultCniDriver
 	}
 
 	// Set some networking defaults
 	if len(internalcfg.Cni.PodSubnet) == 0 {
-		glog.V(3).Infof("[caas] using default Pods subnet %s", DefaultPodSubnet)
+		glog.V(3).Infof("[kubic] using default Pods subnet %s", DefaultPodSubnet)
 		internalcfg.Cni.PodSubnet = DefaultPodSubnet
 	}
 	if len(internalcfg.Cni.ServiceSubnet) == 0 {
-		glog.V(3).Infof("[caas] using default services subnet %s", DefaultServiceSubnet)
+		glog.V(3).Infof("[kubic] using default services subnet %s", DefaultServiceSubnet)
 		internalcfg.Cni.ServiceSubnet = DefaultServiceSubnet
 	}
 
@@ -126,7 +126,7 @@ func KubicInitConfigToMasterConfig(kubicCfg *KubicInitConfiguration, masterCfg *
 	masterCfg.Networking.PodSubnet = kubicCfg.Cni.PodSubnet
 
 	if len(kubicCfg.ClusterFormation.Token) > 0 {
-		glog.V(8).Infof("[caas] adding a default bootstrap token: %s", kubicCfg.ClusterFormation.Token)
+		glog.V(8).Infof("[kubic] adding a default bootstrap token: %s", kubicCfg.ClusterFormation.Token)
 		var err error
 		bto := kubeadmapiv1alpha2.BootstrapToken{}
 		kubeadmapiv1alpha2.SetDefaults_BootstrapToken(&bto)
