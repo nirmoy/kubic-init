@@ -8,6 +8,8 @@ kind: KubicInitConfiguration
 # runtime:
 #   engine: crio
 # certificates:
+#   # where certificates are stored
+#   directory: /etc/kubernetes/pki
 #   # a caCrt can be used for verifying the identity of the seeder
 #   caCrt:
 #   # (or we can use the "hash" of the ca.crt instead)
@@ -39,4 +41,29 @@ kind: KubicInitConfiguration
 #   cni:
 #     driver: flannel
 #     image: registry.opensuse.org/devel/caasp/kubic-container/container/kubic/flannel:0.9.1
-#
+# services:
+#   dex:
+#     nodePort: 32000
+#     ldap:
+#       - name: some-name
+#         id: some-id
+#         server: https://somewhere
+#         bindDn:
+#         bindPW:
+#         usernamePrompt:
+#         rootCAData:
+#         user::
+#           baseDN:
+#           filter:
+#           attrMap:
+#             username:
+#             id:
+#             email:
+#             name:
+#         group::
+#           baseDN:
+#           filter:
+#           attrMap::
+#             user:
+#             group:
+#             name:

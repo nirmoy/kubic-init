@@ -47,6 +47,16 @@ const (
 	DefaultServiceSubnet = "172.24.0.0/16"
 )
 
+// Some important default paths
+const (
+	// Default directory for certificates
+	DefaultCertsDirectory = "/etc/kubernetes/pki"
+)
+
+const (
+	DefaultClusterAdminRole = "cluster-admin"
+)
+
 // Default list of kubelet arguments
 // Some of these arguments are automatically set by kubeadm
 // (see https://github.com/kubernetes/kubernetes/blob/2c933695fa61d57d1c6fa5defb89caed7d49f773/cmd/kubeadm/app/phases/kubelet/flags.go#L71)

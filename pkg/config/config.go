@@ -35,12 +35,13 @@ type ClusterFormationConfiguration struct {
 
 type CertsConfiguration struct {
 	// TODO
-	CaHash string `yaml:"caCrtHash,omitempty"`
+	Directory string `yaml:"directory,omitempty"`
+	CaHash    string `yaml:"caCrtHash,omitempty"`
 }
 
 type DNSConfiguration struct {
-	Domain       string   `yaml:"domain,omitempty"`
-	ExternalFqdn []string `yaml:"externalFqdn,omitempty"`
+	Domain       string `yaml:"domain,omitempty"`
+	ExternalFqdn string `yaml:"externalFqdn,omitempty"`
 }
 
 type ProxyConfiguration struct {
@@ -72,21 +73,51 @@ type FeaturesConfiguration struct {
 	PSP bool `yaml:"PSP,omitempty"`
 }
 
+type DexLDAPUserConfiguration struct {
+	BaseDN  string            `yaml:"baseDN,omitempty"`
+	Filter  string            `yaml:"filter,omitempty"`
+	AttrMap map[string]string `yaml:"attrMap,omitempty"`
+}
+
+type DexLDAPConfiguration struct {
+	Name           string                   `yaml:"name,omitempty"`
+	Id             string                   `yaml:"id,omitempty"`
+	Server         string                   `yaml:"server,omitempty"`
+	BindDN         string                   `yaml:"bindDN,omitempty"`
+	BindPW         string                   `yaml:"bindPW,omitempty"`
+	StartTLS       bool                     `yaml:"startTLS,omitempty"`
+	UsernamePrompt string                   `yaml:"usernamePrompt,omitempty"`
+	RootCAData     string                   `yaml:"rootCAData,omitempty"`
+	User           DexLDAPUserConfiguration `yaml:"user,omitempty"`
+	Group          DexLDAPUserConfiguration `yaml:"group,omitempty"`
+}
+
+type DexConfiguration struct {
+	NodePort int                    `yaml:"nodePort,omitempty"`
+	LDAP     []DexLDAPConfiguration `yaml:"connectors,omitempty"`
+}
+
+type ServicesConfiguration struct {
+	Dex DexConfiguration `yaml:"dex,omitempty"`
+}
+
 // The kubic-init configuration
 type KubicInitConfiguration struct {
 	metav1.TypeMeta
-
 	Network          NetworkConfiguration          `yaml:"network,omitempty"`
 	ClusterFormation ClusterFormationConfiguration `yaml:"clusterFormation,omitempty"`
 	Certificates     CertsConfiguration            `yaml:"certificates,omitempty"`
 	Runtime          RuntimeConfiguration          `yaml:"runtime,omitempty"`
 	Features         FeaturesConfiguration         `yaml:"features,omitempty"`
+	Services         ServicesConfiguration         `yaml:"services,omitempty"`
 }
 
 // Load a Kubic configuration file, setting some default values
 func ConfigFileAndDefaultsToKubicInitConfig(cfgPath string) (*KubicInitConfiguration, error) {
 	var err error
 	var internalcfg = KubicInitConfiguration{}
+
+	internalcfg.Certificates.Directory = DefaultCertsDirectory
 
 	// After loading the YAML file all unset values will have default values.
 	// That means that all booleans will be false... but we cannot know if users
@@ -217,7 +248,7 @@ func (kubicCfg KubicInitConfiguration) ToMasterConfig(featureGates map[string]bo
 	}
 
 	if len(kubicCfg.Network.Dns.ExternalFqdn) > 0 {
-		masterCfg.API.ControlPlaneEndpoint = kubicCfg.Network.Dns.ExternalFqdn[0]
+		masterCfg.API.ControlPlaneEndpoint = kubicCfg.Network.Dns.ExternalFqdn
 		// TODO: add all the other ExternalFqdn's to the certs
 	}
 
@@ -307,6 +338,10 @@ func (kubicCfg *KubicInitConfiguration) SetVars(vars []string) error {
 	return nil
 }
 
+func (kubicCfg KubicInitConfiguration) IsSeeder() bool {
+	return len(kubicCfg.ClusterFormation.Seeder) == 0
+}
+
 // GetBindIP gets a valid IP address where we can bind
 func (kubicCfg KubicInitConfiguration) GetBindIP() (net.IP, error) {
 	if len(kubicCfg.Network.Bind.Interface) > 0 {
@@ -325,4 +360,26 @@ func (kubicCfg KubicInitConfiguration) GetBindIP() (net.IP, error) {
 		}
 		return bindIP, nil
 	}
+}
+
+// GetPublicAPIAddress gets a DNS name (or IP address)
+// that can be used for reaching the API server
+func (kubicCfg KubicInitConfiguration) GetPublicAPIAddress() (string, error) {
+	if len(kubicCfg.Network.Dns.ExternalFqdn) > 0 {
+		return kubicCfg.Network.Dns.ExternalFqdn, nil
+	} else {
+		// ok, we don't have a user-provided DNS name, so we
+		// must apply some heuristics...
+
+		// 1. if this is the seeder, there will be an API server running here:
+		// just return the local IP address as the IP address of the API server
+		if kubicCfg.IsSeeder() {
+			localIP, err := utilnet.ChooseHostInterface()
+			if err != nil {
+				return "", err
+			}
+			return localIP.String(), nil
+		}
+	}
+	return "", fmt.Errorf("cannot determine an public DNS name or address for the API server")
 }
