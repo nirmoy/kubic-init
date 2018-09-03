@@ -18,6 +18,7 @@ kind: KubicInitConfiguration
 #     externalFqdn: some.name.com
 #   cni:
 #     driver: flannel
+#     image: registry.opensuse.org/devel/caasp/kubic-container/container/kubic/flannel:0.9.1
 #     podSubnet: "172.16.0.0/13"
 #     serviceSubnet: "172.24.0.0/16"
 #

@@ -17,6 +17,7 @@ import (
 // Subnets details are specified in the kubeadm configuration file
 type CniConfiguration struct {
 	Driver        string `json:"driver,omitempty"`
+	Image         string `json:"image,omitempty"`
 	PodSubnet     string `json:"podSubnet,omitempty"`
 	ServiceSubnet string `json:"serviceSubnet,omitempty"`
 }
@@ -120,6 +121,10 @@ func ConfigFileAndDefaultsToKubicInitConfig(cfgPath string) (*KubicInitConfigura
 	if len(internalcfg.Network.Cni.PodSubnet) == 0 {
 		glog.V(3).Infof("[kubic] using default Pods subnet %s", DefaultPodSubnet)
 		internalcfg.Network.Cni.PodSubnet = DefaultPodSubnet
+	}
+	if len(internalcfg.Network.Cni.Image) == 0 {
+		glog.V(3).Infof("[kubic] using default CNI image %s", DefaultCniImage)
+		internalcfg.Network.Cni.Image = DefaultCniImage
 	}
 	if len(internalcfg.Network.Cni.ServiceSubnet) == 0 {
 		glog.V(3).Infof("[kubic] using default services subnet %s", DefaultServiceSubnet)
