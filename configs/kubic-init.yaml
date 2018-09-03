@@ -1,8 +1,8 @@
 ##
 ## sample kubic-init configuration file
 ##
-apiVersion: caas.suse.com/v1alpha2
-kind: CaaSInitConfiguration
+apiVersion: kubic.suse.com/v1alpha2
+kind: KubicInitConfiguration
 # cni:
 #   driver: flannel
 #   podSubnet: "172.16.0.0/13"

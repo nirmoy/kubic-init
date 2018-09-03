@@ -39,8 +39,8 @@ write_files:
     permissions: "0644"
     owner: "root"
     content: |
-      apiVersion: caas.suse.com/v1alpha1
-      kind: CaaSInitConfiguration
+      apiVersion: kubic.suse.com/v1alpha1
+      kind: KubicInitConfiguration
       clusterFormation:
         token: ${token}
 
