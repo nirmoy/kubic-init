@@ -31,9 +31,19 @@ type CertsConfiguration struct {
 	CaHash string `json:"caCrtHash,omitempty"`
 }
 
+type DNSConfiguration struct {
+	Domain       string   `json:"domain,omitempty"`
+	ExternalFqdn []string `json:"externalFqdn,omitempty"`
+}
+
+type NetworkConfiguration struct {
+	Cni CniConfiguration `json:"cni,omitempty"`
+	Dns DNSConfiguration `json:"dns,omitempty"`
+}
+
 // The kubic-init configuration
 type KubicInitConfiguration struct {
-	Cni              CniConfiguration              `json:"cni,omitempty"`
+	Network          NetworkConfiguration          `json:"network,omitempty"`
 	ClusterFormation ClusterFormationConfiguration `json:"clusterFormation,omitempty"`
 	Certificates     CertsConfiguration            `json:"certificates,omitempty"`
 }
@@ -101,19 +111,19 @@ func ConfigFileAndDefaultsToKubicInitConfig(cfgPath string) (*KubicInitConfigura
 	}
 
 	// Load the CNI configuration (or set default values)
-	if len(internalcfg.Cni.Driver) == 0 {
+	if len(internalcfg.Network.Cni.Driver) == 0 {
 		glog.V(3).Infof("[kubic] using default CNI driver %s", DefaultCniDriver)
-		internalcfg.Cni.Driver = DefaultCniDriver
+		internalcfg.Network.Cni.Driver = DefaultCniDriver
 	}
 
 	// Set some networking defaults
-	if len(internalcfg.Cni.PodSubnet) == 0 {
+	if len(internalcfg.Network.Cni.PodSubnet) == 0 {
 		glog.V(3).Infof("[kubic] using default Pods subnet %s", DefaultPodSubnet)
-		internalcfg.Cni.PodSubnet = DefaultPodSubnet
+		internalcfg.Network.Cni.PodSubnet = DefaultPodSubnet
 	}
-	if len(internalcfg.Cni.ServiceSubnet) == 0 {
+	if len(internalcfg.Network.Cni.ServiceSubnet) == 0 {
 		glog.V(3).Infof("[kubic] using default services subnet %s", DefaultServiceSubnet)
-		internalcfg.Cni.ServiceSubnet = DefaultServiceSubnet
+		internalcfg.Network.Cni.ServiceSubnet = DefaultServiceSubnet
 	}
 
 	glog.V(8).Infof("kubic-init configuration:\n%s", spew.Sdump(internalcfg))
@@ -123,7 +133,7 @@ func ConfigFileAndDefaultsToKubicInitConfig(cfgPath string) (*KubicInitConfigura
 
 // Copy some settings to a master configuration
 func KubicInitConfigToMasterConfig(kubicCfg *KubicInitConfiguration, masterCfg *kubeadmapiv1alpha2.MasterConfiguration) error {
-	masterCfg.Networking.PodSubnet = kubicCfg.Cni.PodSubnet
+	masterCfg.Networking.PodSubnet = kubicCfg.Network.Cni.PodSubnet
 
 	if len(kubicCfg.ClusterFormation.Token) > 0 {
 		glog.V(8).Infof("[kubic] adding a default bootstrap token: %s", kubicCfg.ClusterFormation.Token)

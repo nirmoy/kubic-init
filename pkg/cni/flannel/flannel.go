@@ -43,9 +43,9 @@ func EnsureFlannelAddon(cfg *config.KubicInitConfiguration, client clientset.Int
 	}
 
 	// Get the flannel subnet from the Network section of the kubeadm's master config
-	cidr_ip, cidr_net, err := net.ParseCIDR(cfg.Cni.PodSubnet)
+	cidr_ip, cidr_net, err := net.ParseCIDR(cfg.Network.Cni.PodSubnet)
 	if err != nil {
-		return fmt.Errorf("could not parse Pod CIDR from '%s': %v", cfg.Cni.PodSubnet, err)
+		return fmt.Errorf("could not parse Pod CIDR from '%s': %v", cfg.Network.Cni.PodSubnet, err)
 	}
 	cidr_len, _ := cidr_net.Mask.Size()
 
