@@ -99,8 +99,8 @@ func newBootstrapCmd(out io.Writer) *cobra.Command {
 				client, err := kubeconfigutil.ClientSetFromFile(kubeadmconstants.GetAdminKubeConfigPath())
 				kubeadmutil.CheckErr(err)
 
-				glog.V(1).Infof("[kubic] deploying CNI DaemonSet with '%s' driver", kubicCfg.Cni.Driver)
-				err = cni.Registry.Load(kubicCfg.Cni.Driver, kubicCfg, client)
+				glog.V(1).Infof("[kubic] deploying CNI DaemonSet with '%s' driver", kubicCfg.Network.Cni.Driver)
+				err = cni.Registry.Load(kubicCfg.Network.Cni.Driver, kubicCfg, client)
 				kubeadmutil.CheckErr(err)
 
 				// TODO: deploy Dex, etc...

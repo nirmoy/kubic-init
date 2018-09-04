@@ -3,10 +3,6 @@
 ##
 apiVersion: kubic.suse.com/v1alpha2
 kind: KubicInitConfiguration
-# cni:
-#   driver: flannel
-#   podSubnet: "172.16.0.0/13"
-#   serviceSubnet: "172.24.0.0/16"
 # certificates:
 #   # a caCrt can be used for verifying the identity of the seeder
 #   caCrt:
@@ -16,3 +12,12 @@ kind: KubicInitConfiguration
 #   seeder: some-node.com
 #   # token for both discovery-token and tls-bootstrap-token
 #   token: 94dcda.c271f4ff502789ca
+# network:
+#   dns:
+#     domain: someDomain.local
+#     externalFqdn: some.name.com
+#   cni:
+#     driver: flannel
+#     podSubnet: "172.16.0.0/13"
+#     serviceSubnet: "172.24.0.0/16"
+#
