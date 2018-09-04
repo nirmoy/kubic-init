@@ -19,6 +19,8 @@ const (
 const (
 	DefaultCniDriver = "flannel"
 
+	DefaultCniImage = "registry.opensuse.org/devel/caasp/kubic-container/container/kubic/flannel:0.9.1"
+
 	// Default directory for CNI binaries
 	DefaultCniBinDir = "/var/lib/kubelet/cni/bin"
 

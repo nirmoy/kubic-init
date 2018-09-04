@@ -33,8 +33,7 @@ data:
     }
   net-conf.json: |
     {
-      "Network":   "{{ .Network }}",
-      "SubnetLen": {{ .SubnetLen }},
+      "Network": "{{ .Network }}",
       "Backend":
       {
         "Type": "{{ .Backend }}"
