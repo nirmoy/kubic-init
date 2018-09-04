@@ -249,6 +249,7 @@ resource "null_resource" "upload_config_seeder" {
       "sysctl -w net.ipv4.ip_forward=1",
       "sed -i 's/driver = \"\"/driver = \"btrfs\"/' /etc/containers/storage.conf",
       "sed -i 's|plugin_dir = \".*\"|plugin_dir = \"/var/lib/kubelet/cni/bin\"|' /etc/crio/crio.conf",
+      "echo 'runtime-endpoint: unix:///var/run/crio/crio.sock' > /etc/crictl.yaml",
       "while ! podman load -i /tmp/${var.kubic_init_image} ; do echo '(will try to load the kubic-init image again)' ; sleep 5 ; done",
       "systemctl enable --now kubic-init",
     ]
@@ -361,6 +362,7 @@ resource "null_resource" "upload_config_nodes" {
       "sysctl -w net.ipv4.ip_forward=1",
       "sed -i 's/driver = \"\"/driver = \"btrfs\"/' /etc/containers/storage.conf",
       "sed -i 's|plugin_dir = \".*\"|plugin_dir = \"/var/lib/kubelet/cni/bin\"|' /etc/crio/crio.conf",
+      "echo 'runtime-endpoint: unix:///var/run/crio/crio.sock' > /etc/crictl.yaml",
       "while ! podman load -i /tmp/${var.kubic_init_image} ; do echo '(will try to load the kubic-init image again)' ; sleep 5 ; done",
       "systemctl enable --now kubic-init",
     ]
