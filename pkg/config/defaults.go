@@ -15,6 +15,17 @@ const (
 	DefaultEnvVarToken = "TOKEN"
 )
 
+const (
+	// Default runtime engine
+	DefaultRuntimeEngine = "crio"
+)
+
+var DefaultCriSocket = map[string]string{
+	"docker": "/var/run/dockershim.sock",
+	"crio": "/var/run/crio/crio.sock",
+	"containerd": "/var/run/containerd/containerd.sock",
+}
+
 // CNI and network defaults
 const (
 	DefaultCniDriver = "flannel"

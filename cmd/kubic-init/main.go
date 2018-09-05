@@ -45,6 +45,7 @@ func newBootstrapCmd(out io.Writer) *cobra.Command {
 	var skipTokenPrint = false
 	var skipPreFlight = false
 	var dryRun = false
+	var vars = []string{}
 	block := true
 
 	cmd := &cobra.Command{
@@ -56,19 +57,19 @@ func newBootstrapCmd(out io.Writer) *cobra.Command {
 			kubicCfg, err = kubiccfg.ConfigFileAndDefaultsToKubicInitConfig(kubicCfgFile)
 			kubeadmutil.CheckErr(err)
 
-			featuresGates, err := features.NewFeatureGate(&features.InitFeatureGates, kubiccfg.DefaultFeatureGates)
+			err = kubicCfg.SetVars(vars)
 			kubeadmutil.CheckErr(err)
-			glog.V(3).Infof("[kubic] feature gates: %+v", featuresGates)
+
+			featureGates, err := features.NewFeatureGate(&features.InitFeatureGates, kubiccfg.DefaultFeatureGates)
+			kubeadmutil.CheckErr(err)
+			glog.V(3).Infof("[kubic] feature gates: %+v", featureGates)
 
 			ignorePreflightErrorsSet, err := validation.ValidateIgnorePreflightErrors(kubiccfg.DefaultIgnoredPreflightErrors, skipPreFlight)
 			kubeadmutil.CheckErr(err)
 
 			if len(kubicCfg.ClusterFormation.Seeder) > 0 {
 				glog.V(1).Infoln("[kubic] joining the seeder at %s", kubicCfg.ClusterFormation.Seeder)
-
-				nodeCfg.FeatureGates = featuresGates
-
-				err = kubiccfg.KubicInitConfigToNodeConfig(kubicCfg, nodeCfg)
+				err = kubicCfg.ToNodeConfig(nodeCfg, featureGates)
 				kubeadmutil.CheckErr(err)
 
 				joiner, err := kubeadmcmd.NewJoin("", args, nodeCfg, ignorePreflightErrorsSet)
@@ -81,11 +82,7 @@ func newBootstrapCmd(out io.Writer) *cobra.Command {
 
 			} else {
 				glog.V(1).Infoln("[kubic] seeding the cluster from this node")
-
-				masterCfg.FeatureGates = featuresGates
-				masterCfg.NodeRegistration.CRISocket = "/var/run/crio/crio.sock"
-
-				err = kubiccfg.KubicInitConfigToMasterConfig(kubicCfg, masterCfg)
+				err = kubicCfg.ToMasterConfig(masterCfg, featureGates)
 				kubeadmutil.CheckErr(err)
 
 				initter, err := kubeadmcmd.NewInit("", masterCfg, ignorePreflightErrorsSet, skipTokenPrint, dryRun)
@@ -104,6 +101,12 @@ func newBootstrapCmd(out io.Writer) *cobra.Command {
 				kubeadmutil.CheckErr(err)
 
 				// TODO: deploy Dex, etc...
+
+				if !kubicCfg.ClusterFormation.AutoApprove {
+					// TODO: remove the autoApprove things
+				} else {
+					glog.V(1).Infoln("[kubic] new nodes will have to be accepted")
+				}
 			}
 
 			if block {
@@ -119,6 +122,7 @@ func newBootstrapCmd(out io.Writer) *cobra.Command {
 	flagSet.StringVar(&kubicCfgFile, "config", "",
 		"Path to kubic-init config file.")
 	flagSet.BoolVar(&block, "block", block, "Block after boostrapping")
+	flagSet.StringSliceVar(&vars, "var", []string{}, "Set a configuration variable (ie, Network.Cni.Driver=cilium")
 	// Note: All flags that are not bound to the masterCfg object should be whitelisted in cmd/kubeadm/app/apis/kubeadm/validation/validation.go
 
 	return cmd

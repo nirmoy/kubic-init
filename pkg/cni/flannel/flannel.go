@@ -45,7 +45,7 @@ func EnsureFlannelAddon(cfg *config.KubicInitConfiguration, client clientset.Int
 			Network   string
 			Backend   string
 		}{
-			cfg.Network.Cni.PodSubnet,
+			cfg.Network.PodSubnet,
 			"vxlan", // TODO: replace by some config arg
 		})
 

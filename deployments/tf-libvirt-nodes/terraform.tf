@@ -241,6 +241,11 @@ resource "null_resource" "upload_config_nodes" {
   }
 
   provisioner "file" {
+    source = "../../init/kubelet-sysctl.conf"
+    destination = "/etc/sysctl.d/99-kubernetes-cri.conf"
+  }
+
+  provisioner "file" {
     source = "../../${var.kubic_init_image}"
     destination = "/tmp/${var.kubic_init_image}"
   }
@@ -248,6 +253,7 @@ resource "null_resource" "upload_config_nodes" {
   # TODO: this is only for development
   provisioner "remote-exec" {
     inline = [
+      "sysctl --system",
       "systemctl daemon-reload",
       "mkdir -p /var/lib/etcd",
       "echo br_netfilter > /etc/modules-load.d/br_netfilter.conf",
