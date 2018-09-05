@@ -167,6 +167,7 @@ func ConfigFileAndDefaultsToKubicInitConfig(cfgPath string) (*KubicInitConfigura
 func (kubicCfg KubicInitConfiguration) ToMasterConfig(masterCfg *kubeadmapiv1alpha2.MasterConfiguration, featureGates map[string]bool) error {
 
 	masterCfg.FeatureGates = featureGates
+	masterCfg.NodeRegistration.KubeletExtraArgs = DefaultKubeletSettings
 
 	if len(kubicCfg.ClusterFormation.Token) > 0 {
 		glog.V(8).Infof("[kubic] adding a default bootstrap token: %s", kubicCfg.ClusterFormation.Token)
@@ -204,7 +205,6 @@ func (kubicCfg KubicInitConfiguration) ToMasterConfig(masterCfg *kubeadmapiv1alp
 	glog.V(3).Infof("[kubic] using container engine '%s'", kubicCfg.Runtime.Engine)
 	if socket, ok := DefaultCriSocket[kubicCfg.Runtime.Engine]; ok {
 		glog.V(3).Infof("[kubic] setting CRI socket '%s'", socket)
-		masterCfg.NodeRegistration.KubeletExtraArgs = map[string]string{}
 		masterCfg.NodeRegistration.KubeletExtraArgs["container-runtime-endpoint"] = fmt.Sprintf("unix://%s", socket)
 		masterCfg.NodeRegistration.CRISocket = socket
 	}
@@ -224,6 +224,7 @@ func (kubicCfg KubicInitConfiguration) ToMasterConfig(masterCfg *kubeadmapiv1alp
 func (kubicCfg KubicInitConfiguration) ToNodeConfig(nodeCfg *kubeadmapiv1alpha2.NodeConfiguration, featureGates map[string]bool) error {
 	nodeCfg.FeatureGates = featureGates
 	nodeCfg.DiscoveryTokenAPIServers = []string{kubicCfg.ClusterFormation.Seeder}
+	nodeCfg.NodeRegistration.KubeletExtraArgs = DefaultKubeletSettings
 	nodeCfg.Token = kubicCfg.ClusterFormation.Token
 
 	// Disable the ca.crt verification if no hash has been provided
@@ -236,7 +237,6 @@ func (kubicCfg KubicInitConfiguration) ToNodeConfig(nodeCfg *kubeadmapiv1alpha2.
 	glog.V(3).Infof("[kubic] using container engine '%s'", kubicCfg.Runtime.Engine)
 	if socket, ok := DefaultCriSocket[kubicCfg.Runtime.Engine]; ok {
 		glog.V(3).Infof("[kubic] setting CRI socket '%s'", socket)
-		nodeCfg.NodeRegistration.KubeletExtraArgs = map[string]string{}
 		nodeCfg.NodeRegistration.KubeletExtraArgs["container-runtime-endpoint"] = fmt.Sprintf("unix://%s", socket)
 		nodeCfg.NodeRegistration.CRISocket = socket
 	}
