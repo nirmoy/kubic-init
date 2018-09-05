@@ -96,12 +96,12 @@ variable "kubic_init_image" {
 }
 
 variable "seed_memory" {
-  default = 3072
+  default = 2048
   description = "RAM of the seed node (in bytes)"
 }
 
 variable "default_node_memory" {
-  default = 1536
+  default = 2048
   description = "default amount of RAM of the Nodes (in bytes)"
 }
 
@@ -183,12 +183,9 @@ resource "libvirt_domain" "seed" {
   memory = "${var.seed_memory}"
   cloudinit = "${libvirt_cloudinit.seed.id}"
 
-  #cpu {
-  #  feature {
-  #    policy = "require"
-  #    name   = "pcid"
-  #  }
-  #}
+  cpu {
+    mode = "host-passthrough"
+  }
 
   disk {
     volume_id = "${libvirt_volume.seed.id}"
@@ -302,6 +299,10 @@ resource "libvirt_domain" "node" {
   cloudinit = "${element(libvirt_cloudinit.node.*.id, count.index)}"
   depends_on = [
     "libvirt_domain.seed"]
+
+  cpu {
+    mode = "host-passthrough"
+  }
 
   disk {
     volume_id = "${element(libvirt_volume.node.*.id, count.index)}"

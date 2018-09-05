@@ -18,7 +18,7 @@
 #
 IMG_SRC_BASE="https://download.opensuse.org/repositories/devel:/kubic:/images:/experimental/images/"
 IMG_SRC_FILENAME=
-IMG_REGEX="kubeadm-cri-o-kvm-and-xen"
+IMG_REGEX="kubeadm-cri-o-hardware"
 IMG_GLOB=*$(echo "$IMG_REGEX" | sed -e 's|\.\*|\*|g')*.qcow2
 IMG_LOCAL_NAME="images/kubic.qcow2"
 IMG_REFRESH=1
