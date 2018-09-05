@@ -3,6 +3,8 @@
 ##
 apiVersion: kubic.suse.com/v1alpha2
 kind: KubicInitConfiguration
+# features:
+#   PSP: true
 # runtime:
 #   engine: crio
 # certificates:

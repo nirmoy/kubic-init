@@ -18,8 +18,8 @@ import (
 // The CNI configuration
 // Subnets details are specified in the kubeadm configuration file
 type CniConfiguration struct {
-	Driver        string `json:"driver,omitempty"`
-	Image         string `json:"image,omitempty"`
+	Driver string `json:"driver,omitempty"`
+	Image  string `json:"image,omitempty"`
 }
 
 type ClusterFormationConfiguration struct {
@@ -39,14 +39,18 @@ type DNSConfiguration struct {
 }
 
 type NetworkConfiguration struct {
-	Cni CniConfiguration `json:"cni,omitempty"`
-	Dns DNSConfiguration `json:"dns,omitempty"`
-	PodSubnet     string `json:"podSubnet,omitempty"`
-	ServiceSubnet string `json:"serviceSubnet,omitempty"`
+	Cni           CniConfiguration `json:"cni,omitempty"`
+	Dns           DNSConfiguration `json:"dns,omitempty"`
+	PodSubnet     string           `json:"podSubnet,omitempty"`
+	ServiceSubnet string           `json:"serviceSubnet,omitempty"`
 }
 
 type RuntimeConfiguration struct {
 	Engine string `json:"engine,omitempty"`
+}
+
+type FeaturesConfiguration struct {
+	PSP bool `json:"PSP,omitempty"`
 }
 
 // The kubic-init configuration
@@ -55,6 +59,7 @@ type KubicInitConfiguration struct {
 	ClusterFormation ClusterFormationConfiguration `json:"clusterFormation,omitempty"`
 	Certificates     CertsConfiguration            `json:"certificates,omitempty"`
 	Runtime          RuntimeConfiguration          `json:"runtime,omitempty"`
+	Features         FeaturesConfiguration         `json:"features,omitempty"`
 }
 
 // Load a Kubic configuration file, setting some default values
@@ -67,6 +72,7 @@ func ConfigFileAndDefaultsToKubicInitConfig(cfgPath string) (*KubicInitConfigura
 	// explictly set those "false", so we must set some defaults _before_
 	// loading the YAML file
 	internalcfg.ClusterFormation.AutoApprove = true
+	internalcfg.Features.PSP = false
 
 	if len(cfgPath) > 0 {
 		glog.V(1).Infof("[kubic] loading kubic-init configuration from '%s'", cfgPath)
