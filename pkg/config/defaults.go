@@ -21,8 +21,8 @@ const (
 )
 
 var DefaultCriSocket = map[string]string{
-	"docker": "/var/run/dockershim.sock",
-	"crio": "/var/run/crio/crio.sock",
+	"docker":     "/var/run/dockershim.sock",
+	"crio":       "/var/run/crio/crio.sock",
 	"containerd": "/var/run/containerd/containerd.sock",
 }
 
@@ -45,6 +45,15 @@ const (
 	DefaultServiceSubnet = "172.24.0.0/16"
 )
 
+// Default list of kubelet arguments
+// Some of these arguments are automatically set by kubeadm
+// (see https://github.com/kubernetes/kubernetes/blob/2c933695fa61d57d1c6fa5defb89caed7d49f773/cmd/kubeadm/app/phases/kubelet/flags.go#L71)
+var DefaultKubeletSettings = map[string]string{
+	"network-plugin": "cni",
+	"cni-conf-dir":   DefaultCniConfDir,
+	"cni-bin-dir":    DefaultCniBinDir,
+}
+
 // Hardcoded list of errors to ignore
 var DefaultIgnoredPreflightErrors = []string{
 	"Service-Docker",
@@ -58,7 +67,7 @@ var DefaultIgnoredPreflightErrors = []string{
 var DefaultFeatureGates = (features.CoreDNS + "=true," +
 	features.HighAvailability + "=false," +
 	features.SelfHosting + "=true," +
-	// TODO: disabled until https://github.com/kubernetes/kubeadm/issues/923
+// TODO: disabled until https://github.com/kubernetes/kubeadm/issues/923
 	features.StoreCertsInSecrets + "=false," +
-	// TODO: results in some errors... needs some research
+// TODO: results in some errors... needs some research
 	features.DynamicKubeletConfig + "=false")
