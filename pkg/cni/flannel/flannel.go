@@ -19,13 +19,82 @@ import (
 
 const (
 	// FlannelClusterRoleName sets the name for the flannel ClusterRole
-	// TODO: This k8s-generic, well-known constant should be fetchable from another source, not be in this package
 	FlannelClusterRoleName = "suse:kubic:flannel"
+
+	FlannelClusterRoleNamePSP = "suse:kubic:psp:flannel"
 
 	// FlannelServiceAccountName describes the name of the ServiceAccount for the flannel addon
 	FlannelServiceAccountName = "flannel"
 
 	FlannelHealthPort = 8471
+)
+
+var (
+	serviceAccount = v1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      FlannelServiceAccountName,
+			Namespace: metav1.NamespaceSystem,
+		},
+	}
+
+	clusterRole = rbac.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: FlannelClusterRoleName,
+		},
+		Rules: []rbac.PolicyRule{
+			{
+				APIGroups: []string{""},
+				Resources: []string{"pods"},
+				Verbs:     []string{"get"},
+			},
+			{
+				APIGroups: []string{""},
+				Resources: []string{"nodes"},
+				Verbs:     []string{"list", "watch"},
+			},
+			{
+				APIGroups: []string{""},
+				Resources: []string{"nodes/status"},
+				Verbs:     []string{"patch"},
+			},
+		},
+	}
+
+	clusterRoleBinding = rbac.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: FlannelClusterRoleName,
+		},
+		RoleRef: rbac.RoleRef{
+			APIGroup: rbac.GroupName,
+			Kind:     "ClusterRole",
+			Name:     FlannelClusterRoleName,
+		},
+		Subjects: []rbac.Subject{
+			{
+				Kind:      rbac.ServiceAccountKind,
+				Name:      FlannelServiceAccountName,
+				Namespace: metav1.NamespaceSystem,
+			},
+		},
+	}
+
+	clusterRoleBindingPSP = rbac.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: FlannelClusterRoleNamePSP,
+		},
+		RoleRef: rbac.RoleRef{
+			APIGroup: rbac.GroupName,
+			Kind:     "ClusterRole",
+			Name:     "suse:kubic:psp:privileged",
+		},
+		Subjects: []rbac.Subject{
+			{
+				Kind:      rbac.ServiceAccountKind,
+				Name:      FlannelServiceAccountName,
+				Namespace: metav1.NamespaceSystem,
+			},
+		},
+	}
 )
 
 func init() {
@@ -35,17 +104,17 @@ func init() {
 
 // EnsureFlannelAddon creates the flannel addons
 func EnsureFlannelAddon(cfg *config.KubicInitConfiguration, client clientset.Interface) error {
-	if err := CreateServiceAccount(client); err != nil {
+	if err := createServiceAccount(client); err != nil {
 		return fmt.Errorf("error when creating flannel service account: %v", err)
 	}
 
 	var flannelConfigMapBytes, flannelDaemonSetBytes []byte
 	flannelConfigMapBytes, err := kubeadmutil.ParseTemplate(FlannelConfigMap19,
 		struct {
-			Network   string
-			Backend   string
+			Network string
+			Backend string
 		}{
-			cfg.Network.Cni.PodSubnet,
+			cfg.Network.PodSubnet,
 			"vxlan", // TODO: replace by some config arg
 		})
 
@@ -76,7 +145,7 @@ func EnsureFlannelAddon(cfg *config.KubicInitConfiguration, client clientset.Int
 		return err
 	}
 
-	if err := CreateRBACRules(client); err != nil {
+	if err := createRBACRules(client, cfg.Features.PSP); err != nil {
 		return fmt.Errorf("error when creating flannel RBAC rules: %v", err)
 	}
 
@@ -85,19 +154,8 @@ func EnsureFlannelAddon(cfg *config.KubicInitConfiguration, client clientset.Int
 }
 
 // CreateServiceAccount creates the necessary serviceaccounts that kubeadm uses/might use, if they don't already exist.
-func CreateServiceAccount(client clientset.Interface) error {
-
-	return apiclient.CreateOrUpdateServiceAccount(client, &v1.ServiceAccount{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      FlannelServiceAccountName,
-			Namespace: metav1.NamespaceSystem,
-		},
-	})
-}
-
-// CreateRBACRules creates the essential RBAC rules for a minimally set-up cluster
-func CreateRBACRules(client clientset.Interface) error {
-	return createClusterRoleBindings(client)
+func createServiceAccount(client clientset.Interface) error {
+	return apiclient.CreateOrUpdateServiceAccount(client, &serviceAccount)
 }
 
 func createFlannelAddon(configMapBytes, daemonSetbytes []byte, client clientset.Interface) error {
@@ -120,22 +178,23 @@ func createFlannelAddon(configMapBytes, daemonSetbytes []byte, client clientset.
 	return apiclient.CreateOrUpdateDaemonSet(client, flannelDaemonSet)
 }
 
-func createClusterRoleBindings(client clientset.Interface) error {
-	return apiclient.CreateOrUpdateClusterRoleBinding(client, &rbac.ClusterRoleBinding{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: FlannelClusterRoleName,
-		},
-		RoleRef: rbac.RoleRef{
-			APIGroup: rbac.GroupName,
-			Kind:     "ClusterRole",
-			Name:     FlannelClusterRoleName,
-		},
-		Subjects: []rbac.Subject{
-			{
-				Kind:      rbac.ServiceAccountKind,
-				Name:      FlannelServiceAccountName,
-				Namespace: metav1.NamespaceSystem,
-			},
-		},
-	})
+// CreateRBACRules creates the essential RBAC rules for a minimally set-up cluster
+func createRBACRules(client clientset.Interface, psp bool) error {
+	var err error
+
+	if err = apiclient.CreateOrUpdateClusterRole(client, &clusterRole); err != nil {
+		return err
+	}
+
+	if err = apiclient.CreateOrUpdateClusterRoleBinding(client, &clusterRoleBinding); err != nil {
+		return err
+	}
+
+	if psp {
+		if err = apiclient.CreateOrUpdateClusterRoleBinding(client, &clusterRoleBindingPSP); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

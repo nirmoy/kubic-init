@@ -7,13 +7,13 @@ KUBIC_INIT_EXE  = cmd/kubic-init/kubic-init
 KUBIC_INIT_SH   = build/image/entrypoint.sh
 KUBIC_INIT_MAIN = cmd/kubic-init/main.go
 KUBIC_INIT_SRCS = $(shell find . -type f -name '*.go' -not -path "./vendor/*")
-KUBIC_INIT_CFGS = $(shell find ./configs -type f -not -name "README*")
+KUBIC_INIT_CFG  = configs/kubic-init.yaml
 .DEFAULT_GOAL: $(KUBIC_INIT_EXE)
 
 IMAGE_BASENAME = $(GOPATH_THIS_REPO)
 IMAGE_NAME     = $(GOPATH_THIS_USER)/$(IMAGE_BASENAME)
 IMAGE_TAR_GZ   = $(IMAGE_BASENAME)-latest.tar.gz
-IMAGE_DEPS     = $(KUBIC_INIT_EXE) $(KUBIC_INIT_SH) $(KUBIC_INIT_CFGS) Dockerfile
+IMAGE_DEPS     = $(KUBIC_INIT_EXE) $(KUBIC_INIT_SH) $(KUBIC_INIT_CFG) Dockerfile
 
 # should be non-empty when dep is installed
 DEP_EXE := $(shell command -v dep 2> /dev/null)
@@ -34,7 +34,7 @@ KUBE_DROPIN_DST = /etc/systemd/system/kubelet.service.d/kubelet.drop-in.conf
 
 TF_LIBVIRT_FULL_DIR  = deployments/tf-libvirt-full
 TF_LIBVIRT_NODES_DIR = deployments/tf-libvirt-nodes
-TF_ARGS_DEFAULT      = -var 'kubic_init_image=$(IMAGE_TAR_GZ)'
+TF_ARGS_DEFAULT      = -input=false -auto-approve -var 'kubic_init_image=$(IMAGE_TAR_GZ)'
 
 # sudo command (and version passing env vars)
 SUDO = sudo
@@ -45,7 +45,7 @@ SUDO_E = $(SUDO) -E
 VERBOSE_LEVEL = 5
 
 CONTAINER_VOLUMES = \
-		-v `pwd`/configs:/etc/kubic \
+		-v $(KUBIC_INIT_CFG):/etc/kubic/kubic-init.yaml \
         -v /etc/kubernetes:/etc/kubernetes \
         -v /etc/hosts:/etc/hosts:ro \
         -v /usr/bin/kubelet:/usr/bin/kubelet:ro \
@@ -129,11 +129,17 @@ local-reset: $(KUBIC_INIT_EXE)
 #  - create a local seeder: make local-run
 #  - create a local seeder with a specific token: TOKEN=XXXX make local-run
 #  - join an existing seeder: env SEEDER=1.2.3.4 TOKEN=XXXX make local-run
+#
+# You can customize the args with something like:
+#   make local-run VERBOSE_LEVEL=8 \
+#                  KUBIC_INIT_CFG="my-config-file.yaml" \
+#                  KUBIC_ARGS="--var Runtime.Engine=docker"
+#
 local-run: $(KUBIC_INIT_EXE) $(KUBE_DROPIN_DST) local-reset
 	@echo ">>> Running $(KUBIC_INIT_EXE) as _root_"
 	$(SUDO_E) $(KUBIC_INIT_EXE) bootstrap \
 		-v $(VERBOSE_LEVEL) \
-		--config configs/kubic-init.yaml
+		--config $(KUBIC_INIT_CFG) $(KUBIC_ARGS)
 
 # Usage:
 #  - create a local seeder: make docker-run
@@ -150,7 +156,7 @@ docker-run: $(IMAGE_TAR_GZ) docker-reset $(KUBE_DROPIN_DST)
 		-e SEEDER \
 		-e TOKEN \
 		$(CONTAINER_VOLUMES) \
-		$(IMAGE_NAME):latest
+		$(IMAGE_NAME):latest $(KUBIC_ARGS)
 
 docker-reset: kubeadm-reset
 
@@ -181,7 +187,7 @@ podman-run: podman-image podman-reset $(KUBE_DROPIN_DST)
 		-e SEEDER \
 		-e TOKEN \
 		$(CONTAINER_VOLUMES) \
-		$(IMAGE_NAME):latest
+		$(IMAGE_NAME):latest $(KUBIC_ARGS)
 
 kubelet-run: $(IMAGE_TAR_GZ) kubelet-reset $(KUBE_DROPIN_DST)
 	@echo ">>> Pushing $(IMAGE_NAME):latest to docker Hub"

@@ -229,12 +229,12 @@
   revision = "24818f796faf91cd76ec7bddd72458fbced7a6c1"
 
 [[projects]]
-  digest = "1:c1d7e883c50a26ea34019320d8ae40fad86c9e5d56e63a1ba2cb618cef43e986"
+  digest = "1:5247b135b5492aa232a731acdcb52b08f32b874cb398f21ab460396eadbe866b"
   name = "github.com/google/uuid"
   packages = ["."]
   pruneopts = "U"
-  revision = "064e2069ce9c359c118179501254f67d7d37ba24"
-  version = "0.2"
+  revision = "d460ce9f8df2e77fb1ba55ca87fafed96c607494"
+  version = "v1.0.0"
 
 [[projects]]
   digest = "1:65c4414eeb350c47b8de71110150d0ea8a281835b1f386eacaa3ad7325929c21"
@@ -260,15 +260,15 @@
   revision = "9cad4c3443a7200dd6400aef47183728de563a38"
 
 [[projects]]
-  branch = "master"
-  digest = "1:9c776d7d9c54b7ed89f119e449983c3f24c0023e75001d6092442412ebca6b94"
+  digest = "1:3313a63031ae281e5f6fd7b0bbca733dfa04d2429df86519e3b4d4c016ccb836"
   name = "github.com/hashicorp/golang-lru"
   packages = [
     ".",
     "simplelru",
   ]
   pruneopts = "U"
-  revision = "0fb14efe8c47ae851c0034ed7a448854d3d34cf3"
+  revision = "20f1fb78b0740ba8c3cb143a61e86ba5c8669768"
+  version = "v0.5.0"
 
 [[projects]]
   digest = "1:4db9f038bc0ec69d82b5ffac9aa0f5dd10715ff879af2ce57ab0637737d8b85b"
@@ -485,6 +485,14 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:38cf674f9f03dc0623708e9b70d57c7a828f6a5eda57ada96f54eccd0dd80933"
+  name = "github.com/yuroyoro/swalker"
+  packages = ["."]
+  pruneopts = "U"
+  revision = "0a5950e9162f1160fb745014f926b8790ec098f6"
+
+[[projects]]
+  branch = "master"
   digest = "1:2695e2bcf45f541dd32137a66c850066cf423134ffb8da738e2eabd9fb7123b2"
   name = "golang.org/x/crypto"
   packages = [
@@ -494,7 +502,7 @@
     "ssh/terminal",
   ]
   pruneopts = "U"
-  revision = "614d502a4dac94afa3a6ce146bd1736da82514c6"
+  revision = "0709b304e793a5edb4a2c0145f281ecdc20838a4"
 
 [[projects]]
   branch = "master"
@@ -513,18 +521,18 @@
     "trace",
   ]
   pruneopts = "U"
-  revision = "faa378e6dbaed88bd8100f8bcf09939375c6e8fa"
+  revision = "8a410e7b638dca158bf9e766925842f6651ff828"
 
 [[projects]]
   branch = "master"
-  digest = "1:9c5d97457a318e83b1cc95a8bb9d839b9267465d740ac19b9d58c800cab5cb51"
+  digest = "1:a82fc3205554c66e745aefab081509a4c862a1889af76c1dff0fcbb63b6b35c9"
   name = "golang.org/x/sys"
   packages = [
     "unix",
     "windows",
   ]
   pruneopts = "U"
-  revision = "11551d06cbcc94edc80a0facaccbda56473c19c1"
+  revision = "ebe1bf3edb3325c393447059974de898d5133eb8"
 
 [[projects]]
   digest = "1:c2e1117b4ed0c703cec077c362bb170f03cb1c251bec7ee5c257976f191df129"
@@ -564,7 +572,7 @@
   name = "google.golang.org/genproto"
   packages = ["googleapis/rpc/status"]
   pruneopts = "U"
-  revision = "c66870c02cf823ceb633bcd05be3c7cda29976f4"
+  revision = "11092d34479b07829b72e10713b159248caf5dad"
 
 [[projects]]
   digest = "1:019d89af01cc4d739b07351620f49988310b6e3f560c4dc84be5eba001c02902"
@@ -675,7 +683,7 @@
   name = "k8s.io/apiextensions-apiserver"
   packages = ["pkg/features"]
   pruneopts = "U"
-  revision = "d9373c11a3843f060d1105239b1b143f895c61f1"
+  revision = "9641638c684b8e8120841315690e5c13ae9dd611"
 
 [[projects]]
   digest = "1:71c18ef1a0cb5c06ef28b802d029df6ba3e5dab1eb14394c9053e58b247d0c0c"
@@ -993,6 +1001,7 @@
     "github.com/renstrom/dedent",
     "github.com/spf13/cobra",
     "github.com/spf13/pflag",
+    "github.com/yuroyoro/swalker",
     "k8s.io/api/apps/v1",
     "k8s.io/api/core/v1",
     "k8s.io/api/rbac/v1",
