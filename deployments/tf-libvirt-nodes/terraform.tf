@@ -96,7 +96,7 @@ variable "kubic_init_image" {
 }
 
 variable "default_node_memory" {
-  default = 1536
+  default = 2048
   description = "default amount of RAM of the Nodes (in bytes)"
 }
 
