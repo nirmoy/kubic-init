@@ -215,7 +215,7 @@ resource "null_resource" "upload_config_nodes" {
   count = "${length(var.devel) == 0 ? 0 : var.nodes_count}"
 
   connection {
-    host = "${element(libvirt_domain.node.*.network_interface.0.addresses[0], count.index)}"
+    host = "${element(libvirt_domain.node.*.network_interface.0.addresses.0, count.index)}"
     password = "${var.password}"
   }
 
@@ -263,6 +263,5 @@ resource "null_resource" "upload_config_nodes" {
 }
 
 output "nodes" {
-  value = [
-    "${libvirt_domain.node.*.network_interface.0.addresses[0]}"]
+  value = "${libvirt_domain.node.*.network_interface.0.addresses}"
 }

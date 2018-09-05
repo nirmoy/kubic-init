@@ -209,7 +209,7 @@ resource "null_resource" "upload_config_seeder" {
     "libvirt_domain.seed"]
 
   connection {
-    host = "${libvirt_domain.seed.network_interface.0.addresses[0]}"
+    host = "${libvirt_domain.seed.network_interface.0.addresses.0}"
     password = "${var.password}"
   }
 
@@ -257,7 +257,7 @@ resource "null_resource" "upload_config_seeder" {
 }
 
 output "seeder" {
-  value = "${libvirt_domain.seed.network_interface.0.addresses[0]}"
+  value = "${libvirt_domain.seed.network_interface.0.addresses.0}"
 }
 
 ###########################
@@ -278,7 +278,7 @@ data "template_file" "node_cloud_init_user_data" {
   template = "${file("../cloud-init/node.cfg.tpl")}"
 
   vars {
-    seeder = "${libvirt_domain.seed.network_interface.0.addresses[0]}"
+    seeder = "${libvirt_domain.seed.network_interface.0.addresses.0}"
     token = "${data.external.token_gen.result.token}"
     password = "${var.password}"
     hostname = "${var.prefix}-node-${count.index}"
@@ -322,7 +322,7 @@ resource "null_resource" "upload_config_nodes" {
   count = "${length(var.devel) == 0 ? 0 : var.nodes_count}"
 
   connection {
-    host = "${element(libvirt_domain.node.*.network_interface.0.addresses[0], count.index)}"
+    host = "${element(libvirt_domain.node.*.network_interface.0.addresses.0, count.index)}"
     password = "${var.password}"
   }
 
@@ -371,6 +371,5 @@ resource "null_resource" "upload_config_nodes" {
 }
 
 output "nodes" {
-  value = [
-    "${libvirt_domain.node.*.network_interface.0.addresses[0]}"]
+  value = "${libvirt_domain.node.*.network_interface.0.addresses}"
 }
