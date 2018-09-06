@@ -13,11 +13,13 @@ kind: KubicInitConfiguration
 #   # (or we can use the "hash" of the ca.crt instead)
 #   caCrtHash:
 # clusterFormation:
+#   # the seeder for the cluster formation
+#   # when no seeder is specified, this node will be the seeder
 #   seeder: some-node.com
 #   # token for both discovery-token and tls-bootstrap-token
 #   token: 94dcda.c271f4ff502789ca
 #   # nodes with the right token will be automatically approved
-#   autoApprove: true
+#   autoApprove: false
 # network:
 #   podSubnet: "172.16.0.0/13"
 #   serviceSubnet: "172.24.0.0/16"
