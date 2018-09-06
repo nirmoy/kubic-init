@@ -22,6 +22,7 @@ import (
 	kubeadmutil "k8s.io/kubernetes/cmd/kubeadm/app/util"
 	kubeconfigutil "k8s.io/kubernetes/cmd/kubeadm/app/util/kubeconfig"
 
+	kubiccluster "github.com/kubic-project/kubic-init/pkg/cluster"
 	"github.com/kubic-project/kubic-init/pkg/cni"
 	_ "github.com/kubic-project/kubic-init/pkg/cni/flannel"
 	kubiccfg "github.com/kubic-project/kubic-init/pkg/config"
@@ -96,17 +97,19 @@ func newBootstrapCmd(out io.Writer) *cobra.Command {
 				client, err := kubeconfigutil.ClientSetFromFile(kubeadmconstants.GetAdminKubeConfigPath())
 				kubeadmutil.CheckErr(err)
 
+				if !kubicCfg.ClusterFormation.AutoApprove {
+					glog.V(1).Infoln("[kubic] removing the auto-approval rules for new nodes")
+					err = kubiccluster.RemoveAutoApprovalRBAC(client)
+					kubeadmutil.CheckErr(err)
+				} else {
+					glog.V(1).Infoln("[kubic] new nodes will be accepted automatically")
+				}
+
 				glog.V(1).Infof("[kubic] deploying CNI DaemonSet with '%s' driver", kubicCfg.Network.Cni.Driver)
 				err = cni.Registry.Load(kubicCfg.Network.Cni.Driver, kubicCfg, client)
 				kubeadmutil.CheckErr(err)
 
 				// TODO: deploy Dex, etc...
-
-				if !kubicCfg.ClusterFormation.AutoApprove {
-					// TODO: remove the autoApprove things
-				} else {
-					glog.V(1).Infoln("[kubic] new nodes will have to be accepted")
-				}
 			}
 
 			if block {

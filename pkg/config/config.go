@@ -7,9 +7,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/golang/glog"
 	"github.com/yuroyoro/swalker"
+	"gopkg.in/yaml.v2"
 	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/scheme"
 	kubeadmapiv1alpha2 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1alpha2"
 	kubeadmutil "k8s.io/kubernetes/cmd/kubeadm/app/util"
@@ -85,30 +85,22 @@ func ConfigFileAndDefaultsToKubicInitConfig(cfgPath string) (*KubicInitConfigura
 			return nil, fmt.Errorf("unable to read config from %q [%v]", cfgPath, err)
 		}
 
-		decoded, err := kubeadmutil.LoadYAML(b)
+		err = yaml.Unmarshal(b, internalcfg)
 		if err != nil {
 			return nil, fmt.Errorf("unable to decode config from bytes: %v", err)
 		}
 
-		// TODO: check the decoded['kind']
-
-		seeder := decoded["seeder"]
-		if seeder != nil && len(seeder.(string)) > 0 {
-			if len(internalcfg.ClusterFormation.Seeder) == 0 {
-				internalcfg.ClusterFormation.Seeder = seeder.(string)
-				glog.V(2).Infof("[kubic] setting seeder as %s", internalcfg.ClusterFormation.Seeder)
-			}
-		}
+		// TODO: check the internalcfg['kind']
 	}
 
 	// Overwrite some values with environment variables
 	if seederEnv, found := os.LookupEnv(DefaultEnvVarSeeder); found {
-		glog.V(3).Infof("[kubic] setting cluster seeder %s", seederEnv)
+		glog.V(3).Infof("[kubic] environment: setting cluster seeder %s", seederEnv)
 		internalcfg.ClusterFormation.Seeder = seederEnv
 	}
 
 	if tokenEnv, found := os.LookupEnv(DefaultEnvVarToken); found {
-		glog.V(3).Infof("[kubic] setting cluster token '%s'", tokenEnv)
+		glog.V(3).Infof("[kubic] environment: setting cluster token '%s'", tokenEnv)
 		internalcfg.ClusterFormation.Token = tokenEnv
 	}
 
@@ -158,7 +150,13 @@ func ConfigFileAndDefaultsToKubicInitConfig(cfgPath string) (*KubicInitConfigura
 		internalcfg.Network.ServiceSubnet = DefaultServiceSubnet
 	}
 
-	glog.V(8).Infof("[kubic] after parsing the config file:\n%s", spew.Sdump(internalcfg))
+	if glog.V(8) {
+		marshalled, err := yaml.Marshal(internalcfg)
+		if err != nil {
+			return nil, err
+		}
+		glog.Infof("[kubic] after parsing the config file:\n%s", marshalled)
+	}
 
 	return internalcfg, nil
 }
@@ -270,7 +268,13 @@ func (kubicCfg *KubicInitConfiguration) SetVars(vars []string) error {
 			}
 		}
 
-		glog.V(8).Infof("[kubic] after parsing variables:\n%s", spew.Sdump(kubicCfg))
+		if glog.V(8) {
+			marshalled, err := yaml.Marshal(kubicCfg)
+			if err != nil {
+				return err
+			}
+			glog.Infof("[kubic] after parsing the list of variables:\n%s", marshalled)
+		}
 	}
 
 	return nil
