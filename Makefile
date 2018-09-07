@@ -7,7 +7,7 @@ KUBIC_INIT_EXE  = cmd/kubic-init/kubic-init
 KUBIC_INIT_SH   = build/image/entrypoint.sh
 KUBIC_INIT_MAIN = cmd/kubic-init/main.go
 KUBIC_INIT_SRCS = $(shell find . -type f -name '*.go' -not -path "./vendor/*")
-KUBIC_INIT_CFG  = configs/kubic-init.yaml
+KUBIC_INIT_CFG  = $(CURDIR)/configs/kubic-init.yaml
 .DEFAULT_GOAL: $(KUBIC_INIT_EXE)
 
 IMAGE_BASENAME = $(GOPATH_THIS_REPO)
