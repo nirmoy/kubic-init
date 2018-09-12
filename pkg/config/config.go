@@ -13,6 +13,7 @@ import (
 	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/scheme"
 	kubeadmapiv1alpha2 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1alpha2"
 	kubeadmutil "k8s.io/kubernetes/cmd/kubeadm/app/util"
+	kubeadmscheme "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/scheme"
 )
 
 // The CNI configuration
@@ -162,7 +163,8 @@ func ConfigFileAndDefaultsToKubicInitConfig(cfgPath string) (*KubicInitConfigura
 }
 
 // ToMasterConfig copies some settings to a Master configuration
-func (kubicCfg KubicInitConfiguration) ToMasterConfig(masterCfg *kubeadmapiv1alpha2.MasterConfiguration, featureGates map[string]bool) error {
+func (kubicCfg KubicInitConfiguration) ToMasterConfig(featureGates map[string]bool) (*kubeadmapiv1alpha2.MasterConfiguration, error) {
+	masterCfg := &kubeadmapiv1alpha2.MasterConfiguration{}
 
 	masterCfg.FeatureGates = featureGates
 	masterCfg.NodeRegistration.KubeletExtraArgs = DefaultKubeletSettings
@@ -174,7 +176,7 @@ func (kubicCfg KubicInitConfiguration) ToMasterConfig(masterCfg *kubeadmapiv1alp
 		kubeadmapiv1alpha2.SetDefaults_BootstrapToken(&bto)
 		bto.Token, err = kubeadmapiv1alpha2.NewBootstrapTokenString(kubicCfg.ClusterFormation.Token)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		masterCfg.BootstrapTokens = []kubeadmapiv1alpha2.BootstrapToken{bto}
@@ -207,19 +209,23 @@ func (kubicCfg KubicInitConfiguration) ToMasterConfig(masterCfg *kubeadmapiv1alp
 		masterCfg.NodeRegistration.CRISocket = socket
 	}
 
+	kubeadmscheme.Scheme.Default(masterCfg)
+
 	if glog.V(8) {
 		marshalled, err := kubeadmutil.MarshalToYamlForCodecs(masterCfg, kubeadmapiv1alpha2.SchemeGroupVersion, scheme.Codecs)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		glog.Infof("[kubic] master configuration produced:\n%s", marshalled)
 	}
 
-	return nil
+	return masterCfg, nil
 }
 
 // ToNodeConfig copies some settings to a Node configuration
-func (kubicCfg KubicInitConfiguration) ToNodeConfig(nodeCfg *kubeadmapiv1alpha2.NodeConfiguration, featureGates map[string]bool) error {
+func (kubicCfg KubicInitConfiguration) ToNodeConfig(featureGates map[string]bool) (*kubeadmapiv1alpha2.NodeConfiguration, error) {
+	nodeCfg := &kubeadmapiv1alpha2.NodeConfiguration{}
+
 	nodeCfg.FeatureGates = featureGates
 	nodeCfg.DiscoveryTokenAPIServers = []string{kubicCfg.ClusterFormation.Seeder}
 	nodeCfg.NodeRegistration.KubeletExtraArgs = DefaultKubeletSettings
@@ -239,15 +245,17 @@ func (kubicCfg KubicInitConfiguration) ToNodeConfig(nodeCfg *kubeadmapiv1alpha2.
 		nodeCfg.NodeRegistration.CRISocket = socket
 	}
 
+	kubeadmscheme.Scheme.Default(nodeCfg)
+
 	if glog.V(8) {
 		marshalled, err := kubeadmutil.MarshalToYamlForCodecs(nodeCfg, kubeadmapiv1alpha2.SchemeGroupVersion, scheme.Codecs)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		glog.Infof("[kubic] node configuration produced:\n%s", marshalled)
 	}
 
-	return nil
+	return nodeCfg, nil
 }
 
 // SetVars parses a list of assignments (like "key=value"), where "key"
