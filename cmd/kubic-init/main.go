@@ -12,8 +12,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	utilflag "k8s.io/apiserver/pkg/util/flag"
-	kubeadmscheme "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/scheme"
-	kubeadmapiv1alpha2 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1alpha2"
 	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/validation"
 	kubeadmcmd "k8s.io/kubernetes/cmd/kubeadm/app/cmd"
 	kubeadmupcmd "k8s.io/kubernetes/cmd/kubeadm/app/cmd/upgrade"
@@ -35,12 +33,6 @@ var Build string
 // newBootstrapCmd returns a "kubic-init bootstrap" command.
 func newBootstrapCmd(out io.Writer) *cobra.Command {
 	kubicCfg := &kubiccfg.KubicInitConfiguration{}
-
-	masterCfg := &kubeadmapiv1alpha2.MasterConfiguration{}
-	kubeadmscheme.Scheme.Default(masterCfg)
-
-	nodeCfg := &kubeadmapiv1alpha2.NodeConfiguration{}
-	kubeadmscheme.Scheme.Default(nodeCfg)
 
 	var kubicCfgFile string
 	var skipTokenPrint = false
@@ -70,7 +62,7 @@ func newBootstrapCmd(out io.Writer) *cobra.Command {
 
 			if len(kubicCfg.ClusterFormation.Seeder) > 0 {
 				glog.V(1).Infoln("[kubic] joining the seeder at %s", kubicCfg.ClusterFormation.Seeder)
-				err = kubicCfg.ToNodeConfig(nodeCfg, featureGates)
+				nodeCfg, err := kubicCfg.ToNodeConfig(featureGates)
 				kubeadmutil.CheckErr(err)
 
 				joiner, err := kubeadmcmd.NewJoin("", args, nodeCfg, ignorePreflightErrorsSet)
@@ -83,7 +75,7 @@ func newBootstrapCmd(out io.Writer) *cobra.Command {
 
 			} else {
 				glog.V(1).Infoln("[kubic] seeding the cluster from this node")
-				err = kubicCfg.ToMasterConfig(masterCfg, featureGates)
+				masterCfg, err := kubicCfg.ToMasterConfig(featureGates)
 				kubeadmutil.CheckErr(err)
 
 				initter, err := kubeadmcmd.NewInit("", masterCfg, ignorePreflightErrorsSet, skipTokenPrint, dryRun)
