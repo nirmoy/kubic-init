@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/url"
 	"os"
 	"strings"
@@ -10,10 +11,13 @@ import (
 	"github.com/golang/glog"
 	"github.com/yuroyoro/swalker"
 	"gopkg.in/yaml.v2"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	utilnet "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/scheme"
-	kubeadmapiv1alpha2 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1alpha2"
-	kubeadmutil "k8s.io/kubernetes/cmd/kubeadm/app/util"
 	kubeadmscheme "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/scheme"
+	kubeadmapiv1alpha2 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1alpha2"
+
+	kubeadmutil "k8s.io/kubernetes/cmd/kubeadm/app/util"
 )
 
 // The CNI configuration
@@ -31,42 +35,58 @@ type ClusterFormationConfiguration struct {
 
 type CertsConfiguration struct {
 	// TODO
-	CaHash string `json:"caCrtHash,omitempty"`
+	CaHash string `yaml:"caCrtHash,omitempty"`
 }
 
 type DNSConfiguration struct {
-	Domain       string   `json:"domain,omitempty"`
-	ExternalFqdn []string `json:"externalFqdn,omitempty"`
+	Domain       string   `yaml:"domain,omitempty"`
+	ExternalFqdn []string `yaml:"externalFqdn,omitempty"`
+}
+
+type ProxyConfiguration struct {
+	Http       string `yaml:"http,omitempty"`
+	Https      string `yaml:"https,omitempty"`
+	NoProxy    string `yaml:"noProxy,omitempty"`
+	SystemWide bool   `yaml:"systemWide,omitempty"`
+}
+
+type BindConfiguration struct {
+	Address   string `yaml:"address,omitempty"`
+	Interface string `yaml:"interface,omitempty"`
 }
 
 type NetworkConfiguration struct {
-	Cni           CniConfiguration `json:"cni,omitempty"`
-	Dns           DNSConfiguration `json:"dns,omitempty"`
-	PodSubnet     string           `json:"podSubnet,omitempty"`
-	ServiceSubnet string           `json:"serviceSubnet,omitempty"`
+	Bind          BindConfiguration  `yaml:"bind,omitempty"`
+	Cni           CniConfiguration   `yaml:"cni,omitempty"`
+	Dns           DNSConfiguration   `yaml:"dns,omitempty"`
+	Proxy         ProxyConfiguration `yaml:"proxy,omitempty"`
+	PodSubnet     string             `yaml:"podSubnet,omitempty"`
+	ServiceSubnet string             `yaml:"serviceSubnet,omitempty"`
 }
 
 type RuntimeConfiguration struct {
-	Engine string `json:"engine,omitempty"`
+	Engine string `yaml:"engine,omitempty"`
 }
 
 type FeaturesConfiguration struct {
-	PSP bool `json:"PSP,omitempty"`
+	PSP bool `yaml:"PSP,omitempty"`
 }
 
 // The kubic-init configuration
 type KubicInitConfiguration struct {
-	Network          NetworkConfiguration          `json:"network,omitempty"`
-	ClusterFormation ClusterFormationConfiguration `json:"clusterFormation,omitempty"`
-	Certificates     CertsConfiguration            `json:"certificates,omitempty"`
-	Runtime          RuntimeConfiguration          `json:"runtime,omitempty"`
-	Features         FeaturesConfiguration         `json:"features,omitempty"`
+	metav1.TypeMeta
+
+	Network          NetworkConfiguration          `yaml:"network,omitempty"`
+	ClusterFormation ClusterFormationConfiguration `yaml:"clusterFormation,omitempty"`
+	Certificates     CertsConfiguration            `yaml:"certificates,omitempty"`
+	Runtime          RuntimeConfiguration          `yaml:"runtime,omitempty"`
+	Features         FeaturesConfiguration         `yaml:"features,omitempty"`
 }
 
 // Load a Kubic configuration file, setting some default values
 func ConfigFileAndDefaultsToKubicInitConfig(cfgPath string) (*KubicInitConfiguration, error) {
 	var err error
-	var internalcfg = &KubicInitConfiguration{}
+	var internalcfg = KubicInitConfiguration{}
 
 	// After loading the YAML file all unset values will have default values.
 	// That means that all booleans will be false... but we cannot know if users
@@ -86,8 +106,7 @@ func ConfigFileAndDefaultsToKubicInitConfig(cfgPath string) (*KubicInitConfigura
 			return nil, fmt.Errorf("unable to read config from %q [%v]", cfgPath, err)
 		}
 
-		err = yaml.Unmarshal(b, internalcfg)
-		if err != nil {
+		if err = yaml.Unmarshal(b, &internalcfg); err != nil {
 			return nil, fmt.Errorf("unable to decode config from bytes: %v", err)
 		}
 
@@ -159,7 +178,7 @@ func ConfigFileAndDefaultsToKubicInitConfig(cfgPath string) (*KubicInitConfigura
 		glog.Infof("[kubic] after parsing the config file:\n%s", marshalled)
 	}
 
-	return internalcfg, nil
+	return &internalcfg, nil
 }
 
 // ToMasterConfig copies some settings to a Master configuration
@@ -286,4 +305,24 @@ func (kubicCfg *KubicInitConfiguration) SetVars(vars []string) error {
 	}
 
 	return nil
+}
+
+// GetBindIP gets a valid IP address where we can bind
+func (kubicCfg KubicInitConfiguration) GetBindIP() (net.IP, error) {
+	if len(kubicCfg.Network.Bind.Interface) > 0 {
+		// TODO: not implemented yet: get the IP address for that interface
+		return net.IP{}, nil
+	} else {
+		defaultAddrStr := "0.0.0.0"
+		if len(kubicCfg.Network.Bind.Address) > 0 {
+			defaultAddrStr = kubicCfg.Network.Bind.Address
+		}
+
+		defaultAddr := net.ParseIP(defaultAddrStr)
+		bindIP, err := utilnet.ChooseBindAddress(defaultAddr)
+		if err != nil {
+			return nil, err
+		}
+		return bindIP, nil
+	}
 }
