@@ -22,6 +22,13 @@ kind: KubicInitConfiguration
 #   token: 94dcda.c271f4ff502789ca
 #   # nodes with the right token will be automatically approved
 #   autoApprove: false
+#   autoYAST:
+#     port: 8080
+#     path: /
+#     # use the token as a password. nodes must provide it as a parameter, i.e.:
+#     # http://this-ip:8080/?secret=94dcda.c271f4ff502789ca
+#     protected: true
+#     template: /etc/kubic-init/autoyast.xml.in
 # network:
 #   bind:
 #     # bind to a specific IP address (will be automatically detected when not provided)

@@ -23,14 +23,22 @@ import (
 // The CNI configuration
 // Subnets details are specified in the kubeadm configuration file
 type CniConfiguration struct {
-	Driver string `json:"driver,omitempty"`
-	Image  string `json:"image,omitempty"`
+	Driver string `yaml:"driver,omitempty"`
+	Image  string `yaml:"image,omitempty"`
+}
+
+type AutoYASTConfiguration struct {
+	Port      int    `yaml:"port,omitempty"`
+	Path      string `yaml:"path,omitempty"`
+	Protected bool   `yaml:"protected,omitempty"`
+	Template  string `yaml:"template,omitempty"`
 }
 
 type ClusterFormationConfiguration struct {
-	Seeder      string `json:"seeder,omitempty"`
-	Token       string `json:"token,omitempty"`
-	AutoApprove bool   `json:"autoApprove,omitempty"`
+	Seeder      string                `yaml:"seeder,omitempty"`
+	Token       string                `yaml:"token,omitempty"`
+	AutoApprove bool                  `yaml:"autoApprove,omitempty"`
+	AutoYAST    AutoYASTConfiguration `yaml:"autoYAST,omitempty"`
 }
 
 type CertsConfiguration struct {
@@ -125,6 +133,11 @@ func ConfigFileAndDefaultsToKubicInitConfig(cfgPath string) (*KubicInitConfigura
 	// loading the YAML file
 	internalcfg.ClusterFormation.AutoApprove = true
 	internalcfg.Features.PSP = false
+
+	internalcfg.ClusterFormation.AutoYAST.Protected = true
+	internalcfg.ClusterFormation.AutoYAST.Path = DefaultAutoYASTPath
+	internalcfg.ClusterFormation.AutoYAST.Port = DefaultAutoYASTPort
+	internalcfg.ClusterFormation.AutoYAST.Template = DefaultAutoYASTTemplate
 
 	if len(cfgPath) > 0 {
 		glog.V(1).Infof("[kubic] loading kubic-init configuration from '%s'", cfgPath)

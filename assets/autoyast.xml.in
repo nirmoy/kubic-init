@@ -1,0 +1,222 @@
+<?xml version="1.0"?>
+<!DOCTYPE profile>
+<profile xmlns="http://www.suse.com/1.0/yast2ns" xmlns:config="http://www.suse.com/1.0/configns">
+  <scripts>
+    <chroot-scripts config:type="list">
+      <script>
+        <chrooted config:type="boolean">true</chrooted>
+        <filename>configure_timesyncd.sh</filename>
+        <interpreter>shell</interpreter>
+        <source><![CDATA[
+        #!/bin/sh
+        sed -i -e 's|#NTP=.*|NTP={{ .KubicCfg.Network.Bind.Address }}|g' /etc/systemd/timesyncd.conf
+        timedatectl set-ntp true
+        ]]>
+        </source>
+      </script>
+      <script>
+        <chrooted config:type="boolean">true</chrooted>
+        <filename>kubic_configuration.sh</filename>
+        <interpreter>shell</interpreter>
+        <source><![CDATA[
+        #!/bin/sh
+        mkdir -p $(dirname {{ .KubicInitCfgPath }})
+        cat << EOF > {{ .KubicInitCfgPath }}
+        {{ .KubicInitContents | indent 8 }}
+        EOF
+        ]]>
+        </source>
+      </script>
+{{ if .SSHPublicKey }}
+      <script>
+        <chrooted config:type="boolean">true</chrooted>
+        <filename>set_authorized_keys.sh</filename>
+        <interpreter>shell</interpreter>
+        <source><![CDATA[
+        #!/bin/sh
+        mkdir -p /root/.ssh
+        chmod 600 /root/.ssh
+        echo "{{ .SSHPublicKey }}" > /root/.ssh/authorized_keys
+        ]]>
+        </source>
+      </script>
+{{ end }}
+{{ if .KubicCfg.Network.Proxy.SystemWide }}
+      <script>
+        <chrooted config:type="boolean">true</chrooted>
+        <filename>set_proxy.sh</filename>
+        <interpreter>shell</interpreter>
+        <source><![CDATA[
+        #!/bin/sh
+        sed -i -e 's|PROXY_ENABLED=".*"|PROXY_ENABLED="yes"|g' /etc/sysconfig/proxy
+  {{ if .KubicCfg.Network.Proxy.Http }}
+        sed -i -e 's|HTTP_PROXY=".*"|HTTP_PROXY="{{ .KubicCfg.Network.Proxy.Http }}"|g' /etc/sysconfig/proxy
+        echo '--proxy "{{ .KubicCfg.Network.Proxy.Http }}"' >> /root/.curlrc
+  {{ end }}
+  {{ if .KubicCfg.Network.Proxy.Https }}
+        sed -i -e 's|HTTPS_PROXY=".*"|HTTPS_PROXY="{{ .KubicCfg.Network.Proxy.Https }}"|g' /etc/sysconfig/proxy
+  {{ end }}
+  {{ if .KubicCfg.Network.Proxy.NoProxy }}
+        sed -i -e 's|NO_PROXY=".*"|NO_PROXY="{{ .KubicCfg.Network.Proxy.NoProxy }}"|g' /etc/sysconfig/proxy
+        echo '--noproxy "{{ .KubicCfg.Network.Proxy.NoProxy }}"' >> /root/.curlrc
+  {{ end }}
+        ]]>
+        </source>
+      </script>
+{{ end }}
+    </chroot-scripts>
+  </scripts>
+  <bootloader>
+    <global>
+      <generic_mbr>true</generic_mbr>
+      <gfxmode>auto</gfxmode>
+      <hiddenmenu>false</hiddenmenu>
+      <os_prober>false</os_prober>
+      <terminal>gfxterm</terminal>
+      <timeout config:type="integer">8</timeout>
+      <suse_btrfs config:type="boolean">true</suse_btrfs>
+    </global>
+  </bootloader>
+  <general>
+    <ask-list config:type="list"/>
+    <mode>
+      <confirm config:type="boolean">false</confirm>
+      <second_stage config:type="boolean">false</second_stage>
+      <self_update config:type="boolean">false</self_update>
+    </mode>
+    <proposals config:type="list"/>
+    <storage>
+      <partition_alignment config:type="symbol">align_optimal</partition_alignment>
+      <start_multipath config:type="boolean">false</start_multipath>
+    </storage>
+  </general>
+  <partitioning config:type="list">
+    <drive>
+      <use>all</use>
+      <partitions config:type="list">
+        <partition>
+          <mount>/boot/efi</mount>
+          <size>200mb</size>
+          <partition_id config:type="integer">1</partition_id>
+          <filesystem config:type="symbol">vfat</filesystem>
+        </partition>
+        <partition>
+          <mount>/</mount>
+          <size>30gb</size>
+        </partition>
+{{/* TODO: not sure we need this volume when not using docker */}}
+{{/* TODO: maybe we need a differernt volume when using crio... */}}
+        <partition>
+          <filesystem config:type="symbol">btrfs</filesystem>
+          <mount>/var/lib/docker</mount>
+          <size>max</size>
+        </partition>
+      </partitions>
+    </drive>
+  </partitioning>
+  <ssh_import>
+    <copy_config config:type="boolean">false</copy_config>
+    <import config:type="boolean">false</import>
+  </ssh_import>
+  <keyboard>
+    <keymap>english-us</keymap>
+  </keyboard>
+  <language>
+    <language>en_US</language>
+    <languages/>
+  </language>
+  <timezone>
+    <hwclock>UTC</hwclock>
+    <timezone>Etc/GMT</timezone>
+  </timezone>
+  <networking>
+    <dhcp_options>
+      <dhclient_client_id/>
+      <dhclient_hostname_option>AUTO</dhclient_hostname_option>
+    </dhcp_options>
+    <dns>
+      <dhcp_hostname config:type="boolean">true</dhcp_hostname>
+      <resolv_conf_policy>auto</resolv_conf_policy>
+      <write_hostname config:type="boolean">false</write_hostname>
+    </dns>
+    <interfaces config:type="list">
+      <interface>
+        <bootproto>dhcp</bootproto>
+        <device>eth0</device>
+        <dhclient_set_default_route>yes</dhclient_set_default_route>
+        <startmode>auto</startmode>
+      </interface>
+      <interface>
+        <bootproto>static</bootproto>
+        <device>lo</device>
+        <firewall>no</firewall>
+        <ipaddr>127.0.0.1</ipaddr>
+        <netmask>255.0.0.0</netmask>
+        <network>127.0.0.0</network>
+        <prefixlen>8</prefixlen>
+        <startmode>nfsroot</startmode>
+        <usercontrol>no</usercontrol>
+      </interface>
+    </interfaces>
+    <ipv6 config:type="boolean">true</ipv6>
+    <keep_install_network config:type="boolean">true</keep_install_network>
+    <setup_before_proposal config:type="boolean">true</setup_before_proposal>
+    <managed config:type="boolean">false</managed>
+    <routing>
+      <ipv4_forward config:type="boolean">false</ipv4_forward>
+      <ipv6_forward config:type="boolean">false</ipv6_forward>
+    </routing>
+  </networking>
+  <software>
+    <image/>
+    <install_recommended config:type="boolean">false</install_recommended>
+    <instsource/>
+    <patterns config:type="list">
+      <pattern>SUSE-MicroOS</pattern>
+    </patterns>
+    <patterns config:type="list">
+      <pattern>SUSE-CaaSP-Stack</pattern>
+    </patterns>
+  </software>
+  <services-manager>
+    <default_target>multi-user</default_target>
+    <services>
+      <disable config:type="list">
+        <service>purge-kernels</service>
+      </disable>
+      <enable config:type="list">
+        <service>sshd</service>
+        <service>cloud-init-local</service>
+        <service>cloud-init</service>
+        <service>cloud-config</service>
+        <service>cloud-final</service>
+        <service>issue-generator</service>
+        <service>issue-add-ssh-keys</service>
+        <service>systemd-timesyncd</service>
+{{ if eq .KubicCfg.Runtime.Engine "docker" }}
+        <service>docker</service>
+{{ else if eq .KubicCfg.Runtime.Engine "crio" }}
+        <service>crio</service>
+{{ end }}
+      </enable>
+    </services>
+  </services-manager>
+  <users config:type="list">
+    <user>
+      <username>root</username>
+      <user_password>!</user_password>
+      <encrypted config:type="boolean">true</encrypted>
+    </user>
+  </users>
+  <suse_register>
+    <do_registration config:type="boolean">{{ .RegisterEnable }}</do_registration>
+{{ if .RegisterCode }}
+      <reg_code>{{ .RegisterCode }}</reg_code>
+{{ end }}
+    <install_updates config:type="boolean">true</install_updates>
+    <slp_discovery config:type="boolean">false</slp_discovery>
+{{ if .RegisterSmtUrl }}
+      <reg_server>{{ .RegisterSmtUrl }}</reg_server>
+{{ end }}
+  </suse_register>
+</profile>

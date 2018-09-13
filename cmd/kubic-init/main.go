@@ -4,6 +4,8 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"log"
+	"net/http"
 	"os"
 	"time"
 
@@ -20,6 +22,7 @@ import (
 	kubeadmutil "k8s.io/kubernetes/cmd/kubeadm/app/util"
 	kubeconfigutil "k8s.io/kubernetes/cmd/kubeadm/app/util/kubeconfig"
 
+	"github.com/kubic-project/kubic-init/pkg/autoyast"
 	kubiccluster "github.com/kubic-project/kubic-init/pkg/cluster"
 	"github.com/kubic-project/kubic-init/pkg/cni"
 	_ "github.com/kubic-project/kubic-init/pkg/cni/flannel"
@@ -130,7 +133,7 @@ func NewCmdReset(in io.Reader, out io.Writer) *cobra.Command {
 	kubicCfg := &kubiccfg.KubicInitConfiguration{}
 
 	var kubicCfgFile string
-	var vars = []string{}
+	var vars= []string{}
 
 	cmd := &cobra.Command{
 		Use:   "reset",
@@ -156,6 +159,37 @@ func NewCmdReset(in io.Reader, out io.Writer) *cobra.Command {
 			kubeadmutil.CheckErr(err)
 
 			// TODO: perform any kubic-specific cleanups here
+		},
+	}
+
+	flagSet := cmd.PersistentFlags()
+	flagSet.StringVar(&kubicCfgFile, "config", "", "Path to kubic-init config file.")
+	flagSet.StringSliceVar(&vars, "var", []string{}, "Set a configuration variable (ie, Network.Cni.Driver=cilium")
+
+	return cmd
+}
+
+func newAutoYASTCmd(out io.Writer) *cobra.Command {
+	kubicCfgFile := ""
+	kubicCfg := &kubiccfg.KubicInitConfiguration{}
+	vars := []string{}
+
+	cmd := &cobra.Command{
+	Use:   "autoyast",
+	Short: "Serve an autoYaST configuration file",
+	Run: func(cmd *cobra.Command, args []string) {
+			bindIP, err := kubicCfg.GetBindIP()
+			kubeadmutil.CheckErr(err)
+
+			bindAddress := fmt.Sprintf("%s:%d", bindIP, kubicCfg.ClusterFormation.AutoYAST.Port)
+			path := kubicCfg.ClusterFormation.AutoYAST.Path
+
+			handler, err := autoyast.MakeHandler(kubicCfg)
+			kubeadmutil.CheckErr(err)
+
+			glog.V(1).Infof("[kubic] Serving autoYaST configuration on http://%s%s", bindAddress, path)
+			http.HandleFunc(path, handler)
+			log.Fatal(http.ListenAndServe(bindAddress, nil))
 		},
 	}
 
@@ -198,6 +232,7 @@ func main() {
 	cmds.ResetFlags()
 	cmds.AddCommand(newBootstrapCmd(os.Stdout))
 	cmds.AddCommand(NewCmdReset(os.Stdin, os.Stdout))
+	cmds.AddCommand(newAutoYASTCmd(os.Stdout))
 	cmds.AddCommand(kubeadmupcmd.NewCmdUpgrade(os.Stdout))
 	cmds.AddCommand(newCmdVersion(os.Stdout))
 

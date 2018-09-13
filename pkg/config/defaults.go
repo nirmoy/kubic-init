@@ -49,12 +49,23 @@ const (
 
 // Some important default paths
 const (
+	DefaultClusterAdminRole = "cluster-admin"
+
 	// Default directory for certificates
 	DefaultCertsDirectory = "/etc/kubernetes/pki"
+
+	DefaultKubicDir = "/etc/kubic/kubic-init.yaml"
+
+	DefaultKubicInitConfigPath = "/etc/kubic/kubic-init.yaml"
 )
 
+// Defaults for the autoYaST server
 const (
-	DefaultClusterAdminRole = "cluster-admin"
+	DefaultAutoYASTPath = "/"
+
+	DefaultAutoYASTPort = 8080
+
+	DefaultAutoYASTTemplate = "/etc/kubic/autoyast.xml.in"
 )
 
 // Default list of kubelet arguments
