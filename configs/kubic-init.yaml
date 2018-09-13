@@ -21,8 +21,18 @@ kind: KubicInitConfiguration
 #   # nodes with the right token will be automatically approved
 #   autoApprove: false
 # network:
+#   bind:
+#     # bind to a specific IP address (will be automatically detected when not provided)
+#     address: 0.0.0.0
+#     # ... or get the IP address from an interface
+#     interface: eth0
 #   podSubnet: "172.16.0.0/13"
 #   serviceSubnet: "172.24.0.0/16"
+#   proxy:
+#     http: my-proxy.com:8080
+#     https: my-proxy.com:8080
+#     noProxy: localdomain.com
+#     systemwide: false
 #   dns:
 #     domain: someDomain.local
 #     externalFqdn: some.name.com

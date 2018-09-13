@@ -1,6 +1,8 @@
 package config
 
-import "k8s.io/kubernetes/cmd/kubeadm/app/features"
+import (
+	"k8s.io/kubernetes/cmd/kubeadm/app/features"
+)
 
 const (
 	// Default API server port
