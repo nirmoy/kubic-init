@@ -24,6 +24,7 @@ import (
 	"github.com/kubic-project/kubic-init/pkg/cni"
 	_ "github.com/kubic-project/kubic-init/pkg/cni/flannel"
 	kubiccfg "github.com/kubic-project/kubic-init/pkg/config"
+	"github.com/kubic-project/kubic-init/pkg/dex"
 )
 
 // to be set from the build process
@@ -36,7 +37,6 @@ func newBootstrapCmd(out io.Writer) *cobra.Command {
 
 	var kubicCfgFile string
 	var skipTokenPrint = false
-	var skipPreFlight = false
 	var dryRun = false
 	var vars = []string{}
 	block := true
@@ -57,10 +57,10 @@ func newBootstrapCmd(out io.Writer) *cobra.Command {
 			kubeadmutil.CheckErr(err)
 			glog.V(3).Infof("[kubic] feature gates: %+v", featureGates)
 
-			ignorePreflightErrorsSet, err := validation.ValidateIgnorePreflightErrors(kubiccfg.DefaultIgnoredPreflightErrors, skipPreFlight)
+			ignorePreflightErrorsSet, err := validation.ValidateIgnorePreflightErrors(kubiccfg.DefaultIgnoredPreflightErrors, false)
 			kubeadmutil.CheckErr(err)
 
-			if len(kubicCfg.ClusterFormation.Seeder) > 0 {
+			if !kubicCfg.IsSeeder() {
 				glog.V(1).Infoln("[kubic] joining the seeder at %s", kubicCfg.ClusterFormation.Seeder)
 				nodeCfg, err := kubicCfg.ToNodeConfig(featureGates)
 				kubeadmutil.CheckErr(err)
@@ -101,7 +101,9 @@ func newBootstrapCmd(out io.Writer) *cobra.Command {
 				err = cni.Registry.Load(kubicCfg.Network.Cni.Driver, kubicCfg, client)
 				kubeadmutil.CheckErr(err)
 
-				// TODO: deploy Dex, etc...
+				glog.V(1).Infof("[kubic] deploying Dex")
+				err = dex.Load(kubicCfg, client)
+				kubeadmutil.CheckErr(err)
 			}
 
 			if block {
@@ -119,6 +121,47 @@ func newBootstrapCmd(out io.Writer) *cobra.Command {
 	flagSet.BoolVar(&block, "block", block, "Block after boostrapping")
 	flagSet.StringSliceVar(&vars, "var", []string{}, "Set a configuration variable (ie, Network.Cni.Driver=cilium")
 	// Note: All flags that are not bound to the masterCfg object should be whitelisted in cmd/kubeadm/app/apis/kubeadm/validation/validation.go
+
+	return cmd
+}
+
+// NewCmdReset returns the "kubic-init reset" command
+func NewCmdReset(in io.Reader, out io.Writer) *cobra.Command {
+	kubicCfg := &kubiccfg.KubicInitConfiguration{}
+
+	var kubicCfgFile string
+	var vars = []string{}
+
+	cmd := &cobra.Command{
+		Use:   "reset",
+		Short: "Run this to revert any changes made to this host by kubic-init.",
+		Run: func(cmd *cobra.Command, args []string) {
+			var err error
+
+			kubicCfg, err = kubiccfg.ConfigFileAndDefaultsToKubicInitConfig(kubicCfgFile)
+			kubeadmutil.CheckErr(err)
+
+			err = kubicCfg.SetVars(vars)
+			kubeadmutil.CheckErr(err)
+
+			ignorePreflightErrorsSet, err := validation.ValidateIgnorePreflightErrors(kubiccfg.DefaultIgnoredPreflightErrors, false)
+			kubeadmutil.CheckErr(err)
+
+			criSocket := kubiccfg.DefaultCriSocket[kubicCfg.Runtime.Engine]
+			pkiDir := kubicCfg.Certificates.Directory
+			r, err := kubeadmcmd.NewReset(in, ignorePreflightErrorsSet, true, pkiDir, criSocket)
+			kubeadmutil.CheckErr(err)
+
+			err = r.Run(out)
+			kubeadmutil.CheckErr(err)
+
+			// TODO: perform any kubic-specific cleanups here
+		},
+	}
+
+	flagSet := cmd.PersistentFlags()
+	flagSet.StringVar(&kubicCfgFile, "config", "", "Path to kubic-init config file.")
+	flagSet.StringSliceVar(&vars, "var", []string{}, "Set a configuration variable (ie, Network.Cni.Driver=cilium")
 
 	return cmd
 }
@@ -154,7 +197,7 @@ func main() {
 
 	cmds.ResetFlags()
 	cmds.AddCommand(newBootstrapCmd(os.Stdout))
-	cmds.AddCommand(kubeadmcmd.NewCmdReset(os.Stdin, os.Stdout))
+	cmds.AddCommand(NewCmdReset(os.Stdin, os.Stdout))
 	cmds.AddCommand(kubeadmupcmd.NewCmdUpgrade(os.Stdout))
 	cmds.AddCommand(newCmdVersion(os.Stdout))
 

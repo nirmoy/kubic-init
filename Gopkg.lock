@@ -521,18 +521,18 @@
     "trace",
   ]
   pruneopts = "U"
-  revision = "8a410e7b638dca158bf9e766925842f6651ff828"
+  revision = "161cd47e91fd58ac17490ef4d742dc98bb4cf60e"
 
 [[projects]]
   branch = "master"
-  digest = "1:a82fc3205554c66e745aefab081509a4c862a1889af76c1dff0fcbb63b6b35c9"
+  digest = "1:82098fd197c8139edaa0b235278c3e26453f22828baa998af02396e0fe6f0e2c"
   name = "golang.org/x/sys"
   packages = [
     "unix",
     "windows",
   ]
   pruneopts = "U"
-  revision = "ebe1bf3edb3325c393447059974de898d5133eb8"
+  revision = "8cf3aee429924738c56c34bb819c4ea8273fc434"
 
 [[projects]]
   digest = "1:c2e1117b4ed0c703cec077c362bb170f03cb1c251bec7ee5c257976f191df129"
@@ -683,7 +683,7 @@
   name = "k8s.io/apiextensions-apiserver"
   packages = ["pkg/features"]
   pruneopts = "U"
-  revision = "9641638c684b8e8120841315690e5c13ae9dd611"
+  revision = "c112e934e6274989af7541e193b3c8f078e83614"
 
 [[projects]]
   digest = "1:71c18ef1a0cb5c06ef28b802d029df6ba3e5dab1eb14394c9053e58b247d0c0c"
@@ -1010,6 +1010,7 @@
     "k8s.io/apiserver/pkg/util/flag",
     "k8s.io/client-go/kubernetes",
     "k8s.io/client-go/kubernetes/scheme",
+    "k8s.io/client-go/util/cert",
     "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/scheme",
     "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1alpha2",
     "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/validation",
@@ -1017,6 +1018,7 @@
     "k8s.io/kubernetes/cmd/kubeadm/app/cmd/upgrade",
     "k8s.io/kubernetes/cmd/kubeadm/app/constants",
     "k8s.io/kubernetes/cmd/kubeadm/app/features",
+    "k8s.io/kubernetes/cmd/kubeadm/app/phases/certs/pkiutil",
     "k8s.io/kubernetes/cmd/kubeadm/app/util",
     "k8s.io/kubernetes/cmd/kubeadm/app/util/apiclient",
     "k8s.io/kubernetes/cmd/kubeadm/app/util/kubeconfig",
