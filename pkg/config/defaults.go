@@ -72,6 +72,7 @@ var DefaultIgnoredPreflightErrors = []string{
 	"Swap",
 	"FileExisting-crictl",
 	"Port-10250",
+	"IsPrivilegedUser",
 }
 
 // Constant set of featureGates
@@ -79,7 +80,7 @@ var DefaultIgnoredPreflightErrors = []string{
 var DefaultFeatureGates = (features.CoreDNS + "=true," +
 	features.HighAvailability + "=false," +
 	features.SelfHosting + "=true," +
-// TODO: disabled until https://github.com/kubernetes/kubeadm/issues/923
+	// TODO: disabled until https://github.com/kubernetes/kubeadm/issues/923
 	features.StoreCertsInSecrets + "=false," +
-// TODO: results in some errors... needs some research
+	// TODO: results in some errors... needs some research
 	features.DynamicKubeletConfig + "=false")

@@ -2,12 +2,20 @@
 GOPATH_THIS_USER = $(shell basename `realpath ..`)
 GOPATH_THIS_REPO = $(shell basename `pwd`)
 
+SOURCES_DIRS    = cmd pkg
+SOURCES_DIRS_GO = ./pkg/... ./cmd/...
+
 # go source files, ignore vendor directory
+KUBIC_INIT_SRCS      = $(shell find $(SOURCES_DIRS) -type f -name '*.go' -not -path "*generated*")
+KUBIC_INIT_MAIN_SRCS = $(shell find $(SOURCES_DIRS) -type f -name '*.go' -not -path "*_test.go")
+
+KUBIC_INIT_GEN_SRCS       = $(shell grep -l -r "//go:generate" $(SOURCES_DIRS))
+KUBIC_INIT_CRD_TYPES_SRCS = $(shell find pkg/apis/kubic -type f -name "*_types.go")
+
 KUBIC_INIT_EXE  = cmd/kubic-init/kubic-init
 KUBIC_INIT_SH   = build/image/entrypoint.sh
 KUBIC_INIT_MAIN = cmd/kubic-init/main.go
-KUBIC_INIT_SRCS = $(shell find . -type f -name '*.go' -not -path "./vendor/*")
-KUBIC_INIT_CFG  = $(CURDIR)/configs/kubic-init.yaml
+KUBIC_INIT_CFG  = $(CURDIR)/config/kubic-init.yaml
 .DEFAULT_GOAL: $(KUBIC_INIT_EXE)
 
 IMAGE_BASENAME = $(GOPATH_THIS_REPO)
@@ -73,6 +81,10 @@ dep-rebuild: dep-exe Gopkg.toml
 	rm -rf vendor Gopkg.lock
 	dep ensure -v && dep status
 
+dep-ensure: dep-exe Gopkg.toml
+	@echo ">>> Checking vendored deps (respecting Gopkg.toml constraints)"
+	dep ensure -v && dep status
+
 dep-update: dep-exe Gopkg.toml
 	@echo ">>> Updating vendored deps (respecting Gopkg.toml constraints)"
 	dep ensure -update -v && dep status
@@ -81,13 +93,26 @@ dep-update: dep-exe Gopkg.toml
 vendor: dep-exe
 	@[ -d vendor ] || dep ensure -v
 
-$(KUBIC_INIT_EXE): $(KUBIC_INIT_SRCS) Gopkg.lock vendor
+generate: $(KUBIC_INIT_GEN_SRCS)
+	@echo ">>> Generating files..."
+	@go generate -x $(SOURCES_DIRS_GO)
+
+# Create a new CRD object XXXXX with:
+#    kubebuilder create api --namespaced=false --group kubic --version v1beta1 --kind XXXXX
+
+# Generate manifests e.g. CRD, RBAC etc.
+manifests: $(KUBIC_INIT_CRD_TYPES_SRCS)
+	@echo ">>> Creating CRDs/RBAC manifests..."
+	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go all
+
+$(KUBIC_INIT_EXE): $(KUBIC_INIT_MAIN_SRCS) generate Gopkg.lock vendor
 	@echo ">>> Building $(KUBIC_INIT_EXE)..."
 	go build $(KUBIC_INIT_LDFLAGS) -o $(KUBIC_INIT_EXE) $(KUBIC_INIT_MAIN)
 
 .PHONY: fmt
-fmt:
-	@gofmt -l -w $(KUBIC_INIT_SRCS)
+fmt: $(KUBIC_INIT_SRCS)
+	@echo ">>> Reformatting code"
+	@go fmt $(SOURCES_DIRS_GO)
 
 .PHONY: simplify
 simplify:
@@ -98,6 +123,10 @@ check:
 	@test -z $(shell gofmt -l $(KUBIC_INIT_MAIN) | tee /dev/stderr) || echo "[WARN] Fix formatting issues with 'make fmt'"
 	@for d in $$(go list ./... | grep -v /vendor/); do golint $${d}; done
 	@go tool vet ${KUBIC_INIT_SRCS}
+
+.PHONY: test
+test:
+	@go test -v ./pkg/... ./cmd/... -coverprofile cover.out
 
 .PHONY: check
 clean: docker-reset kubelet-reset docker-image-clean
@@ -141,6 +170,13 @@ local-run: $(KUBIC_INIT_EXE) $(KUBE_DROPIN_DST) local-reset
 		-v $(VERBOSE_LEVEL) \
 		--config $(KUBIC_INIT_CFG) $(KUBIC_ARGS)
 
+local-run-manager: $(KUBIC_INIT_EXE) manifests
+	$(SUDO_E) chmod 644 /etc/kubernetes/admin.conf
+	@echo ">>> Running $(KUBIC_INIT_EXE) as _root_"
+	$(SUDO_E) $(KUBIC_INIT_EXE) manager \
+		-v $(VERBOSE_LEVEL) \
+		--config $(KUBIC_INIT_CFG) $(KUBIC_ARGS)
+
 # Usage:
 #  - create a local seeder: make docker-run
 #  - create a local seeder with a specific token: TOKEN=XXXX make docker-run
@@ -160,7 +196,7 @@ docker-run: $(IMAGE_TAR_GZ) docker-reset $(KUBE_DROPIN_DST)
 
 docker-reset: kubeadm-reset
 
-$(IMAGE_TAR_GZ): $(IMAGE_DEPS)
+$(IMAGE_TAR_GZ): $(IMAGE_DEPS) manifests
 	@echo ">>> Creating Docker image..."
 	docker build \
 		--build-arg KUBIC_INIT_EXE=$(KUBIC_INIT_EXE) \

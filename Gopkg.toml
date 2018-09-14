@@ -29,6 +29,20 @@
 #   "github.com/jteeuwen/go-bindata/go-bindata"
 # ]
 
+# for code generation
+required = [
+    "k8s.io/code-generator/cmd/deepcopy-gen",
+    "sigs.k8s.io/controller-tools/cmd/controller-gen"
+]
+
+[[constraint]]
+  branch = "master"
+  name = "k8s.io/code-generator"
+
+#[[constraint]]
+#  name = "sigs.k8s.io/controller-tools"
+#  version = "0.1.5"
+
 [[constraint]]
   name = "github.com/spf13/pflag"
   version = "1.0.1"
@@ -39,24 +53,28 @@
 
 [[constraint]]
   name = "k8s.io/kubernetes"
-  version = "v1.11.1"
+  version = "v1.11.2"
 
 ### Force the 1.11 version everywhere
 [[override]]
   name = "k8s.io/apiserver"
-  version = "kubernetes-1.11.1"
+  version = "kubernetes-1.11.2"
 
 [[override]]
   name = "k8s.io/apimachinery"
-  version = "kubernetes-1.11.1"
+  version = "kubernetes-1.11.2"
 
 [[override]]
   name = "k8s.io/client-go"
-  version = "kubernetes-1.11.1"
+  version = "kubernetes-1.11.2"
 
 [[override]]
   name = "k8s.io/api"
-  version = "kubernetes-1.11.1"
+  version = "kubernetes-1.11.2"
+
+[[constraint]]
+  name = "k8s.io/apiextensions-apiserver"
+  version = "kubernetes-1.11.2"
 
 ### These overrides have been manually imported grom the Godeps/Godeps.json
 ### in the kubernetes-1.11 source tree
@@ -86,11 +104,21 @@
 
 [[override]]
   name = "github.com/vishvananda/netlink"
-  revision = "bd6d5de5ccef2d66b0a26177928d0d8895d7f969"
+  revision = "f67b75edbf5e3bb7dfe70bb788610693a71be3d1"
 
 [[override]]
   name = "github.com/vishvananda/netns"
-  revision = "604eaf189ee867d8c147fafc28def2394e878d25"
- 
+  revision = "be1fbeda19366dea804f00efff2dd73a1642fdcc"
+
+[[override]]
+  name = "golang.org/x/crypto"
+  revision = "49796115aa4b964c318aad4f3084fdb41e9aa067"
+
+# fix for a crash in "dep" (see https://github.com/golang/dep/issues/1799)
+[[override]]
+  source = "https://github.com/fsnotify/fsnotify/archive/v1.4.7.tar.gz"
+  name = "gopkg.in/fsnotify.v1"
+
 [prune]
   unused-packages = true
+  go-tests = true

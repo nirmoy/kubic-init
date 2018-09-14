@@ -20,12 +20,19 @@ RUN \
   zypper in -y --no-recommends ${RUN_RPMS} && \
   zypper clean -a
 
+# Copy stuff to the image...
+# (check the .dockerignore file for exclusions)
+
 ### TODO: do not build the kubic-init exec IN this container:
 ###       maybe we will use the OBS and this whole Dockerfile
 ###       will be gone...
 COPY $KUBIC_INIT_EXE /usr/local/bin/kubic-init
 COPY $KUBIC_INIT_SH /usr/local/bin/kubic-init.sh
 RUN chmod 755 /usr/local/bin/kubic-init*
+
+# Copy all the configuration files into /etc/kubic
+RUN mkdir -p /etc/kubic
+ADD config /etc/kubic/
 
 ### Directories we will mount from the host
 VOLUME /sys/fs/cgroup

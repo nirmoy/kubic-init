@@ -15,3 +15,8 @@ vendor/
 *.tfstate*
 
 robots.txt*
+
+# generated files
+*deepcopy.go
+config/rbac/*
+config/crds/*

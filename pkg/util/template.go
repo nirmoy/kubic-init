@@ -32,12 +32,27 @@ func ParseTemplate(templateStr string, replacements interface{}) (string, error)
 		return string(data)
 	}
 
+	safePath := func(v string) string {
+		replacer := strings.NewReplacer(" ", `\ `, ":", `\:`)
+		return replacer.Replace(v)
+	}
+
 	// some custom functions
 	funcMap := template.FuncMap{
-		"indent":  indent,
-		"replace": replace,
+		"indent":       indent,
+		"replace":      replace,
 		"base64encode": base64encode,
 		"base64decode": base64decode,
+		"url64encode": func(v string) string {
+			return URL64encode(v)
+		},
+		"url64decode": func(v string) string {
+			return URL64decode(v)
+		},
+		"safeYAMLId": func(v string) string {
+			return SafeId(v)
+		},
+		"safePath": safePath,
 	}
 
 	var buf bytes.Buffer
