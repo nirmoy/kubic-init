@@ -234,7 +234,6 @@ func createConfigMap(cfg *config.KubicInitConfiguration, sharedPasswords map[str
 		filepath.Join(cfg.Certificates.Directory, kubeadmconstants.CACertName),
 	}
 
-
 	finalConfigMap, err := util.ParseTemplate(DexConfigMap, replacements)
 	if err != nil {
 		return nil, fmt.Errorf("error when parsing Dex configmap template: %v", err)

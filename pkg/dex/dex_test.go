@@ -17,7 +17,7 @@ func TestCreateDexConfigMap(t *testing.T) {
 				NodePort: 32000,
 				LDAP: []config.DexLDAPConfiguration{
 					{
-						Name: "test",
+						Name:   "test",
 						BindDN: "some-bind-dn",
 						BindPW: "some-bind-pwd",
 						User: config.DexLDAPUserConfiguration{
@@ -62,7 +62,7 @@ func TestCreateDexDeployment(t *testing.T) {
 				NodePort: 32000,
 				LDAP: []config.DexLDAPConfiguration{
 					{
-						Name: "test",
+						Name:   "test",
 						BindDN: "some-bind-dn",
 						BindPW: "some-bind-pwd",
 						User: config.DexLDAPUserConfiguration{

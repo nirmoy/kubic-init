@@ -11,7 +11,9 @@ import (
 	"github.com/renstrom/dedent"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	utilflag "k8s.io/apiserver/pkg/util/flag"
+	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/validation"
 	kubeadmcmd "k8s.io/kubernetes/cmd/kubeadm/app/cmd"
 	kubeadmupcmd "k8s.io/kubernetes/cmd/kubeadm/app/cmd/upgrade"
@@ -19,11 +21,16 @@ import (
 	"k8s.io/kubernetes/cmd/kubeadm/app/features"
 	kubeadmutil "k8s.io/kubernetes/cmd/kubeadm/app/util"
 	kubeconfigutil "k8s.io/kubernetes/cmd/kubeadm/app/util/kubeconfig"
+	"sigs.k8s.io/controller-runtime/pkg/client/config"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/runtime/signals"
 
+	"github.com/kubic-project/kubic-init/pkg/apis"
 	kubiccluster "github.com/kubic-project/kubic-init/pkg/cluster"
 	"github.com/kubic-project/kubic-init/pkg/cni"
 	_ "github.com/kubic-project/kubic-init/pkg/cni/flannel"
 	kubiccfg "github.com/kubic-project/kubic-init/pkg/config"
+	"github.com/kubic-project/kubic-init/pkg/controller"
 	"github.com/kubic-project/kubic-init/pkg/dex"
 )
 
@@ -125,8 +132,8 @@ func newBootstrapCmd(out io.Writer) *cobra.Command {
 	return cmd
 }
 
-// NewCmdReset returns the "kubic-init reset" command
-func NewCmdReset(in io.Reader, out io.Writer) *cobra.Command {
+// newCmdReset returns the "kubic-init reset" command
+func newCmdReset(in io.Reader, out io.Writer) *cobra.Command {
 	kubicCfg := &kubiccfg.KubicInitConfiguration{}
 
 	var kubicCfgFile string
@@ -166,6 +173,69 @@ func NewCmdReset(in io.Reader, out io.Writer) *cobra.Command {
 	return cmd
 }
 
+// newCmdManager runs the manager
+func newCmdManager(out io.Writer) *cobra.Command {
+	var kubicCfgFile string
+	var kubeconfigFile = ""
+	var vars = []string{}
+	var crdsDir = "config/crds"
+	var rbacDir = "config/rbac"
+
+	cmd := &cobra.Command{
+		Use:   "manager",
+		Short: "Run the Kubic controller manager.",
+		Run: func(cmd *cobra.Command, args []string) {
+			var err error
+
+			kubicCfg, err := kubiccfg.ConfigFileAndDefaultsToKubicInitConfig(kubicCfgFile)
+			kubeadmutil.CheckErr(err)
+
+			err = kubicCfg.SetVars(vars)
+			kubeadmutil.CheckErr(err)
+
+			glog.V(1).Infof("[kubic] getting a kubeconfig to talk to the apiserver")
+			if len(kubeconfigFile) > 0 {
+				glog.V(3).Infof("[kubic] setting KUBECONFIG to '%s'", kubeconfigFile)
+				os.Setenv("KUBECONFIG", kubeconfigFile)
+			}
+			kubeconfig, err := config.GetConfig()
+			kubeadmutil.CheckErr(err)
+
+			glog.V(1).Infof("[kubic] creating a new manager to provide shared dependencies and start components")
+			mgr, err := manager.New(kubeconfig, manager.Options{})
+			kubeadmutil.CheckErr(err)
+
+			client := mgr.GetClient()
+			apiextensionsclient, err := apiextensionsclientset.NewForConfig(kubeconfig)
+			kubeadmutil.CheckErr(err)
+
+			glog.V(1).Infof("[kubic] registering components")
+			err = controller.LoadAssets(client, apiextensionsclient, crdsDir, rbacDir)
+			kubeadmutil.CheckErr(err)
+
+			glog.V(1).Infof("[kubic] setting up the scheme for all the resources")
+			err = apis.AddToScheme(mgr.GetScheme())
+			kubeadmutil.CheckErr(err)
+
+			glog.V(1).Infof("[kubic] setting up all the controllers")
+			err = controller.AddToManager(kubicCfg, mgr)
+			kubeadmutil.CheckErr(err)
+
+			glog.V(1).Infof("[kubic] starting the controller")
+			err = mgr.Start(signals.SetupSignalHandler())
+			kubeadmutil.CheckErr(err)
+		},
+	}
+
+	flagSet := cmd.PersistentFlags()
+	flagSet.StringVar(&kubicCfgFile, "config", "", "Path to kubic-init config file.")
+	flagSet.StringVar(&kubeconfigFile, "kubeconfig", "", "Use this kubeconfig file for talking to the API server.")
+	flagSet.StringSliceVar(&vars, "var", []string{}, "Set a configuration variable (ie, Network.Cni.Driver=cilium")
+	flagSet.StringVar(&crdsDir, "crdsDir", crdsDir, "Load CRDs from this directory.")
+	flagSet.StringVar(&rbacDir, "rbacDir", rbacDir, "Load RBACs from this directory.")
+	return cmd
+}
+
 func newCmdVersion(out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "version",
@@ -197,7 +267,7 @@ func main() {
 
 	cmds.ResetFlags()
 	cmds.AddCommand(newBootstrapCmd(os.Stdout))
-	cmds.AddCommand(NewCmdReset(os.Stdin, os.Stdout))
+	cmds.AddCommand(newCmdReset(os.Stdin, os.Stdout))
 	cmds.AddCommand(kubeadmupcmd.NewCmdUpgrade(os.Stdout))
 	cmds.AddCommand(newCmdVersion(os.Stdout))
 

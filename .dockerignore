@@ -1,3 +1,7 @@
+# exclude everything
 **
+
+# ... except some key files/directories:
 !/cmd/**
 !/build/**
+!/config/**
