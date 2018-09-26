@@ -1,9 +1,8 @@
 # configuration file in /etc/sysconfig/kubic-init
 
 # TODO: replace for an official image
-IMAGE_KUBIC_INIT="kubic-project/kubic-init:latest"
+# FIXME: localhost needs changing if the container runtime is docker
+IMAGE_KUBIC_INIT="localhost/kubic-project/kubic-init:latest"
 
 # unified image for running hyperkube
 # IMAGE_UNIFIED_K8S=""
-
-
