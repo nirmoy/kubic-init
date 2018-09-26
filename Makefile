@@ -276,6 +276,24 @@ tf-full-nuke:
 	-make tf-full-destroy
 	cd $(TF_LIBVIRT_FULL_DIR) && rm -f *.tfstate*
 
+### Terraform only-seeder deployment
+
+tf-seeder-plan:
+	-make tf-full-plan TF_ARGS="-var nodes_count=0 $(TF_ARGS)"
+
+tf-seeder-run: tf-seeder-apply
+tf-seeder-apply:
+	@echo ">>> Deploying only-seeder with Terraform..."
+	-make tf-full-apply TF_ARGS="-var nodes_count=0 $(TF_ARGS)"
+
+tf-seeder-reapply:
+	-make tf-full-reapply TF_ARGS="-var nodes_count=0 $(TF_ARGS)"
+
+tf-seeder-destroy:
+	-make tf-full-destroy TF_ARGS="-var nodes_count=0 $(TF_ARGS)"
+
+tf-seeder-nuke: tf-full-nuke
+
 ### Terraform only-nodes deployment
 
 $(TF_LIBVIRT_NODES_DIR)/.terraform:
