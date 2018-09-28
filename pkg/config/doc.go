@@ -14,27 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package config contains the kubic-init configuration structures and associated functions
 //
-// NOTE: Boilerplate only.  Ignore this file.
-//
-
-// Package v1beta1 contains API Schema definitions for the kubic v1beta1 API group
 // +k8s:openapi-gen=true
 // +k8s:deepcopy-gen=package,register
-// +k8s:conversion-gen=github.com/kubic-project/kubic-init/pkg/apis/kubic
+// +k8s:conversion-gen=github.com/kubic-project/kubic-init/pkg/config
 // +k8s:defaulter-gen=TypeMeta
 // +groupName=kubic.opensuse.org
-package v1beta1
-
-import (
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"sigs.k8s.io/controller-runtime/pkg/runtime/scheme"
-)
-
-var (
-	// SchemeGroupVersion is group version used to register these objects
-	SchemeGroupVersion = schema.GroupVersion{Group: "kubic.opensuse.org", Version: "v1beta1"}
-
-	// SchemeBuilder is used to add go types to the GroupVersionKind scheme
-	SchemeBuilder = &scheme.Builder{GroupVersion: SchemeGroupVersion}
-)
+package config

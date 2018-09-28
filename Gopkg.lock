@@ -349,6 +349,14 @@
   version = "1.1.5"
 
 [[projects]]
+  digest = "1:b0b9e0613514bdf5d1292fe726b80b6ffe6553b991015f387d93c5a0620763f8"
+  name = "github.com/kubernetes/kubernetes"
+  packages = ["cmd/kubeadm/app/util/apiclient"]
+  pruneopts = "UT"
+  revision = "91e7b4fd31fcd3d5f436da26c980becec37ceefe"
+  version = "v1.11.0"
+
+[[projects]]
   digest = "1:e60b8e2ad986a90b522fd74a87c4f5b3bb173c6a6bc5d88744d70cb0c760afdd"
   name = "github.com/markbates/inflect"
   packages = ["."]
@@ -1282,7 +1290,7 @@
   revision = "982821ea41da7e7c15f3d3738921eb2e7e241ccd"
 
 [[projects]]
-  digest = "1:b1c823c6d52067c9fde49c07ee81729b9cd64e0ee9f7f77649c3ca77f617bc98"
+  digest = "1:019276e5f54bd5abead3a9bb95049917bad15c7f7b772f8e97ba5ac49b63847e"
   name = "sigs.k8s.io/controller-runtime"
   packages = [
     "pkg/cache",
@@ -1315,8 +1323,8 @@
     "pkg/webhook/types",
   ]
   pruneopts = "UT"
-  revision = "79f06014d49b565e2d980fcd9519b33874ddb8d6"
-  version = "v0.1.3"
+  revision = "53fc44b56078cd095b11bd44cfa0288ee4cf718f"
+  version = "v0.1.4"
 
 [[projects]]
   digest = "1:41e7c89bdceb653e2235a7b5627d23af65fa22fb4dad368bf49eb2857e23bac2"
@@ -1349,7 +1357,9 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "github.com/ghodss/yaml",
     "github.com/golang/glog",
+    "github.com/kubernetes/kubernetes/cmd/kubeadm/app/util/apiclient",
     "github.com/onsi/gomega",
     "github.com/renstrom/dedent",
     "github.com/spf13/cobra",
@@ -1358,6 +1368,8 @@
     "golang.org/x/net/context",
     "gopkg.in/yaml.v2",
     "k8s.io/api/apps/v1",
+    "k8s.io/api/batch/v1",
+    "k8s.io/api/certificates/v1beta1",
     "k8s.io/api/core/v1",
     "k8s.io/api/rbac/v1",
     "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1",
@@ -1368,12 +1380,14 @@
     "k8s.io/apimachinery/pkg/runtime/schema",
     "k8s.io/apimachinery/pkg/types",
     "k8s.io/apimachinery/pkg/util/net",
+    "k8s.io/apimachinery/pkg/util/sets",
     "k8s.io/apimachinery/pkg/util/wait",
     "k8s.io/apiserver/pkg/util/flag",
     "k8s.io/client-go/kubernetes",
     "k8s.io/client-go/kubernetes/scheme",
     "k8s.io/client-go/plugin/pkg/client/auth/gcp",
     "k8s.io/client-go/rest",
+    "k8s.io/client-go/tools/record",
     "k8s.io/client-go/util/cert",
     "k8s.io/code-generator/cmd/deepcopy-gen",
     "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/scheme",
@@ -1384,18 +1398,18 @@
     "k8s.io/kubernetes/cmd/kubeadm/app/constants",
     "k8s.io/kubernetes/cmd/kubeadm/app/features",
     "k8s.io/kubernetes/cmd/kubeadm/app/phases/bootstraptoken/node",
-    "k8s.io/kubernetes/cmd/kubeadm/app/phases/certs/pkiutil",
     "k8s.io/kubernetes/cmd/kubeadm/app/util",
     "k8s.io/kubernetes/cmd/kubeadm/app/util/apiclient",
     "k8s.io/kubernetes/cmd/kubeadm/app/util/kubeconfig",
-    "k8s.io/kubernetes/pkg/apis/core",
     "sigs.k8s.io/controller-runtime/pkg/client",
     "sigs.k8s.io/controller-runtime/pkg/client/config",
     "sigs.k8s.io/controller-runtime/pkg/controller",
     "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil",
     "sigs.k8s.io/controller-runtime/pkg/envtest",
+    "sigs.k8s.io/controller-runtime/pkg/event",
     "sigs.k8s.io/controller-runtime/pkg/handler",
     "sigs.k8s.io/controller-runtime/pkg/manager",
+    "sigs.k8s.io/controller-runtime/pkg/predicate",
     "sigs.k8s.io/controller-runtime/pkg/reconcile",
     "sigs.k8s.io/controller-runtime/pkg/runtime/scheme",
     "sigs.k8s.io/controller-runtime/pkg/runtime/signals",

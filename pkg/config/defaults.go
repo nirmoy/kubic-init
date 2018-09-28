@@ -45,6 +45,9 @@ const (
 
 	// Default subnet for services
 	DefaultServiceSubnet = "172.24.0.0/16"
+
+	// Default internal DNS name
+	DefaultDNSDomain = "cluster.local"
 )
 
 // Some important default paths

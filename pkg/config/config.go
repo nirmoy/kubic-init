@@ -1,3 +1,21 @@
+/*
+Copyright 2018 SUSE LINUX GmbH, Nuernberg, Germany..
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+//go:generate go run ../../vendor/k8s.io/code-generator/cmd/deepcopy-gen/main.go -O zz_generated.deepcopy -i ./... -h ../../hack/boilerplate.go.txt
+
 package config
 
 import (
@@ -17,6 +35,8 @@ import (
 	kubeadmscheme "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/scheme"
 	kubeadmapiv1alpha2 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1alpha2"
 	kubeadmutil "k8s.io/kubernetes/cmd/kubeadm/app/util"
+
+	kubicutil "github.com/kubic-project/kubic-init/pkg/util"
 )
 
 // The CNI configuration
@@ -78,29 +98,15 @@ type DexLDAPUserConfiguration struct {
 	AttrMap map[string]string `yaml:"attrMap,omitempty"`
 }
 
-type DexLDAPConfiguration struct {
-	Name           string                   `yaml:"name,omitempty"`
-	Id             string                   `yaml:"id,omitempty"`
-	Server         string                   `yaml:"server,omitempty"`
-	BindDN         string                   `yaml:"bindDN,omitempty"`
-	BindPW         string                   `yaml:"bindPW,omitempty"`
-	StartTLS       bool                     `yaml:"startTLS,omitempty"`
-	UsernamePrompt string                   `yaml:"usernamePrompt,omitempty"`
-	RootCAData     string                   `yaml:"rootCAData,omitempty"`
-	User           DexLDAPUserConfiguration `yaml:"user,omitempty"`
-	Group          DexLDAPUserConfiguration `yaml:"group,omitempty"`
-}
-
-type DexConfiguration struct {
-	NodePort int                    `yaml:"nodePort,omitempty"`
-	LDAP     []DexLDAPConfiguration `yaml:"connectors,omitempty"`
-}
-
 type ServicesConfiguration struct {
-	Dex DexConfiguration `yaml:"dex,omitempty"`
 }
 
 // The kubic-init configuration
+//
+// +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +genclient:nonNamespaced
+// +k8s:openapi-gen=true
 type KubicInitConfiguration struct {
 	metav1.TypeMeta
 	Network          NetworkConfiguration          `yaml:"network,omitempty"`
@@ -199,6 +205,10 @@ func ConfigFileAndDefaultsToKubicInitConfig(cfgPath string) (*KubicInitConfigura
 		glog.V(3).Infof("[kubic] defaults: services subnet '%s'", DefaultServiceSubnet)
 		internalcfg.Network.ServiceSubnet = DefaultServiceSubnet
 	}
+	if len(internalcfg.Network.Dns.Domain) == 0 {
+		glog.V(3).Infof("[kubic] defaults: DNS domain '%s'", DefaultDNSDomain)
+		internalcfg.Network.Dns.Domain = DefaultDNSDomain
+	}
 
 	if glog.V(8) {
 		marshalled, err := yaml.Marshal(internalcfg)
@@ -244,11 +254,17 @@ func (kubicCfg KubicInitConfiguration) ToMasterConfig(featureGates map[string]bo
 	if len(kubicCfg.Network.Dns.Domain) > 0 {
 		glog.V(3).Infof("[kubic] using DNS domain '%s'", kubicCfg.Network.Dns.Domain)
 		masterCfg.Networking.DNSDomain = kubicCfg.Network.Dns.Domain
+		if masterCfg.KubeletConfiguration.BaseConfig != nil {
+			// TODO: should we create this "BaseConfig" for the kubelet?
+			masterCfg.KubeletConfiguration.BaseConfig.ClusterDomain = kubicCfg.Network.Dns.Domain
+		}
 	}
 
 	if len(kubicCfg.Network.Dns.ExternalFqdn) > 0 {
 		masterCfg.API.ControlPlaneEndpoint = kubicCfg.Network.Dns.ExternalFqdn
 		// TODO: add all the other ExternalFqdn's to the certs
+
+		masterCfg.APIServerCertSANs = append(masterCfg.APIServerCertSANs, kubicCfg.Network.Dns.ExternalFqdn)
 	}
 
 	glog.V(3).Infof("[kubic] using container engine '%s'", kubicCfg.Runtime.Engine)
@@ -381,4 +397,13 @@ func (kubicCfg KubicInitConfiguration) GetPublicAPIAddress() (string, error) {
 		}
 	}
 	return "", fmt.Errorf("cannot determine an public DNS name or address for the API server")
+}
+
+// GetInternalDNSName gets a FQDN DNS name in ther internal network for `name`
+func (kubicCfg KubicInitConfiguration) GetServiceDNSName(obj kubicutil.ObjNamespacer) string {
+	domain := kubicCfg.Network.Dns.Domain
+	if len(obj.GetNamespace()) > 0 {
+		return fmt.Sprintf("%s.%s.svc.%s", obj.GetName(), obj.GetNamespace(), domain)
+	}
+	return fmt.Sprintf("%s.svc.%s", obj.GetName(), domain)
 }
