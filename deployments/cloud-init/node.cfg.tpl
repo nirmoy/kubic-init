@@ -31,7 +31,7 @@ write_files:
       apiVersion: kubic.suse.com/v1alpha1
       kind: KubicInitConfiguration
       clusterFormation:
-        seed: ${seeder}
+        seeder: ${seeder}
         token: ${token}
 
 runcmd:
