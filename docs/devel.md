@@ -22,7 +22,7 @@ Update the constraints in [`Gopkg.toml`](../Gopkg.toml).
 ## Building
 
 A simple `make` should be enough. This should compile [the main
-function](cmd/kubic-init/main.go) and generate a `kubic-init` binary as
+function](../cmd/kubic-init/main.go) and generate a `kubic-init` binary as
 well as a _Docker_ image.
 
 ## Running `kubic-init` in your Development Environment
@@ -40,7 +40,7 @@ You can run the `kubic-init` container locally with a
   kubelet, so it can be started with the right parameters.
   * stop the `kubelet`
   * run it with `docker`
-    * using the config files in [`../configs`](`../configs`)
+    * using the config files in [`../config`](`../config`)
     * mounting many local directories in the containar (so
     please review the `CONTAINER_VOLUMES` in the [`Makefile`](../Makefile))
   * start the `kubelet`
