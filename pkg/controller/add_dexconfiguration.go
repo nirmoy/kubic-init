@@ -17,20 +17,10 @@ limitations under the License.
 package controller
 
 import (
-	"sigs.k8s.io/controller-runtime/pkg/manager"
-
-	"github.com/kubic-project/kubic-init/pkg/config"
+	"github.com/kubic-project/kubic-init/pkg/controller/dex"
 )
 
-// AddToManagerFuncs is a list of functions to add all Controllers to the Manager
-var AddToManagerFuncs []func(manager.Manager, *config.KubicInitConfiguration) error
-
-// AddToManager adds all Controllers to the Manager
-func AddToManager(m manager.Manager, cfg *config.KubicInitConfiguration) error {
-	for _, f := range AddToManagerFuncs {
-		if err := f(m, cfg); err != nil {
-			return err
-		}
-	}
-	return nil
+func init() {
+	// AddToManagerFuncs is a list of functions to create controllers and add them to a manager.
+	AddToManagerFuncs = append(AddToManagerFuncs, dex.Add)
 }

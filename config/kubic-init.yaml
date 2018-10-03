@@ -28,7 +28,9 @@ kind: KubicInitConfiguration
 #     address: 0.0.0.0
 #     # ... or get the IP address from an interface
 #     interface: eth0
+#   # IP addresses for the Pods
 #   podSubnet: "172.16.0.0/13"
+#   # (virtual) IP addresses for the kubernetes Services
 #   serviceSubnet: "172.24.0.0/16"
 #   proxy:
 #     http: my-proxy.com:8080
@@ -36,34 +38,12 @@ kind: KubicInitConfiguration
 #     noProxy: localdomain.com
 #     systemwide: false
 #   dns:
+#     # internal domain for Services in kubernetes
 #     domain: someDomain.local
+#     # external name for the API server
+#     # for example, it can be the DNS name of the Load Balancer that redirects
+#     # requests to the API servers
 #     externalFqdn: some.name.com
 #   cni:
 #     driver: flannel
 #     image: registry.opensuse.org/devel/caasp/kubic-container/container/kubic/flannel:0.9.1
-# services:
-#   dex:
-#     nodePort: 32000
-#     ldap:
-#       - name: some-name
-#         id: some-id
-#         server: https://somewhere
-#         bindDn:
-#         bindPW:
-#         usernamePrompt:
-#         rootCAData:
-#         user::
-#           baseDN:
-#           filter:
-#           attrMap:
-#             username:
-#             id:
-#             email:
-#             name:
-#         group::
-#           baseDN:
-#           filter:
-#           attrMap::
-#             user:
-#             group:
-#             name:

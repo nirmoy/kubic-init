@@ -11,7 +11,6 @@ import (
 	"github.com/renstrom/dedent"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	utilflag "k8s.io/apiserver/pkg/util/flag"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/validation"
@@ -31,15 +30,15 @@ import (
 	_ "github.com/kubic-project/kubic-init/pkg/cni/flannel"
 	kubiccfg "github.com/kubic-project/kubic-init/pkg/config"
 	"github.com/kubic-project/kubic-init/pkg/controller"
-	"github.com/kubic-project/kubic-init/pkg/dex"
+	"github.com/kubic-project/kubic-init/pkg/loader"
 )
 
 // to be set from the build process
 var Version string
 var Build string
 
-// newBootstrapCmd returns a "kubic-init bootstrap" command.
-func newBootstrapCmd(out io.Writer) *cobra.Command {
+// newCmdBootstrap returns a "kubic-init bootstrap" command.
+func newCmdBootstrap(out io.Writer) *cobra.Command {
 	kubicCfg := &kubiccfg.KubicInitConfiguration{}
 
 	var kubicCfgFile string
@@ -106,10 +105,6 @@ func newBootstrapCmd(out io.Writer) *cobra.Command {
 
 				glog.V(1).Infof("[kubic] deploying CNI DaemonSet with '%s' driver", kubicCfg.Network.Cni.Driver)
 				err = cni.Registry.Load(kubicCfg.Network.Cni.Driver, kubicCfg, client)
-				kubeadmutil.CheckErr(err)
-
-				glog.V(1).Infof("[kubic] deploying Dex")
-				err = dex.Load(kubicCfg, client)
 				kubeadmutil.CheckErr(err)
 			}
 
@@ -205,12 +200,10 @@ func newCmdManager(out io.Writer) *cobra.Command {
 			mgr, err := manager.New(kubeconfig, manager.Options{})
 			kubeadmutil.CheckErr(err)
 
-			client := mgr.GetClient()
-			apiextensionsclient, err := apiextensionsclientset.NewForConfig(kubeconfig)
+			glog.V(1).Infof("[kubic] installing components")
+			err = loader.InstallRBAC(kubeconfig, loader.RBACInstallOptions{Paths: []string{rbacDir}})
 			kubeadmutil.CheckErr(err)
-
-			glog.V(1).Infof("[kubic] registering components")
-			err = controller.LoadAssets(client, apiextensionsclient, crdsDir, rbacDir)
+			_, err = loader.InstallCRDs(kubeconfig, loader.CRDInstallOptions{Paths: []string{crdsDir}})
 			kubeadmutil.CheckErr(err)
 
 			glog.V(1).Infof("[kubic] setting up the scheme for all the resources")
@@ -218,7 +211,7 @@ func newCmdManager(out io.Writer) *cobra.Command {
 			kubeadmutil.CheckErr(err)
 
 			glog.V(1).Infof("[kubic] setting up all the controllers")
-			err = controller.AddToManager(kubicCfg, mgr)
+			err = controller.AddToManager(mgr, kubicCfg)
 			kubeadmutil.CheckErr(err)
 
 			glog.V(1).Infof("[kubic] starting the controller")
@@ -266,8 +259,9 @@ func main() {
 	}
 
 	cmds.ResetFlags()
-	cmds.AddCommand(newBootstrapCmd(os.Stdout))
+	cmds.AddCommand(newCmdBootstrap(os.Stdout))
 	cmds.AddCommand(newCmdReset(os.Stdin, os.Stdout))
+	cmds.AddCommand(newCmdManager(os.Stdout))
 	cmds.AddCommand(kubeadmupcmd.NewCmdUpgrade(os.Stdout))
 	cmds.AddCommand(newCmdVersion(os.Stdout))
 

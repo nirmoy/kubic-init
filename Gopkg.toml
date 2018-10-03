@@ -39,10 +39,6 @@ required = [
   branch = "master"
   name = "k8s.io/code-generator"
 
-#[[constraint]]
-#  name = "sigs.k8s.io/controller-tools"
-#  version = "0.1.5"
-
 [[constraint]]
   name = "github.com/spf13/pflag"
   version = "1.0.1"
@@ -122,3 +118,7 @@ required = [
 [prune]
   unused-packages = true
   go-tests = true
+
+[[constraint]]
+  name = "github.com/kubernetes/kubernetes"
+  version = "1.11.0"

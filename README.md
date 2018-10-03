@@ -2,11 +2,16 @@
 
 (A proof-of-concept of) a "init" container for Kubic.
 
+# Documentation
+
+See the [current documentation](docs/index.md) for instructions on running .
+
 # Development
 
 ## Project structure
 
-This project follows the conventions presented in https://github.com/golang-standards/project-layout.
+This project follows the conventions presented in the [standard Golang
+project](https://github.com/golang-standards/project-layout).
 
 ## Dependencies
 
@@ -71,14 +76,14 @@ Before we have a functional POC we need to implement:
 
 * [X] Development environment
 * [X] Seeder
-* [ ] Join for nodes
+* [X] Join for nodes
   * [X] Simple joins
   * [ ] Support certificates and safer flows
 * [ ] Accept/reject nodes
 * [ ] [CNI](pkg/cni)
   * [X] Load CNI manifests
   * [ ] Prepare and use an updated `flannel` image
-* [ ] Dex and all the other critical pods.
+* [X] Dex and all the other critical pods.
 * [X] Use `podman` instead of Docker
 * [ ] Base Kubic image
   * [ ] Install all the packages we need
