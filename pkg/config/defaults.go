@@ -54,6 +54,10 @@ const (
 const (
 	// Default directory for certificates
 	DefaultCertsDirectory = "/etc/kubernetes/pki"
+
+	// Directory with manifests files to load in the API server once
+	// the control plane is up and runningg
+	DefaultPostControlPlaneManifestsDir = "/etc/kubic/manifests"
 )
 
 const (

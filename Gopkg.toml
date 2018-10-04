@@ -118,7 +118,3 @@ required = [
 [prune]
   unused-packages = true
   go-tests = true
-
-[[constraint]]
-  name = "github.com/kubernetes/kubernetes"
-  version = "1.11.0"
