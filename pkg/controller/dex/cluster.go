@@ -126,7 +126,6 @@ var (
 		},
 	}
 
-
 	// https://github.com/kubic-project/salt/blob/master/salt/addons/dex/manifests/10-clusterrolebinding.yaml
 	dexClusterRoleBindings = []rbac.ClusterRoleBinding{
 		{
@@ -157,7 +156,7 @@ var (
 			},
 			Subjects: []rbac.Subject{
 				{
-					Kind: rbac.GroupKind,
+					Kind:      rbac.GroupKind,
 					Name:      "ADMIN", // To be set...
 					Namespace: dexDefaultNamespace,
 				},
@@ -186,7 +185,7 @@ var (
 	dexRoleBindings = []rbac.RoleBinding{
 		{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: dexClusterRoleName,
+				Name:      dexClusterRoleName,
 				Namespace: dexDefaultNamespace,
 			},
 			Subjects: []rbac.Subject{
