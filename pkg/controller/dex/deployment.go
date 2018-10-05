@@ -198,7 +198,7 @@ func (deploy *DexDeployment) GetFrom(instance *kubicv1beta1.DexConfiguration) er
 
 	// try to get any current deployment
 	deploy.current, err = deploy.reconciler.Clientset.Apps().Deployments(namespace).Get(name, metav1.GetOptions{})
-	if err != nil  {
+	if err != nil {
 		deploy.current = nil
 		if !apierrors.IsNotFound(err) {
 			return err
@@ -361,7 +361,7 @@ func (deploy *DexDeployment) Delete() error {
 		deploy.current = nil
 
 		if err := deleteDexRBACRules(deploy.reconciler.Clientset); err != nil {
-			glog.V(3).Infof("[kubic] ERROR: could not delete RBAC rules: %s",  err)
+			glog.V(3).Infof("[kubic] ERROR: could not delete RBAC rules: %s", err)
 			return err
 		}
 

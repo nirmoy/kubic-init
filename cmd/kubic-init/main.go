@@ -45,6 +45,7 @@ func newCmdBootstrap(out io.Writer) *cobra.Command {
 	var skipTokenPrint = false
 	var dryRun = false
 	var vars = []string{}
+	var postControlManifDir = kubiccfg.DefaultPostControlPlaneManifestsDir
 	block := true
 
 	cmd := &cobra.Command{
@@ -105,6 +106,13 @@ func newCmdBootstrap(out io.Writer) *cobra.Command {
 
 				glog.V(1).Infof("[kubic] deploying CNI DaemonSet with '%s' driver", kubicCfg.Network.Cni.Driver)
 				err = cni.Registry.Load(kubicCfg.Network.Cni.Driver, kubicCfg, client)
+				kubeadmutil.CheckErr(err)
+
+				kubeconfig, err := config.GetConfig()
+				kubeadmutil.CheckErr(err)
+
+				glog.V(1).Infof("[kubic] installing post-control-plane manifests")
+				err = loader.InstallManifests(kubeconfig, loader.ManifestsInstallOptions{Paths: []string{postControlManifDir}})
 				kubeadmutil.CheckErr(err)
 			}
 

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"time"
 
@@ -35,6 +36,9 @@ type RBACInstallOptions struct {
 	// Paths is the path to the directory containing CRDs
 	Paths []string
 
+	// ErrorIfPathMissing will cause an error if a Path does not exist
+	ErrorIfPathMissing bool
+
 	// maxTime is the max time to wait
 	maxTime time.Duration
 
@@ -42,8 +46,9 @@ type RBACInstallOptions struct {
 	pollInterval time.Duration
 }
 
-// load loads all the files (matching a glob) in a directory, returning a list of Buffers
-func load(directory string, glob string, descr string) ([]*bytes.Buffer, error) {
+// loadFilesIn tries to loads all the files (matching a glob) in a directory,
+// returning a list of Buffers
+func loadFilesIn(directory string, glob string, descr string) ([]*bytes.Buffer, error) {
 	var res = []*bytes.Buffer{}
 	glog.V(5).Infof("[kubic] loading %s files from %s", descr, directory)
 	files, err := filepath.Glob(filepath.Join(directory, glob))
@@ -51,7 +56,7 @@ func load(directory string, glob string, descr string) ([]*bytes.Buffer, error) 
 		return nil, err
 	}
 
-	glog.V(5).Infof("[kubic] %s files to load: %+v", descr, files)
+	glog.V(5).Infof("[kubic] %s files to loadFilesIn: %+v", descr, files)
 	for _, f := range files {
 		b, err := ioutil.ReadFile(f)
 		if err != nil {
@@ -73,8 +78,13 @@ func InstallRBAC(config *rest.Config, options RBACInstallOptions) error {
 	restClient := cs.RESTClient()
 
 	for _, path := range options.Paths {
+		if _, err := os.Stat(path); !options.ErrorIfPathMissing && os.IsNotExist(err) {
+			glog.V(3).Infof("[kubic] WARNING directory %s does not exist: cannot load files from there.", path)
+			continue
+		}
+
 		// load Roles
-		roles, err := load(path, roleFileGlob, "role")
+		roles, err := loadFilesIn(path, roleFileGlob, "role")
 		if err != nil {
 			return err
 		}
@@ -94,7 +104,7 @@ func InstallRBAC(config *rest.Config, options RBACInstallOptions) error {
 		}
 
 		// load RoleBindings
-		roleBindings, err := load(path, roleBindingFileGlob, "role bindings")
+		roleBindings, err := loadFilesIn(path, roleBindingFileGlob, "role bindings")
 		if err != nil {
 			return err
 		}

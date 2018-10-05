@@ -107,7 +107,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 					}},
 			}
 		})
-	err = c.Watch(&source.Kind{Type: &kubicv1beta1.LDAPConnector{}}, &handler.EnqueueRequestsFromMapFunc{ToRequests: mapFn,})
+	err = c.Watch(&source.Kind{Type: &kubicv1beta1.LDAPConnector{}}, &handler.EnqueueRequestsFromMapFunc{ToRequests: mapFn})
 	if err != nil {
 		return err
 	}

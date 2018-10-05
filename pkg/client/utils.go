@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -37,6 +38,59 @@ const (
 	pollTimeout = 5 * time.Minute
 )
 
+// note well: for some objects we cannot try to Create() the object and then Update() if it failed
+//            with an AlreadyExists(), because Create() could just fail on some validation (for example,
+//            the "port is already in use")
+
+// CreateOrUpdatePod creates or updates a Pod object
+func CreateOrUpdatePod(client clientset.Interface, service *corev1.Pod) (*corev1.Pod, error) {
+	var err error
+	var existing *corev1.Pod = nil
+
+	existing, err = client.Core().Pods(service.GetNamespace()).Get(service.GetName(), metav1.GetOptions{})
+	if err != nil && apierrors.IsNotFound(err) {
+		if existing, err = client.Core().Pods(service.GetNamespace()).Create(service); err != nil {
+			return nil, err
+		}
+	} else if err != nil {
+		return nil, err
+	} else {
+		if !reflect.DeepEqual(service.Spec, existing.Spec) {
+			existing.Spec = service.Spec
+			if existing, err = client.Core().Pods(existing.GetNamespace()).Update(existing); err != nil {
+				return nil, fmt.Errorf("unable to update Pod: %v", err)
+			}
+		}
+	}
+
+	return existing, nil
+}
+
+// CreateOrUpdateJob creates a Job if the target resource doesn't exist. If the resource exists
+// already, this function will update the resource instead.
+func CreateOrUpdateJob(client clientset.Interface, job *batchv1.Job) (*batchv1.Job, error) {
+	var err error
+	var existing *batchv1.Job = nil
+
+	existing, err = client.Batch().Jobs(job.GetNamespace()).Get(job.GetName(), metav1.GetOptions{})
+	if err != nil && apierrors.IsNotFound(err) {
+		if existing, err = client.Batch().Jobs(job.GetNamespace()).Create(job); err != nil {
+			return nil, err
+		}
+	} else if err != nil {
+		return nil, err
+	} else {
+		if !reflect.DeepEqual(job.Spec, existing.Spec) {
+			existing.Spec = job.Spec
+			if existing, err = client.Batch().Jobs(existing.GetNamespace()).Update(existing); err != nil {
+				return nil, fmt.Errorf("unable to update Job: %v", err)
+			}
+		}
+	}
+
+	return existing, nil
+}
+
 // CreateOrUpdateDeployment creates a Deployment if the target resource doesn't exist. If the resource exists already, this function will update the resource instead.
 func CreateOrUpdateService(client clientset.Interface, service *corev1.Service) (*corev1.Service, error) {
 	var err error
@@ -47,10 +101,10 @@ func CreateOrUpdateService(client clientset.Interface, service *corev1.Service) 
 		if existing, err = client.Core().Services(service.GetNamespace()).Create(service); err != nil {
 			return nil, err
 		}
-    } else if err != nil {
-    	return nil, err
+	} else if err != nil {
+		return nil, err
 	} else {
-		if 	!reflect.DeepEqual(service.Spec, existing.Spec) {
+		if !reflect.DeepEqual(service.Spec, existing.Spec) {
 			existing.Spec.Type = service.Spec.Type
 			existing.Spec.Ports = service.Spec.Ports
 			if existing, err = client.Core().Services(existing.GetNamespace()).Update(existing); err != nil {
