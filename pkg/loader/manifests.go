@@ -33,6 +33,8 @@ import (
 	"k8s.io/client-go/rest"
 
 	kubicclient "github.com/kubic-project/kubic-init/pkg/client"
+	kubiccfg "github.com/kubic-project/kubic-init/pkg/config"
+	"github.com/kubic-project/kubic-init/pkg/util"
 )
 
 const (
@@ -49,7 +51,7 @@ type ManifestsInstallOptions struct {
 }
 
 // getObjectsInYAMLFile gets a list of objects in a YAML file
-func getObjectsInYAMLFile(fileContents string) []runtime.Object {
+func getObjectsInYAMLFile(kubicCfg *kubiccfg.KubicInitConfiguration, fileContents string) []runtime.Object {
 	sepYamlfiles := strings.Split(fileContents, "---")
 	res := make([]runtime.Object, 0, len(sepYamlfiles))
 	for _, f := range sepYamlfiles {
@@ -58,8 +60,21 @@ func getObjectsInYAMLFile(fileContents string) []runtime.Object {
 			continue
 		}
 
+		replacements := struct {
+			KubicCfg *kubiccfg.KubicInitConfiguration
+		}{
+			kubicCfg,
+		}
+
+		fReplaced, err := util.ParseTemplate(f, replacements)
+		if err != nil {
+			glog.V(1).Infof("[kubic] ERROR: when parsing manifest template: %v", err)
+			continue
+		}
+		glog.V(8).Infof("[kubic] Dex deployment:\n%s\n", fReplaced)
+
 		decode := clientsetscheme.Codecs.UniversalDeserializer().Decode
-		obj, _, err := decode([]byte(f), nil, nil)
+		obj, _, err := decode([]byte(fReplaced), nil, nil)
 		if err != nil {
 			glog.V(3).Infof("[kubic] ERROR: while decoding YAML object: %s", err)
 			continue
@@ -70,16 +85,15 @@ func getObjectsInYAMLFile(fileContents string) []runtime.Object {
 	return res
 }
 
-func InstallManifests(config *rest.Config, options ManifestsInstallOptions) error {
+func InstallManifests(kubicCfg *kubiccfg.KubicInitConfiguration, config *rest.Config, options ManifestsInstallOptions) error {
 	cs, err := clientset.NewForConfig(config)
 	if err != nil {
 		return err
 	}
 	restClient := cs.RESTClient()
 
-	for _, path := range options.Paths {
+	for _, path := range util.RemoveDumplicates(options.Paths) {
 		if _, err := os.Stat(path); !options.ErrorIfPathMissing && os.IsNotExist(err) {
-			glog.V(3).Infof("[kubic] WARNING directory %s does not exist: cannot load files from there.", path)
 			continue
 		}
 
@@ -90,7 +104,7 @@ func InstallManifests(config *rest.Config, options ManifestsInstallOptions) erro
 		}
 
 		for _, fileBuffer := range filesBuffers {
-			for _, object := range getObjectsInYAMLFile(fileBuffer.String()) {
+			for _, object := range getObjectsInYAMLFile(kubicCfg, fileBuffer.String()) {
 				gvk := object.GetObjectKind().GroupVersionKind()
 				glog.V(3).Infof("[kubic] Loading %s found...", gvk.String())
 
