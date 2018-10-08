@@ -25,7 +25,7 @@ func URL64decode(v string) string {
 }
 
 func RemoveDumplicates(in []string) []string {
-	processed  := map[string]struct{}{}
+	processed := map[string]struct{}{}
 
 	res := []string{}
 	for _, s := range in {
