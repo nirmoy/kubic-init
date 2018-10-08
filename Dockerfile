@@ -27,14 +27,14 @@ RUN \
 ###       maybe we will use the OBS and this whole Dockerfile
 ###       will be gone...
 COPY $KUBIC_INIT_EXE /usr/local/bin/kubic-init
-COPY $KUBIC_INIT_SH /usr/local/bin/kubic-init.sh
 RUN chmod 755 /usr/local/bin/kubic-init*
 
-# Copy all the configuration files into /etc/kubic
-RUN mkdir -p /etc/kubic
-ADD config /etc/kubic/
+# Copy all the static files
+ADD config/crds      /usr/lib/kubic/crds
+ADD config/rbac      /usr/lib/kubic/rbac
+ADD config/manifests /usr/lib/kubic/manifests
 
 ### Directories we will mount from the host
 VOLUME /sys/fs/cgroup
 
-CMD /usr/local/bin/kubic-init.sh
+CMD /usr/local/bin/kubic-init

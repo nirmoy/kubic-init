@@ -23,3 +23,17 @@ func URL64decode(v string) string {
 	}
 	return string(data)
 }
+
+func RemoveDumplicates(in []string) []string {
+	processed  := map[string]struct{}{}
+
+	res := []string{}
+	for _, s := range in {
+		if _, found := processed[s]; !found {
+			processed[s] = struct{}{}
+			res = append(res, s)
+		}
+	}
+
+	return res
+}

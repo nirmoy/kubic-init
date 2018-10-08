@@ -3,6 +3,7 @@ package flannel
 import (
 	"fmt"
 
+	"github.com/golang/glog"
 	apps "k8s.io/api/apps/v1"
 	"k8s.io/api/core/v1"
 	rbac "k8s.io/api/rbac/v1"
@@ -19,12 +20,12 @@ import (
 
 const (
 	// FlannelClusterRoleName sets the name for the flannel ClusterRole
-	FlannelClusterRoleName = "suse:kubic:flannel"
+	FlannelClusterRoleName = "kubic:flannel"
 
-	FlannelClusterRoleNamePSP = "suse:kubic:psp:flannel"
+	FlannelClusterRoleNamePSP = "kubic:psp:flannel"
 
 	// FlannelServiceAccountName describes the name of the ServiceAccount for the flannel addon
-	FlannelServiceAccountName = "flannel"
+	FlannelServiceAccountName = "kubic-flannel"
 
 	FlannelHealthPort = 8471
 )
@@ -149,7 +150,7 @@ func EnsureFlannelAddon(cfg *config.KubicInitConfiguration, client clientset.Int
 		return fmt.Errorf("error when creating flannel RBAC rules: %v", err)
 	}
 
-	fmt.Println("[addons] Applied essential addon: flannel")
+	glog.V(1).Infof("[kubic] installed flannel CNI driver")
 	return nil
 }
 

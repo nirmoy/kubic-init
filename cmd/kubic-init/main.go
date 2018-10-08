@@ -1,3 +1,18 @@
+/*
+Copyright 2018 SUSE LINUX GmbH, Nuernberg, Germany..
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 package main
 
 import (
@@ -12,6 +27,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	utilflag "k8s.io/apiserver/pkg/util/flag"
+	clientset "k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/validation"
 	kubeadmcmd "k8s.io/kubernetes/cmd/kubeadm/app/cmd"
@@ -31,6 +47,7 @@ import (
 	kubiccfg "github.com/kubic-project/kubic-init/pkg/config"
 	"github.com/kubic-project/kubic-init/pkg/controller"
 	"github.com/kubic-project/kubic-init/pkg/loader"
+	kubicmngr "github.com/kubic-project/kubic-init/pkg/manager"
 )
 
 // to be set from the build process
@@ -45,8 +62,15 @@ func newCmdBootstrap(out io.Writer) *cobra.Command {
 	var skipTokenPrint = false
 	var dryRun = false
 	var vars = []string{}
+
 	var postControlManifDir = kubiccfg.DefaultPostControlPlaneManifestsDir
+	var crdsDir = kubiccfg.DefaultKubicCRDDir
+	var rbacDir = kubiccfg.DefaultKubicRBACDir
+
+	loadAssets := true
 	block := true
+	deployCNI := true
+	deployKubicManager := true
 
 	cmd := &cobra.Command{
 		Use:   "bootstrap",
@@ -96,6 +120,14 @@ func newCmdBootstrap(out io.Writer) *cobra.Command {
 				client, err := kubeconfigutil.ClientSetFromFile(kubeadmconstants.GetAdminKubeConfigPath())
 				kubeadmutil.CheckErr(err)
 
+				// upload the seeder configuration to a ConfigMap
+				extraLabels := map[string]string{
+					"kubic-seeder-version": fmt.Sprintf("%s", Version),
+					"kubic-seeder-build":   fmt.Sprintf("%s", Build),
+				}
+				err = kubicCfg.ToConfigMap(client, kubiccfg.DefaultKubicInitConfigmap, extraLabels)
+				kubeadmutil.CheckErr(err)
+
 				if !kubicCfg.ClusterFormation.AutoApprove {
 					glog.V(1).Infoln("[kubic] removing the auto-approval rules for new nodes")
 					err = kubiccluster.RemoveAutoApprovalRBAC(client)
@@ -104,16 +136,26 @@ func newCmdBootstrap(out io.Writer) *cobra.Command {
 					glog.V(1).Infoln("[kubic] new nodes will be accepted automatically")
 				}
 
-				glog.V(1).Infof("[kubic] deploying CNI DaemonSet with '%s' driver", kubicCfg.Network.Cni.Driver)
-				err = cni.Registry.Load(kubicCfg.Network.Cni.Driver, kubicCfg, client)
-				kubeadmutil.CheckErr(err)
+				if deployCNI {
+					glog.V(1).Infof("[kubic] deploying CNI DaemonSet with '%s' driver", kubicCfg.Network.Cni.Driver)
+					err = cni.Registry.Load(kubicCfg.Network.Cni.Driver, kubicCfg, client)
+					kubeadmutil.CheckErr(err)
+				} else {
+					glog.V(1).Infof("[kubic] WARNING: CNI will not be deployed")
+				}
 
-				kubeconfig, err := config.GetConfig()
-				kubeadmutil.CheckErr(err)
+				if loadAssets {
+					err = loader.InstallAllAssets(kubicCfg, postControlManifDir, crdsDir, rbacDir)
+					kubeadmutil.CheckErr(err)
+				}
 
-				glog.V(1).Infof("[kubic] installing post-control-plane manifests")
-				err = loader.InstallManifests(kubeconfig, loader.ManifestsInstallOptions{Paths: []string{postControlManifDir}})
-				kubeadmutil.CheckErr(err)
+				if deployKubicManager {
+					glog.V(1).Infof("[kubic] deploying the kubic-manager")
+					err = kubicmngr.InstallKubicManager(client, kubicCfg)
+					kubeadmutil.CheckErr(err)
+				} else {
+					glog.V(1).Infof("[kubic] WARNING: kubic-manager will not be deployed")
+				}
 			}
 
 			if block {
@@ -130,7 +172,16 @@ func newCmdBootstrap(out io.Writer) *cobra.Command {
 		"Path to kubic-init config file.")
 	flagSet.BoolVar(&block, "block", block, "Block after boostrapping")
 	flagSet.StringSliceVar(&vars, "var", []string{}, "Set a configuration variable (ie, Network.Cni.Driver=cilium")
-	// Note: All flags that are not bound to the masterCfg object should be whitelisted in cmd/kubeadm/app/apis/kubeadm/validation/validation.go
+	flagSet.BoolVar(&deployCNI, "deploy-cni", deployCNI, "Deploy the CNI driver")
+
+	// kubic-manager and assets
+	flagSet.BoolVar(&deployKubicManager, "deploy-manager", deployKubicManager, "Deploy the kubic-manager")
+
+	// assets
+	flagSet.BoolVar(&loadAssets, "load-assets", loadAssets, "Load the CRDs, RBACs and manifests")
+	flagSet.StringVar(&crdsDir, "crds-dir", crdsDir, "load CRDs from this directory.")
+	flagSet.StringVar(&rbacDir, "rbac-dir", rbacDir, "load RBACs from this directory.")
+	flagSet.StringVar(&postControlManifDir, "manif-dir", postControlManifDir, "load manifests from this directory.")
 
 	return cmd
 }
@@ -181,8 +232,11 @@ func newCmdManager(out io.Writer) *cobra.Command {
 	var kubicCfgFile string
 	var kubeconfigFile = ""
 	var vars = []string{}
-	var crdsDir = "config/crds"
-	var rbacDir = "config/rbac"
+	var crdsDir = ""
+	var rbacDir = ""
+	var postControlManifDir = ""
+	var deployKubicManager = false
+	var loadAssets = false
 
 	cmd := &cobra.Command{
 		Use:   "manager",
@@ -204,14 +258,29 @@ func newCmdManager(out io.Writer) *cobra.Command {
 			kubeconfig, err := config.GetConfig()
 			kubeadmutil.CheckErr(err)
 
+			// Some development things...
+			if loadAssets {
+				// The manager doesn't really need to install any assets: they are installed
+				// from the kubic-init seeder process. This is just for development.
+				err = loader.InstallAllAssets(kubicCfg, postControlManifDir, crdsDir, rbacDir)
+				kubeadmutil.CheckErr(err)
+			}
+
+			if deployKubicManager {
+				// do not really run the manager here: launch a Deployment, as the kubic-init
+				// seeder process does.
+				client, err := clientset.NewForConfig(kubeconfig)
+				kubeadmutil.CheckErr(err)
+
+				glog.V(1).Infof("[kubic] starting the kubic-manager with a Deployment...")
+				err = kubicmngr.InstallKubicManager(client, kubicCfg)
+				kubeadmutil.CheckErr(err)
+				glog.V(1).Infof("[kubic] nothing more to do...bye")
+				return
+			}
+
 			glog.V(1).Infof("[kubic] creating a new manager to provide shared dependencies and start components")
 			mgr, err := manager.New(kubeconfig, manager.Options{})
-			kubeadmutil.CheckErr(err)
-
-			glog.V(1).Infof("[kubic] installing components")
-			err = loader.InstallRBAC(kubeconfig, loader.RBACInstallOptions{Paths: []string{rbacDir}})
-			kubeadmutil.CheckErr(err)
-			_, err = loader.InstallCRDs(kubeconfig, loader.CRDInstallOptions{Paths: []string{crdsDir}})
 			kubeadmutil.CheckErr(err)
 
 			glog.V(1).Infof("[kubic] setting up the scheme for all the resources")
@@ -232,8 +301,19 @@ func newCmdManager(out io.Writer) *cobra.Command {
 	flagSet.StringVar(&kubicCfgFile, "config", "", "Path to kubic-init config file.")
 	flagSet.StringVar(&kubeconfigFile, "kubeconfig", "", "Use this kubeconfig file for talking to the API server.")
 	flagSet.StringSliceVar(&vars, "var", []string{}, "Set a configuration variable (ie, Network.Cni.Driver=cilium")
-	flagSet.StringVar(&crdsDir, "crdsDir", crdsDir, "Load CRDs from this directory.")
-	flagSet.StringVar(&rbacDir, "rbacDir", rbacDir, "Load RBACs from this directory.")
+
+	// The following options are intended for development only: they assume the Control Plane
+	// is up and running.
+	flagSet.BoolVar(&deployKubicManager, "deployment", deployKubicManager, "Development: launch the kubic-manager in a Deployment (only for development)")
+	flagSet.MarkHidden("deployment")
+	// assets
+	flagSet.BoolVar(&loadAssets, "load-assets", loadAssets, "Load the CRDs, RBACs and manifests")
+	flagSet.MarkHidden("load-assets")
+	flagSet.StringVar(&crdsDir, "crds-dir", crdsDir, "Development: load CRDs from this directory.")
+	flagSet.MarkHidden("crds-dir")
+	flagSet.StringVar(&rbacDir, "rbac-dir", rbacDir, "Development: load RBACs from this directory.")
+	flagSet.MarkHidden("rbac-dir")
+
 	return cmd
 }
 

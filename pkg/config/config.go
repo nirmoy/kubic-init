@@ -24,13 +24,17 @@ import (
 	"net"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/golang/glog"
+	"github.com/kubernetes/kubernetes/cmd/kubeadm/app/util/apiclient"
 	"github.com/yuroyoro/swalker"
 	"gopkg.in/yaml.v2"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilnet "k8s.io/apimachinery/pkg/util/net"
+	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/scheme"
 	kubeadmscheme "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/scheme"
 	kubeadmapiv1alpha2 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1alpha2"
@@ -84,6 +88,10 @@ type NetworkConfiguration struct {
 	ServiceSubnet string             `yaml:"serviceSubnet,omitempty"`
 }
 
+type ManagerConfiguration struct {
+	Image string `yaml:"image,omitempty"`
+}
+
 type RuntimeConfiguration struct {
 	Engine string `yaml:"engine,omitempty"`
 }
@@ -110,6 +118,7 @@ type ServicesConfiguration struct {
 type KubicInitConfiguration struct {
 	metav1.TypeMeta
 	Network          NetworkConfiguration          `yaml:"network,omitempty"`
+	Manager          ManagerConfiguration          `yaml:"manager,omitempty"`
 	ClusterFormation ClusterFormationConfiguration `yaml:"clusterFormation,omitempty"`
 	Certificates     CertsConfiguration            `yaml:"certificates,omitempty"`
 	Runtime          RuntimeConfiguration          `yaml:"runtime,omitempty"`
@@ -122,7 +131,9 @@ func ConfigFileAndDefaultsToKubicInitConfig(cfgPath string) (*KubicInitConfigura
 	var err error
 	var internalcfg = KubicInitConfiguration{}
 
+	// set some defaults
 	internalcfg.Certificates.Directory = DefaultCertsDirectory
+	internalcfg.Manager.Image = DefaultKubicInitImage
 
 	// After loading the YAML file all unset values will have default values.
 	// That means that all booleans will be false... but we cannot know if users
@@ -158,6 +169,11 @@ func ConfigFileAndDefaultsToKubicInitConfig(cfgPath string) (*KubicInitConfigura
 	if tokenEnv, found := os.LookupEnv(DefaultEnvVarToken); found {
 		glog.V(3).Infof("[kubic] environment: setting cluster token '%s'", tokenEnv)
 		internalcfg.ClusterFormation.Token = tokenEnv
+	}
+
+	if managerEnv, found := os.LookupEnv(DefaultEnvVarManager); found {
+		glog.V(3).Infof("[kubic] environment: setting kubic-manager image '%s'", managerEnv)
+		internalcfg.Manager.Image = managerEnv
 	}
 
 	// The seeder is a IP:PORT, so parse the current seeder and reformat it appropriately
@@ -321,6 +337,39 @@ func (kubicCfg KubicInitConfiguration) ToNodeConfig(featureGates map[string]bool
 	}
 
 	return nodeCfg, nil
+}
+
+// ToConfigMap uploads the configuration to a "kubic-init.yaml" file in a ConfigMap
+func (kubicCfg *KubicInitConfiguration) ToConfigMap(client clientset.Interface, name string, extraLabels map[string]string) error {
+	filename := filepath.Base(DefaultKubicInitConfig)
+
+	glog.V(3).Infof("[kubic] uploading to ConfigMap %s/%s the '%s' configuration",
+		metav1.NamespaceSystem, name, filename)
+
+	// TODO: check there is no sensible information in the kubicCfg and remove it...
+
+	marshalled, err := yaml.Marshal(kubicCfg)
+	if err != nil {
+		return err
+	}
+
+	if err := apiclient.CreateOrUpdateConfigMap(client, &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: metav1.NamespaceSystem,
+			Labels:    extraLabels,
+		},
+		Data: map[string]string{
+			filename: string(marshalled),
+		},
+	}); err != nil {
+		return err
+	}
+
+	glog.V(3).Infof("[kubic] configuration uploaded to ConfigMap %s/%s",
+		metav1.NamespaceSystem, name)
+
+	return nil
 }
 
 // SetVars parses a list of assignments (like "key=value"), where "key"

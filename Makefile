@@ -171,8 +171,16 @@ local-run: $(KUBIC_INIT_EXE) $(KUBE_DROPIN_DST) local-reset
 	@echo ">>> Running $(KUBIC_INIT_EXE) as _root_"
 	$(SUDO_E) $(KUBIC_INIT_EXE) bootstrap \
 		-v $(VERBOSE_LEVEL) \
-		--config $(KUBIC_INIT_CFG) $(KUBIC_ARGS)
+		--config $(KUBIC_INIT_CFG) $(KUBIC_ARGS) \
+		--deploy-manager=false \
+		--load-assets=false
 
+# Usage:
+# - Run it locally:
+#   make local-run-manager KUBIC_INIT_CFG=test.yaml VERBOSE_LEVEL=5
+# - Start a Deployment with the manager:
+#   make local-run-manager KUBIC_ARGS="--deployment"
+#
 local-run-manager: $(KUBIC_INIT_EXE) manifests
 	[ -r $(KUBECONFIG) ] || $(SUDO_E) chmod 644 $(KUBECONFIG)
 	@echo ">>> Running $(KUBIC_INIT_EXE) as _root_"
@@ -180,6 +188,9 @@ local-run-manager: $(KUBIC_INIT_EXE) manifests
 		-v $(VERBOSE_LEVEL) \
 		--config $(KUBIC_INIT_CFG) \
 		--kubeconfig /etc/kubernetes/admin.conf \
+		--load-assets=true \
+		--crds-dir config/crds \
+		--rbac-dir config/rbac \
 		$(KUBIC_ARGS)
 
 # Usage:

@@ -33,16 +33,19 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/rest"
 
+	kubiccfg "github.com/kubic-project/kubic-init/pkg/config"
 	"github.com/kubic-project/kubic-init/pkg/util"
 )
+
+type crdsSet map[string]*apiextensionsv1beta1.CustomResourceDefinition
 
 // CRDInstallOptions are the options for installing CRDs
 type CRDInstallOptions struct {
 	// Paths is the path to the directory containing CRDs
 	Paths []string
 
-	// CRDs is a list of CRDs to install
-	CRDs []*apiextensionsv1beta1.CustomResourceDefinition
+	// CRDs is a map of CRDs to install
+	CRDs crdsSet
 
 	// ErrorIfPathMissing will cause an error if a Path does not exist
 	ErrorIfPathMissing bool
@@ -58,31 +61,32 @@ const defaultPollInterval = 100 * time.Millisecond
 const defaultMaxWait = 10 * time.Second
 
 // InstallCRDs installs a collection of CRDs into a cluster by reading the crd yaml files from a directory
-func InstallCRDs(config *rest.Config, options CRDInstallOptions) ([]*apiextensionsv1beta1.CustomResourceDefinition, error) {
+func InstallCRDs(kubicCfg *kubiccfg.KubicInitConfiguration, restCfg *rest.Config, options CRDInstallOptions) error {
 	defaultCRDOptions(&options)
 
 	// Read the CRD yamls into options.CRDs
 	if err := readCRDFiles(&options); err != nil {
-		return nil, err
+		return err
 	}
 
 	// Create the CRDs in the apiserver
-	if err := CreateCRDs(config, options.CRDs); err != nil {
-		return options.CRDs, err
+	if err := CreateCRDs(restCfg, options.CRDs); err != nil {
+		return err
 	}
 
 	// Wait for the CRDs to appear as Resources in the apiserver
-	if err := WaitForCRDs(config, options.CRDs, options); err != nil {
-		return options.CRDs, err
+	if err := WaitForCRDs(restCfg, options.CRDs, options); err != nil {
+		return err
 	}
 
-	return options.CRDs, nil
+	return nil
 }
 
 // readCRDFiles reads the directories of CRDs in options.Paths and adds the CRD structs to options.CRDs
 func readCRDFiles(options *CRDInstallOptions) error {
+	options.CRDs = crdsSet{}
 	if len(options.Paths) > 0 {
-		for _, path := range options.Paths {
+		for _, path := range util.RemoveDumplicates(options.Paths) {
 			if _, err := os.Stat(path); !options.ErrorIfPathMissing && os.IsNotExist(err) {
 				continue
 			}
@@ -90,7 +94,9 @@ func readCRDFiles(options *CRDInstallOptions) error {
 			if err != nil {
 				return err
 			}
-			options.CRDs = append(options.CRDs, new...)
+			for _, crd := range new {
+				options.CRDs[util.NamespacedObjToString(crd)] = crd
+			}
 		}
 	}
 	return nil
@@ -107,7 +113,7 @@ func defaultCRDOptions(o *CRDInstallOptions) {
 }
 
 // WaitForCRDs waits for the CRDs to appear in discovery
-func WaitForCRDs(config *rest.Config, crds []*apiextensionsv1beta1.CustomResourceDefinition, options CRDInstallOptions) error {
+func WaitForCRDs(config *rest.Config, crds crdsSet, options CRDInstallOptions) error {
 	// Add each CRD to a map of GroupVersion to Resource
 	waitingFor := map[schema.GroupVersion]*sets.String{}
 	for _, crd := range crds {
@@ -121,14 +127,14 @@ func WaitForCRDs(config *rest.Config, crds []*apiextensionsv1beta1.CustomResourc
 	}
 
 	// Poll until all resources are found in discovery
-	p := &poller{config: config, waitingFor: waitingFor}
+	p := &poller{restCfg: config, waitingFor: waitingFor}
 	return wait.PollImmediate(options.pollInterval, options.maxTime, p.poll)
 }
 
 // poller checks if all the resources have been found in discovery, and returns false if not
 type poller struct {
-	// config is used to get discovery
-	config *rest.Config
+	// restCfg is used to get discovery
+	restCfg *rest.Config
 
 	// waitingFor is the map of resources keyed by group version that have not yet been found in discovery
 	waitingFor map[schema.GroupVersion]*sets.String
@@ -137,7 +143,7 @@ type poller struct {
 // poll checks if all the resources have been found in discovery, and returns false if not
 func (p *poller) poll() (done bool, err error) {
 	// Create a new clientset to avoid any client caching of discovery
-	cs, err := clientset.NewForConfig(p.config)
+	cs, err := clientset.NewForConfig(p.restCfg)
 	if err != nil {
 		return false, err
 	}
@@ -171,15 +177,15 @@ func (p *poller) poll() (done bool, err error) {
 }
 
 // CreateCRDs creates the CRDs
-func CreateCRDs(config *rest.Config, crds []*apiextensionsv1beta1.CustomResourceDefinition) error {
-	cs, err := clientset.NewForConfig(config)
+func CreateCRDs(restCfg *rest.Config, crds crdsSet) error {
+	cs, err := clientset.NewForConfig(restCfg)
 	if err != nil {
 		return err
 	}
 
 	// Create each CRD
-	for _, crd := range crds {
-		glog.V(5).Infof("[kubic] creating CRD '%s'", util.NamespacedObjToString(crd))
+	for name, crd := range crds {
+		glog.V(5).Infof("[kubic] creating CRD '%s'", name)
 
 		existing, err := cs.Apiextensions().CustomResourceDefinitions().Get(crd.Name, metav1.GetOptions{})
 		if apierrors.IsNotFound(err) {

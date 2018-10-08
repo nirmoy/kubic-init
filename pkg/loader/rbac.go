@@ -1,14 +1,24 @@
+/*
+Copyright 2018 SUSE LINUX GmbH, Nuernberg, Germany..
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 package loader
 
 import (
-	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
-	"path/filepath"
-	"time"
 
-	"github.com/golang/glog"
 	"github.com/kubernetes/kubernetes/cmd/kubeadm/app/util/apiclient"
 	rbac "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -18,6 +28,8 @@ import (
 	"k8s.io/client-go/rest"
 
 	kubicclient "github.com/kubic-project/kubic-init/pkg/client"
+	kubiccfg "github.com/kubic-project/kubic-init/pkg/config"
+	kubicutil "github.com/kubic-project/kubic-init/pkg/util"
 )
 
 // some globs used for identifying roles, etc...
@@ -31,45 +43,17 @@ const (
 	assetsNamespace = metav1.NamespaceSystem
 )
 
-// RBACInstallOptions are the options for installing CRDs
+// RBACInstallOptions are the options for installing RBACs
 type RBACInstallOptions struct {
-	// Paths is the path to the directory containing CRDs
+	// Paths is the path to the directory containing RBACs
 	Paths []string
 
 	// ErrorIfPathMissing will cause an error if a Path does not exist
 	ErrorIfPathMissing bool
-
-	// maxTime is the max time to wait
-	maxTime time.Duration
-
-	// pollInterval is the interval to check
-	pollInterval time.Duration
-}
-
-// loadFilesIn tries to loads all the files (matching a glob) in a directory,
-// returning a list of Buffers
-func loadFilesIn(directory string, glob string, descr string) ([]*bytes.Buffer, error) {
-	var res = []*bytes.Buffer{}
-	glog.V(5).Infof("[kubic] loading %s files from %s", descr, directory)
-	files, err := filepath.Glob(filepath.Join(directory, glob))
-	if err != nil {
-		return nil, err
-	}
-
-	glog.V(5).Infof("[kubic] %s files to loadFilesIn: %+v", descr, files)
-	for _, f := range files {
-		b, err := ioutil.ReadFile(f)
-		if err != nil {
-			return nil, fmt.Errorf("unable to read file %s [%v]", f, err)
-		}
-		res = append(res, bytes.NewBuffer(b))
-	}
-
-	return res, nil
 }
 
 // necessary until https://github.com/kubernetes-sigs/controller-tools/pull/77 is merged
-func InstallRBAC(config *rest.Config, options RBACInstallOptions) error {
+func InstallRBAC(kubicCfg *kubiccfg.KubicInitConfiguration, config *rest.Config, options RBACInstallOptions) error {
 
 	cs, err := clientset.NewForConfig(config)
 	if err != nil {
@@ -77,9 +61,8 @@ func InstallRBAC(config *rest.Config, options RBACInstallOptions) error {
 	}
 	restClient := cs.RESTClient()
 
-	for _, path := range options.Paths {
+	for _, path := range kubicutil.RemoveDumplicates(options.Paths) {
 		if _, err := os.Stat(path); !options.ErrorIfPathMissing && os.IsNotExist(err) {
-			glog.V(3).Infof("[kubic] WARNING directory %s does not exist: cannot load files from there.", path)
 			continue
 		}
 

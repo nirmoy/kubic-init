@@ -1,4 +1,5 @@
 /*
+ *
  * Copyright 2018 SUSE LINUX GmbH, Nuernberg, Germany..
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,28 +13,39 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ * /
  *
  */
 
-package crypto
+package util
 
 import (
+	"strings"
 	"testing"
 )
 
 func TestNewSharedPassword(t *testing.T) {
-	password1 := NewSharedPassword("my-password1", "my-namespace")
-	password1.Rand(10)
-	t.Logf("Password generated 1: %s = %s", password1.Name, password1)
-	if password1.Name != "my-namespace/my-password2" {
-		t.Fatalf("Unexpected password name: %s", password2.Name)
+	testEq := func(a, b []string) bool {
+		// a simple (b ut not perfect) equality check
+		return strings.Join(a, ",") == strings.Join(a, ",")
 	}
 
-	password2 := NewSharedPassword("my-password2", "")
-	password2.Rand(10)
-	t.Logf("Password generated: %s = %s", password2.Name, password2)
-
-	if password2.Name != "kube-system/my-password2" {
-		t.Fatalf("Unexpected password name: %s", password2.Name)
+	test1 := []string{"aaa", "bbb", "ccc"}
+	test1Out := RemoveDumplicates(test1)
+	if !testEq(test1, test1Out) {
+		t.Logf("input: %+v", test1)
+		t.Logf("-> output  : %+v", test1Out)
+		t.Fatalf("unexpected output")
 	}
+
+	test2 := []string{"aaa", "bbb", "ccc", "bbb", "c"}
+	test2Out := RemoveDumplicates(test2)
+	expected2 := []string{"aaa", "bbb", "ccc", "c"}
+	if !testEq(test1Out, expected2) {
+		t.Logf("input: %+v", test2)
+		t.Logf("-> output  : %+v", test2Out)
+		t.Logf("-> expected: %+v", expected2)
+		t.Fatalf("unexpected output")
+	}
+
 }
