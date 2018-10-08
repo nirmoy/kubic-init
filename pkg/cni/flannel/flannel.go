@@ -22,11 +22,13 @@ const (
 	// FlannelClusterRoleName sets the name for the flannel ClusterRole
 	FlannelClusterRoleName = "kubic:flannel"
 
+	// the PSP cluster role
 	FlannelClusterRoleNamePSP = "kubic:psp:flannel"
 
 	// FlannelServiceAccountName describes the name of the ServiceAccount for the flannel addon
 	FlannelServiceAccountName = "kubic-flannel"
 
+	// Default health port for Glannel
 	FlannelHealthPort = 8471
 )
 
@@ -125,17 +127,19 @@ func EnsureFlannelAddon(cfg *config.KubicInitConfiguration, client clientset.Int
 
 	flannelDaemonSetBytes, err = kubeadmutil.ParseTemplate(FlannelDaemonSet19,
 		struct {
-			Image       string
-			LogLevel    int
-			HealthzPort int
-			ConfDir     string
-			BinDir      string
+			Image          string
+			LogLevel       int
+			HealthzPort    int
+			ConfDir        string
+			BinDir         string
+			ServiceAccount string
 		}{
 			cfg.Network.Cni.Image,
 			1, // TODO: replace by some config arg
 			FlannelHealthPort,
-			config.DefaultCniConfDir,
-			config.DefaultCniBinDir,
+			cfg.Network.Cni.ConfDir,
+			cfg.Network.Cni.BinDir,
+			FlannelServiceAccountName,
 		})
 
 	if err != nil {

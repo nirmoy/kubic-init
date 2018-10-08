@@ -42,7 +42,7 @@ data:
 `
 
 	FlannelDaemonSet19 = `
-apiVersion: apps/v1beta2
+apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: kube-flannel
@@ -61,7 +61,7 @@ spec:
         tier: node
         k8s-app: flannel
     spec:
-      serviceAccountName: flannel
+      serviceAccountName: {{ .ServiceAccount }}
       initContainers:
       - name: install-cni-conf
         image: {{ .Image }}

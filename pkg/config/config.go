@@ -46,8 +46,10 @@ import (
 // The CNI configuration
 // Subnets details are specified in the kubeadm configuration file
 type CniConfiguration struct {
-	Driver string `json:"driver,omitempty"`
-	Image  string `json:"image,omitempty"`
+	BinDir  string `json:"binDir,omitempty"`
+	ConfDir string `json:"confDir,omitempty"`
+	Driver  string `json:"driver,omitempty"`
+	Image   string `json:"image,omitempty"`
 }
 
 type ClusterFormationConfiguration struct {
@@ -134,6 +136,8 @@ func ConfigFileAndDefaultsToKubicInitConfig(cfgPath string) (*KubicInitConfigura
 	// set some defaults
 	internalcfg.Certificates.Directory = DefaultCertsDirectory
 	internalcfg.Manager.Image = DefaultKubicInitImage
+	internalcfg.Network.Cni.BinDir = DefaultCniBinDir
+	internalcfg.Network.Cni.ConfDir = DefaultCniConfDir
 
 	// After loading the YAML file all unset values will have default values.
 	// That means that all booleans will be false... but we cannot know if users
