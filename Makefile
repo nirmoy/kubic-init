@@ -13,7 +13,6 @@ KUBIC_INIT_GEN_SRCS       = $(shell grep -l -r "//go:generate" $(SOURCES_DIRS))
 KUBIC_INIT_CRD_TYPES_SRCS = $(shell find pkg/apis/kubic -type f -name "*_types.go")
 
 KUBIC_INIT_EXE  = cmd/kubic-init/kubic-init
-KUBIC_INIT_SH   = build/image/entrypoint.sh
 KUBIC_INIT_MAIN = cmd/kubic-init/main.go
 KUBIC_INIT_CFG  = $(CURDIR)/config/kubic-init.yaml
 .DEFAULT_GOAL: $(KUBIC_INIT_EXE)
@@ -21,7 +20,7 @@ KUBIC_INIT_CFG  = $(CURDIR)/config/kubic-init.yaml
 IMAGE_BASENAME = $(GOPATH_THIS_REPO)
 IMAGE_NAME     = $(GOPATH_THIS_USER)/$(IMAGE_BASENAME)
 IMAGE_TAR_GZ   = $(IMAGE_BASENAME)-latest.tar.gz
-IMAGE_DEPS     = $(KUBIC_INIT_EXE) $(KUBIC_INIT_SH) $(KUBIC_INIT_CFG) Dockerfile
+IMAGE_DEPS     = $(KUBIC_INIT_EXE) $(KUBIC_INIT_CFG) Dockerfile
 
 # should be non-empty when dep is installed
 DEP_EXE := $(shell command -v dep 2> /dev/null)
@@ -216,7 +215,6 @@ $(IMAGE_TAR_GZ): $(IMAGE_DEPS) manifests
 	@echo ">>> Creating Docker image..."
 	docker build \
 		--build-arg KUBIC_INIT_EXE=$(KUBIC_INIT_EXE) \
-		--build-arg KUBIC_INIT_SH=$(KUBIC_INIT_SH) \
 		-t $(IMAGE_NAME):latest .
 	@echo ">>> Creating tar for image..."
 	docker save $(IMAGE_NAME):latest | gzip > $(IMAGE_TAR_GZ)
