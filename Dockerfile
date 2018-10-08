@@ -1,7 +1,6 @@
 FROM opensuse:tumbleweed
 
 ARG KUBIC_INIT_EXE="cmd/kubic-init/kubic-init"
-ARG KUBIC_INIT_SH="build/image/entrypoint.sh"
 
 # for Tumbleweed
 ARG EXTRA_REPO0="https://download.opensuse.org/repositories/devel:/kubic/openSUSE_Tumbleweed/"
