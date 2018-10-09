@@ -43,5 +43,7 @@ write_files:
       kind: KubicInitConfiguration
       clusterFormation:
         token: ${token}
+      manager:
+        image: ${kubic_init_image_name}
 
 final_message: "The system is finally up, after $UPTIME seconds"

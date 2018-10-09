@@ -89,6 +89,12 @@ variable "devel" {
   description = "enable some steps for development environments (non-empty=true)"
 }
 
+variable "kubic_init_image_name" {
+  type = "string"
+  default = "localhost/kubic-project/kubic-init:latest"
+  description = "the default kubic init image name"
+}
+
 variable "kubic_init_image" {
   type = "string"
   default = "kubic-init-latest.tar.gz"
@@ -177,6 +183,7 @@ data "template_file" "seed_cloud_init_user_data" {
     password = "${var.password}"
     hostname = "${var.prefix}-seed"
     token = "${data.external.token_gen.result.token}"
+    kubic_init_image_name = "${var.kubic_init_image_name}"
   }
 }
 
