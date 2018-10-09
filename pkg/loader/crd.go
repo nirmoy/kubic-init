@@ -87,7 +87,7 @@ func InstallCRDs(kubicCfg *kubiccfg.KubicInitConfiguration, restCfg *rest.Config
 func readCRDFiles(options *CRDInstallOptions) error {
 	options.CRDs = crdsSet{}
 	if len(options.Paths) > 0 {
-		for _, path := range util.RemoveDumplicates(options.Paths) {
+		for _, path := range util.RemoveDuplicates(options.Paths) {
 			if _, err := os.Stat(path); !options.ErrorIfPathMissing && os.IsNotExist(err) {
 				continue
 			}

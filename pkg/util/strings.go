@@ -41,7 +41,7 @@ func URL64decode(v string) string {
 	return string(data)
 }
 
-func RemoveDumplicates(in []string) []string {
+func RemoveDuplicates(in []string) []string {
 	processed := map[string]struct{}{}
 
 	res := []string{}
