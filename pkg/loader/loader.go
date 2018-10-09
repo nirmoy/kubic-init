@@ -24,8 +24,9 @@ import (
 	"path/filepath"
 
 	"github.com/golang/glog"
+	"k8s.io/client-go/tools/clientcmd"
 	kubeadmutil "k8s.io/kubernetes/cmd/kubeadm/app/util"
-	"sigs.k8s.io/controller-runtime/pkg/client/config"
+	kubeadmconstants "k8s.io/kubernetes/cmd/kubeadm/app/constants"
 
 	kubiccfg "github.com/kubic-project/kubic-init/pkg/config"
 )
@@ -57,7 +58,7 @@ func InstallAllAssets(kubicCfg *kubiccfg.KubicInitConfiguration, manifDir, crdsD
 	dirs := []string{}
 
 	glog.V(1).Infof("[kubic] installing all the assets...")
-	restCfg, err := config.GetConfig()
+	restCfg, err := clientcmd.BuildConfigFromFlags("", kubeadmconstants.GetAdminKubeConfigPath())
 	kubeadmutil.CheckErr(err)
 
 	if len(manifDir) == 0 {
