@@ -93,7 +93,7 @@ func InstallManifests(kubicCfg *kubiccfg.KubicInitConfiguration, config *rest.Co
 	}
 	restClient := cs.RESTClient()
 
-	for _, path := range util.RemoveDumplicates(options.Paths) {
+	for _, path := range util.RemoveDuplicates(options.Paths) {
 		if _, err := os.Stat(path); !options.ErrorIfPathMissing && os.IsNotExist(err) {
 			continue
 		}

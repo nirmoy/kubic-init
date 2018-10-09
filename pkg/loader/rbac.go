@@ -62,7 +62,7 @@ func InstallRBAC(kubicCfg *kubiccfg.KubicInitConfiguration, config *rest.Config,
 	}
 	restClient := cs.RESTClient()
 
-	for _, path := range kubicutil.RemoveDumplicates(options.Paths) {
+	for _, path := range kubicutil.RemoveDuplicates(options.Paths) {
 		if _, err := os.Stat(path); !options.ErrorIfPathMissing && os.IsNotExist(err) {
 			continue
 		}

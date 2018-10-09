@@ -29,7 +29,7 @@ func TestNewSharedPassword(t *testing.T) {
 	}
 
 	test1 := []string{"aaa", "bbb", "ccc"}
-	test1Out := RemoveDumplicates(test1)
+	test1Out := RemoveDuplicates(test1)
 	if !testEq(test1, test1Out) {
 		t.Logf("input: %+v", test1)
 		t.Logf("-> output  : %+v", test1Out)
@@ -37,7 +37,7 @@ func TestNewSharedPassword(t *testing.T) {
 	}
 
 	test2 := []string{"aaa", "bbb", "ccc", "bbb", "c"}
-	test2Out := RemoveDumplicates(test2)
+	test2Out := RemoveDuplicates(test2)
 	expected2 := []string{"aaa", "bbb", "ccc", "c"}
 	if !testEq(test1Out, expected2) {
 		t.Logf("input: %+v", test2)
