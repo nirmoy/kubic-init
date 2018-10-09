@@ -104,12 +104,15 @@ func InstallKubicManager(cli clientset.Interface, config *kubiccfg.KubicInitConf
 					},
 					Affinity: &corev1.Affinity{
 						PodAntiAffinity: &corev1.PodAntiAffinity{
-							RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
+							PreferredDuringSchedulingIgnoredDuringExecution: []corev1.WeightedPodAffinityTerm{
 								{
-									TopologyKey: "kubernetes.io/hostname",
-									LabelSelector: &metav1.LabelSelector{
-										MatchLabels: map[string]string{
-											"app": kubicManagerName,
+									Weight: 1,
+									PodAffinityTerm: corev1.PodAffinityTerm{
+										TopologyKey: "kubernetes.io/hostname",
+										LabelSelector: &metav1.LabelSelector{
+											MatchLabels: map[string]string{
+												"app": kubicManagerName,
+											},
 										},
 									},
 								},
