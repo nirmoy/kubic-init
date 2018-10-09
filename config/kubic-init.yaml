@@ -15,7 +15,7 @@ kind: KubicInitConfiguration
 #   # (or we can use the "hash" of the ca.crt instead)
 #   caCrtHash:
 # manager:
-#   # the kubic-manager image. by default, it is the same kubc-init image
+#   # the kubic-manager image. by default, it is the same kubic-init image
 #   image: "kubic-init:latest"
 # clusterFormation:
 #   # the seeder for the cluster formation
