@@ -73,13 +73,13 @@ func InstallRBAC(kubicCfg *kubiccfg.KubicInitConfiguration, config *rest.Config,
 			return err
 		}
 		for _, roleBuffer := range roles {
-			role := &rbac.Role{}
+			role := &rbac.ClusterRole{}
 			if err := kuberuntime.DecodeInto(clientsetscheme.Codecs.UniversalDecoder(), roleBuffer.Bytes(), role); err != nil {
 				return fmt.Errorf("unable to decode Role: %v", err)
 			}
 
 			role.SetNamespace(assetsNamespace)
-			if err = apiclient.CreateOrUpdateRole(cs, role); err != nil {
+			if err = apiclient.CreateOrUpdateClusterRole(cs, role); err != nil {
 				return fmt.Errorf("Failed to create new Role: %v", err)
 			}
 			if err := kubicclient.WaitForObject(restClient, role); err != nil {
@@ -93,13 +93,13 @@ func InstallRBAC(kubicCfg *kubiccfg.KubicInitConfiguration, config *rest.Config,
 			return err
 		}
 		for _, roleBindingsBuffer := range roleBindings {
-			roleBinding := &rbac.RoleBinding{}
+			roleBinding := &rbac.ClusterRoleBinding{}
 			if err := kuberuntime.DecodeInto(clientsetscheme.Codecs.UniversalDecoder(), roleBindingsBuffer.Bytes(), roleBinding); err != nil {
 				return fmt.Errorf("unable to decode Role bindings: %v", err)
 			}
 
 			roleBinding.SetNamespace(assetsNamespace)
-			if err = apiclient.CreateOrUpdateRoleBinding(cs, roleBinding); err != nil {
+			if err = apiclient.CreateOrUpdateClusterRoleBinding(cs, roleBinding); err != nil {
 				return fmt.Errorf("Failed to create new Role bindings: %v", err)
 			}
 			if err := kubicclient.WaitForObject(restClient, roleBinding); err != nil {
