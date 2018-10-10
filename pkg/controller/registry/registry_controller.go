@@ -136,7 +136,9 @@ type ReconcileRegistry struct {
 // on the state read and what is in the Registry.Spec
 //
 // Automatically generate RBAC rules to allow the Controller to read and write Jobs
-// +kubebuilder:rbac:groups=apps;extensions,resources=jobs;secrets;nodes,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=core,resources=nodes,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=batch;extensions,resources=jobs;jobs.batch;secrets;nodes,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=apps;extensions,resources=jobs;jobs.batch;secrets;nodes,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=kubic.opensuse.org,resources=registries,verbs=get;list;watch;create;update;patch;delete
 func (r *ReconcileRegistry) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	glog.V(5).Infof("[kubic] trying to reconcile %s", request.NamespacedName)
