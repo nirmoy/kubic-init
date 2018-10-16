@@ -19,6 +19,8 @@ package config
 
 import (
 	"k8s.io/kubernetes/cmd/kubeadm/app/features"
+
+	kubeadmapiv1alpha2 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1alpha2"
 )
 
 const (
@@ -70,20 +72,18 @@ const (
 	DefaultDNSDomain = "cluster.local"
 )
 
-// Some important default paths
-const (
-	// Default directory for certificates
-	DefaultCertsDirectory = "/etc/kubernetes/pki"
-
-	// Directory with manifests files to load in the API server once
-	// the control plane is up and runningg
-	DefaultPostControlPlaneManifestsDir = "/etc/kubic/manifests"
-)
-
-// Some Kubic defaults
 const (
 	// the kubic-init image by default
 	DefaultKubicInitImage = "kubic-init:latest"
+)
+
+// Some important default paths
+const (
+	// Default directory for certificates
+	DefaultCertsDirectory = kubeadmapiv1alpha2.DefaultCertificatesDir
+
+	// Default CA certificate path
+	DefaultCertCA = kubeadmapiv1alpha2.DefaultCACertPath
 
 	// The kubic-init entrypoint
 	DefaultKubicInitExeInstallPath = "/usr/local/bin/kubic-init"
@@ -105,6 +105,15 @@ const (
 
 	// The default kubeconfig
 	DefaultKubicKubeconfig = "/etc/kubernetes/admin.conf"
+)
+
+// OIDC defaults
+const (
+	DefaultOIDCClientID = "kubernetes"
+
+	DefaultOIDCUsernameClaim = "email"
+
+	DefaultOIDCGroupsClaim = "group"
 )
 
 var (

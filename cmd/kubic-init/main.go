@@ -28,7 +28,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	utilflag "k8s.io/apiserver/pkg/util/flag"
-	clientset "k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/validation"
 	kubeadmcmd "k8s.io/kubernetes/cmd/kubeadm/app/cmd"
@@ -64,7 +63,7 @@ func newCmdBootstrap(out io.Writer) *cobra.Command {
 	var dryRun = false
 	var vars = []string{}
 
-	var postControlManifDir = kubiccfg.DefaultPostControlPlaneManifestsDir
+	var postControlManifDir = kubiccfg.DefaultKubicManifestsDir
 	var crdsDir = kubiccfg.DefaultKubicCRDDir
 	var rbacDir = kubiccfg.DefaultKubicRBACDir
 
@@ -146,8 +145,14 @@ func newCmdBootstrap(out io.Writer) *cobra.Command {
 				}
 
 				if loadAssets {
-					err = loader.InstallAllAssets(kubicCfg, postControlManifDir, crdsDir, rbacDir)
+					kubeconfig, err := config.GetConfig()
 					kubeadmutil.CheckErr(err)
+
+					glog.V(1).Infof("[kubic] trying to load assets...")
+					err = loader.InstallAllAssets(kubeconfig, kubicCfg, postControlManifDir, crdsDir, rbacDir)
+					kubeadmutil.CheckErr(err)
+				} else {
+					glog.V(1).Infof("[kubic] WARNING: not trying to load assets")
 				}
 
 				if deployKubicManager {
@@ -235,8 +240,7 @@ func newCmdManager(out io.Writer) *cobra.Command {
 	var vars = []string{}
 	var crdsDir = ""
 	var rbacDir = ""
-	var postControlManifDir = ""
-	var deployKubicManager = false
+	var manifDir = ""
 	var loadAssets = false
 
 	cmd := &cobra.Command{
@@ -263,21 +267,8 @@ func newCmdManager(out io.Writer) *cobra.Command {
 			if loadAssets {
 				// The manager doesn't really need to install any assets: they are installed
 				// from the kubic-init seeder process. This is just for development.
-				err = loader.InstallAllAssets(kubicCfg, postControlManifDir, crdsDir, rbacDir)
+				err = loader.InstallAllAssets(kubeconfig, kubicCfg, manifDir, crdsDir, rbacDir)
 				kubeadmutil.CheckErr(err)
-			}
-
-			if deployKubicManager {
-				// do not really run the manager here: launch a Deployment, as the kubic-init
-				// seeder process does.
-				client, err := clientset.NewForConfig(kubeconfig)
-				kubeadmutil.CheckErr(err)
-
-				glog.V(1).Infof("[kubic] starting the kubic-manager with a Deployment...")
-				err = kubicmngr.InstallKubicManager(client, kubicCfg)
-				kubeadmutil.CheckErr(err)
-				glog.V(1).Infof("[kubic] nothing more to do...bye")
-				return
 			}
 
 			glog.V(1).Infof("[kubic] creating a new manager to provide shared dependencies and start components")
@@ -303,17 +294,15 @@ func newCmdManager(out io.Writer) *cobra.Command {
 	flagSet.StringVar(&kubeconfigFile, "kubeconfig", "", "Use this kubeconfig file for talking to the API server.")
 	flagSet.StringSliceVar(&vars, "var", []string{}, "Set a configuration variable (ie, Network.Cni.Driver=cilium")
 
-	// The following options are intended for development only: they assume the Control Plane
-	// is up and running.
-	flagSet.BoolVar(&deployKubicManager, "deployment", deployKubicManager, "Development: launch the kubic-manager in a Deployment (only for development)")
-	flagSet.MarkHidden("deployment")
 	// assets
 	flagSet.BoolVar(&loadAssets, "load-assets", loadAssets, "Load the CRDs, RBACs and manifests")
 	flagSet.MarkHidden("load-assets")
-	flagSet.StringVar(&crdsDir, "crds-dir", crdsDir, "Development: load CRDs from this directory.")
+	flagSet.StringVar(&crdsDir, "crds-dir", crdsDir, "load CRDs from this directory.")
 	flagSet.MarkHidden("crds-dir")
-	flagSet.StringVar(&rbacDir, "rbac-dir", rbacDir, "Development: load RBACs from this directory.")
+	flagSet.StringVar(&rbacDir, "rbac-dir", rbacDir, "load RBACs from this directory.")
 	flagSet.MarkHidden("rbac-dir")
+	flagSet.StringVar(&manifDir, "manif-dir", manifDir, "load manifests from this directory.")
+	flagSet.MarkHidden("manif-dir")
 
 	return cmd
 }

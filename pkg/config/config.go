@@ -59,6 +59,18 @@ type ClusterFormationConfiguration struct {
 	AutoApprove bool   `json:"autoApprove,omitempty"`
 }
 
+type OIDCConfiguration struct {
+	Issuer   string `yaml:"issuer,omitempty"`
+	ClientID string `yaml:"clientID,omitempty"`
+	CA       string `yaml:"ca,omitempty"`
+	Username string `yaml:"username,omitempty"`
+	Groups   string `yaml:"groups,omitempty"`
+}
+
+type AuthConfiguration struct {
+	OIDC OIDCConfiguration `yaml:"OIDC,omitempty"`
+}
+
 type CertsConfiguration struct {
 	// TODO
 	Directory string `yaml:"directory,omitempty"`
@@ -103,12 +115,6 @@ type FeaturesConfiguration struct {
 	PSP bool `yaml:"PSP,omitempty"`
 }
 
-type DexLDAPUserConfiguration struct {
-	BaseDN  string            `yaml:"baseDN,omitempty"`
-	Filter  string            `yaml:"filter,omitempty"`
-	AttrMap map[string]string `yaml:"attrMap,omitempty"`
-}
-
 type ServicesConfiguration struct {
 }
 
@@ -127,25 +133,45 @@ type KubicInitConfiguration struct {
 	Runtime          RuntimeConfiguration          `yaml:"runtime,omitempty"`
 	Features         FeaturesConfiguration         `yaml:"features,omitempty"`
 	Services         ServicesConfiguration         `yaml:"services,omitempty"`
+	Auth             AuthConfiguration             `yaml:"auth,omitempty"`
+}
+
+// defaultConfiguration is the default configuration
+var defaultConfiguration = KubicInitConfiguration{
+	Certificates: CertsConfiguration{
+		Directory: DefaultCertsDirectory},
+	Manager: ManagerConfiguration{
+		Image: DefaultKubicInitImage,
+	},
+	Network: NetworkConfiguration{
+		PodSubnet:     DefaultPodSubnet,
+		ServiceSubnet: DefaultServiceSubnet,
+		Dns: DNSConfiguration{
+			Domain: DefaultDNSDomain,
+		},
+		Cni: CniConfiguration{
+			Driver:  DefaultCniDriver,
+			BinDir:  DefaultCniBinDir,
+			ConfDir: DefaultCniConfDir,
+			Image:   DefaultCniImage,
+		},
+	},
+	ClusterFormation: ClusterFormationConfiguration{
+		AutoApprove: true,
+	},
+	Runtime: RuntimeConfiguration{
+		Engine: DefaultRuntimeEngine,
+	},
+	Features: FeaturesConfiguration{
+		PSP: true,
+	},
 }
 
 // Load a Kubic configuration file, setting some default values
 func ConfigFileAndDefaultsToKubicInitConfig(cfgPath string) (*KubicInitConfiguration, error) {
 	var err error
-	var internalcfg = KubicInitConfiguration{}
 
-	// set some defaults
-	internalcfg.Certificates.Directory = DefaultCertsDirectory
-	internalcfg.Manager.Image = DefaultKubicInitImage
-	internalcfg.Network.Cni.BinDir = DefaultCniBinDir
-	internalcfg.Network.Cni.ConfDir = DefaultCniConfDir
-
-	// After loading the YAML file all unset values will have default values.
-	// That means that all booleans will be false... but we cannot know if users
-	// explictly set those "false", so we must set some defaults _before_
-	// loading the YAML file
-	internalcfg.ClusterFormation.AutoApprove = true
-	internalcfg.Features.PSP = false
+	internalcfg := defaultConfiguration.DeepCopy()
 
 	if len(cfgPath) > 0 {
 		glog.V(1).Infof("[kubic] loading kubic-init configuration from '%s'", cfgPath)
@@ -201,36 +227,6 @@ func ConfigFileAndDefaultsToKubicInitConfig(cfgPath string) (*KubicInitConfigura
 		internalcfg.ClusterFormation.Seeder = fmt.Sprintf("%s:%s", u.Hostname(), port)
 	}
 
-	// Set the default container engine
-	if len(internalcfg.Runtime.Engine) == 0 {
-		glog.V(3).Infof("[kubic] defaults: runtime engine %s", DefaultRuntimeEngine)
-		internalcfg.Runtime.Engine = DefaultRuntimeEngine
-	}
-
-	// Load the CNI configuration (or set default values)
-	if len(internalcfg.Network.Cni.Driver) == 0 {
-		glog.V(3).Infof("[kubic] defaults: CNI driver '%s'", DefaultCniDriver)
-		internalcfg.Network.Cni.Driver = DefaultCniDriver
-	}
-
-	// Set some networking defaults
-	if len(internalcfg.Network.PodSubnet) == 0 {
-		glog.V(3).Infof("[kubic] defaults: Pods subnet %s", DefaultPodSubnet)
-		internalcfg.Network.PodSubnet = DefaultPodSubnet
-	}
-	if len(internalcfg.Network.Cni.Image) == 0 {
-		glog.V(3).Infof("[kubic] defaults: CNI image '%s'", DefaultCniImage)
-		internalcfg.Network.Cni.Image = DefaultCniImage
-	}
-	if len(internalcfg.Network.ServiceSubnet) == 0 {
-		glog.V(3).Infof("[kubic] defaults: services subnet '%s'", DefaultServiceSubnet)
-		internalcfg.Network.ServiceSubnet = DefaultServiceSubnet
-	}
-	if len(internalcfg.Network.Dns.Domain) == 0 {
-		glog.V(3).Infof("[kubic] defaults: DNS domain '%s'", DefaultDNSDomain)
-		internalcfg.Network.Dns.Domain = DefaultDNSDomain
-	}
-
 	if glog.V(8) {
 		marshalled, err := yaml.Marshal(internalcfg)
 		if err != nil {
@@ -239,15 +235,65 @@ func ConfigFileAndDefaultsToKubicInitConfig(cfgPath string) (*KubicInitConfigura
 		glog.Infof("[kubic] after parsing the config file:\n%s", marshalled)
 	}
 
-	return &internalcfg, nil
+	return internalcfg, nil
 }
 
 // ToMasterConfig copies some settings to a Master configuration
 func (kubicCfg KubicInitConfiguration) ToMasterConfig(featureGates map[string]bool) (*kubeadmapiv1alpha2.MasterConfiguration, error) {
-	masterCfg := &kubeadmapiv1alpha2.MasterConfiguration{}
 
-	masterCfg.FeatureGates = featureGates
-	masterCfg.NodeRegistration.KubeletExtraArgs = DefaultKubeletSettings
+	masterCfg := &kubeadmapiv1alpha2.MasterConfiguration{
+		API: kubeadmapiv1alpha2.API{
+			ControlPlaneEndpoint: kubicCfg.Network.Dns.ExternalFqdn,
+		},
+		APIServerCertSANs: []string{},
+		FeatureGates:      featureGates,
+		NodeRegistration: kubeadmapiv1alpha2.NodeRegistrationOptions{
+			KubeletExtraArgs: DefaultKubeletSettings,
+		},
+		Networking: kubeadmapiv1alpha2.Networking{
+			PodSubnet:     kubicCfg.Network.PodSubnet,
+			ServiceSubnet: kubicCfg.Network.ServiceSubnet,
+		},
+	}
+
+	nonEmpty := func(a, b string) string {
+		if len(a) > 0 {
+			return a
+		}
+		return b
+	}
+
+	// Add some extra flags in the API server for OIDC (necessary for using Dex)
+	masterCfg.APIServerExtraArgs = map[string]string{
+		"oidc-client-id":      nonEmpty(kubicCfg.Auth.OIDC.ClientID, DefaultOIDCClientID),
+		"oidc-ca-file":        nonEmpty(kubicCfg.Auth.OIDC.CA, DefaultCertCA),
+		"oidc-username-claim": nonEmpty(kubicCfg.Auth.OIDC.Username, DefaultOIDCUsernameClaim),
+		"oidc-groups-claim":   nonEmpty(kubicCfg.Auth.OIDC.Groups, DefaultOIDCGroupsClaim),
+	}
+
+	if len(kubicCfg.Auth.OIDC.Issuer) > 0 {
+		masterCfg.APIServerExtraArgs["oidc-issuer-url"] = kubicCfg.Auth.OIDC.Issuer
+	} else {
+		public, err := kubicCfg.GetPublicAPIAddress()
+		if err != nil {
+			return nil, err
+		}
+		masterCfg.APIServerExtraArgs["oidc-issuer-url"] = fmt.Sprintf("https://%s:32000", public)
+	}
+
+	if len(kubicCfg.Network.Bind.Address) > 0 && kubicCfg.Network.Bind.Address != "127.0.0.1" {
+		masterCfg.API.AdvertiseAddress = kubicCfg.Network.Bind.Address
+		masterCfg.APIServerCertSANs = append(masterCfg.APIServerCertSANs, kubicCfg.Network.Bind.Address)
+	}
+
+	// TODO: enable these two args once we have OpenSUSE images in registry.opensuse.org for k8s
+	//
+	// ImageRepository what container registry to pull control plane images from
+	// masterCfg.ImageRepository = "registry.opensuse.org"
+	//
+	// UnifiedControlPlaneImage specifies if a specific container image should
+	// be used for all control plane components.
+	// masterCfg.UnifiedControlPlaneImage = ""
 
 	if len(kubicCfg.ClusterFormation.Token) > 0 {
 		glog.V(8).Infof("[kubic] adding a default bootstrap token: %s", kubicCfg.ClusterFormation.Token)
@@ -258,18 +304,7 @@ func (kubicCfg KubicInitConfiguration) ToMasterConfig(featureGates map[string]bo
 		if err != nil {
 			return nil, err
 		}
-
 		masterCfg.BootstrapTokens = []kubeadmapiv1alpha2.BootstrapToken{bto}
-	}
-
-	if len(kubicCfg.Network.PodSubnet) > 0 {
-		glog.V(3).Infof("[kubic] using Pods subnet '%s'", kubicCfg.Network.PodSubnet)
-		masterCfg.Networking.PodSubnet = kubicCfg.Network.PodSubnet
-	}
-
-	if len(kubicCfg.Network.ServiceSubnet) > 0 {
-		glog.V(3).Infof("[kubic] using services subnet '%s'", kubicCfg.Network.ServiceSubnet)
-		masterCfg.Networking.ServiceSubnet = kubicCfg.Network.ServiceSubnet
 	}
 
 	if len(kubicCfg.Network.Dns.Domain) > 0 {
@@ -282,9 +317,7 @@ func (kubicCfg KubicInitConfiguration) ToMasterConfig(featureGates map[string]bo
 	}
 
 	if len(kubicCfg.Network.Dns.ExternalFqdn) > 0 {
-		masterCfg.API.ControlPlaneEndpoint = kubicCfg.Network.Dns.ExternalFqdn
 		// TODO: add all the other ExternalFqdn's to the certs
-
 		masterCfg.APIServerCertSANs = append(masterCfg.APIServerCertSANs, kubicCfg.Network.Dns.ExternalFqdn)
 	}
 
@@ -310,12 +343,15 @@ func (kubicCfg KubicInitConfiguration) ToMasterConfig(featureGates map[string]bo
 
 // ToNodeConfig copies some settings to a Node configuration
 func (kubicCfg KubicInitConfiguration) ToNodeConfig(featureGates map[string]bool) (*kubeadmapiv1alpha2.NodeConfiguration, error) {
-	nodeCfg := &kubeadmapiv1alpha2.NodeConfiguration{}
 
-	nodeCfg.FeatureGates = featureGates
-	nodeCfg.DiscoveryTokenAPIServers = []string{kubicCfg.ClusterFormation.Seeder}
-	nodeCfg.NodeRegistration.KubeletExtraArgs = DefaultKubeletSettings
-	nodeCfg.Token = kubicCfg.ClusterFormation.Token
+	nodeCfg := &kubeadmapiv1alpha2.NodeConfiguration{
+		FeatureGates:             featureGates,
+		DiscoveryTokenAPIServers: []string{kubicCfg.ClusterFormation.Seeder},
+		Token:                    kubicCfg.ClusterFormation.Token,
+		NodeRegistration: kubeadmapiv1alpha2.NodeRegistrationOptions{
+			KubeletExtraArgs: DefaultKubeletSettings,
+		},
+	}
 
 	// Disable the ca.crt verification if no hash has been provided
 	// TODO: users should be able to provide some other methods, like a ca.crt, etc

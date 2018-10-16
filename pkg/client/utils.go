@@ -27,10 +27,15 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/dynamic"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/restmapper"
 )
 
 const (
@@ -38,6 +43,59 @@ const (
 
 	pollTimeout = 5 * time.Minute
 )
+
+func CreateOrUpdateFromUnstructured(config *rest.Config, unstr *unstructured.Unstructured) error {
+	var err error
+	gvk := unstr.GetObjectKind().GroupVersionKind()
+	glog.V(3).Infof("[kubic] loading a %s...", gvk.String())
+
+	dynClient, err := dynamic.NewForConfig(config)
+	if err != nil {
+		return fmt.Errorf("could not create dynamic client: %s", err)
+	}
+	discover, err := discovery.NewDiscoveryClientForConfig(config)
+	if err != nil {
+		return fmt.Errorf("could not create discovery client: %s", err)
+	}
+	groupResources, err := restmapper.GetAPIGroupResources(discover)
+	if err != nil {
+		return fmt.Errorf("could not get API group resources: %s", err)
+	}
+
+	mapper := restmapper.NewDiscoveryRESTMapper(groupResources)
+	restMapping, err := mapper.RESTMapping(gvk.GroupKind(), gvk.Version)
+	if err != nil {
+		return fmt.Errorf("could not get restMapping: %s", err)
+	}
+
+	accessor := meta.NewAccessor()
+	name, err := accessor.Name(unstr)
+	if err != nil {
+		return fmt.Errorf("could not get name for unstr")
+	}
+	namespace, err := accessor.Namespace(unstr)
+	if err != nil {
+		return fmt.Errorf("couldn't get namespace for unstr %s: %s", name, err)
+	}
+
+	rsc := dynClient.Resource(restMapping.Resource)
+	if rsc == nil {
+		return fmt.Errorf("failed to get a resource interface")
+	}
+	rsi := rsc.Namespace(namespace)
+
+	if _, err = rsi.Create(unstr); err != nil {
+		if !apierrors.IsAlreadyExists(err) {
+			return fmt.Errorf("could not create unstr %s: %s", unstr, err)
+		}
+
+		// TODO: this will probably fail if the unstr already exists: it should be merged
+		_, err = rsi.Update(unstr)
+		return err
+	}
+
+	return nil
+}
 
 // note well: for some objects we cannot try to Create() the object and then Update() if it failed
 //            with an AlreadyExists(), because Create() could just fail on some validation (for example,

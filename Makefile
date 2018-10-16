@@ -102,10 +102,18 @@ generate: $(KUBIC_INIT_GEN_SRCS)
 # Create a new CRD object XXXXX with:
 #    kubebuilder create api --namespaced=false --group kubic --version v1beta1 --kind XXXXX
 
-# Generate manifests e.g. CRD, RBAC etc.
-manifests: $(KUBIC_INIT_CRD_TYPES_SRCS)
-	@echo ">>> Creating CRDs/RBAC manifests..."
-	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go all
+
+manifests-rbac: $(KUBIC_INIT_CRD_TYPES_SRCS)
+	@echo ">>> Creating RBAC manifests..."
+	rm -rf config/rbac/*.yaml
+	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go rbac --name "kubic:manager"
+
+manifests-crd: $(KUBIC_INIT_CRD_TYPES_SRCS)
+	@echo ">>> Creating CRDs manifests..."
+	rm -rf config/crds/*.yaml
+	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go crd --domain "opensuse.org"
+
+manifests: manifests-rbac manifests-crd
 
 $(KUBIC_INIT_EXE): $(KUBIC_INIT_MAIN_SRCS) generate Gopkg.lock vendor
 	@echo ">>> Building $(KUBIC_INIT_EXE)..."
@@ -133,6 +141,7 @@ test:
 .PHONY: check
 clean: docker-reset kubelet-reset docker-image-clean
 	rm -f $(KUBIC_INIT_EXE)
+	rm -f config/rbac/*.yaml config/crds/*.yaml
 
 #############################################################
 # Some simple run targets
@@ -170,9 +179,9 @@ local-run: $(KUBIC_INIT_EXE) $(KUBE_DROPIN_DST) local-reset
 	@echo ">>> Running $(KUBIC_INIT_EXE) as _root_"
 	$(SUDO_E) $(KUBIC_INIT_EXE) bootstrap \
 		-v $(VERBOSE_LEVEL) \
-		--config $(KUBIC_INIT_CFG) $(KUBIC_ARGS) \
+		--config $(KUBIC_INIT_CFG) \
 		--deploy-manager=false \
-		--load-assets=false
+		--load-assets=false $(KUBIC_ARGS)
 
 # Usage:
 # - Run it locally:
