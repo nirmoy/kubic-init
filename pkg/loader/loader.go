@@ -24,9 +24,7 @@ import (
 	"path/filepath"
 
 	"github.com/golang/glog"
-	"k8s.io/client-go/tools/clientcmd"
-	kubeadmutil "k8s.io/kubernetes/cmd/kubeadm/app/util"
-	kubeadmconstants "k8s.io/kubernetes/cmd/kubeadm/app/constants"
+	"k8s.io/client-go/rest"
 
 	kubiccfg "github.com/kubic-project/kubic-init/pkg/config"
 )
@@ -54,38 +52,35 @@ func loadFilesIn(directory string, glob string, descr string) ([]*bytes.Buffer, 
 }
 
 // InstallAllAssets tries to install all the assets: CRDs and RBACs
-func InstallAllAssets(kubicCfg *kubiccfg.KubicInitConfiguration, manifDir, crdsDir, rbacDir string) error {
+func InstallAllAssets(restCfg *rest.Config, kubicCfg *kubiccfg.KubicInitConfiguration, manifDir, crdsDir, rbacDir string) error {
 	dirs := []string{}
 
 	glog.V(1).Infof("[kubic] installing all the assets...")
-	restCfg, err := clientcmd.BuildConfigFromFlags("", kubeadmconstants.GetAdminKubeConfigPath())
-	kubeadmutil.CheckErr(err)
-
-	if len(manifDir) == 0 {
-		manifDir = kubiccfg.DefaultKubicManifestsDir
-	}
-	dirs = append(kubiccfg.DefaultManifestsDirs, manifDir)
-	glog.V(1).Infof("[kubic] looking for manifests in %v", dirs)
-	err = InstallManifests(kubicCfg, restCfg, ManifestsInstallOptions{Paths: dirs})
-	kubeadmutil.CheckErr(err)
-
-	if len(crdsDir) == 0 {
-		crdsDir = kubiccfg.DefaultKubicCRDDir
-	}
-	dirs = append(kubiccfg.DefaultCRDsDirs, crdsDir)
-	glog.V(1).Infof("[kubic] looking for CRDs in %v", dirs)
-	err = InstallCRDs(kubicCfg, restCfg, CRDInstallOptions{Paths: dirs})
-	if err != nil {
-		return err
-	}
 
 	if len(rbacDir) == 0 {
 		rbacDir = kubiccfg.DefaultKubicRBACDir
 	}
 	dirs = append(kubiccfg.DefaultRBACDirs, rbacDir)
 	glog.V(1).Infof("[kubic] looking for RBACs in %v", dirs)
-	err = InstallRBAC(kubicCfg, restCfg, RBACInstallOptions{Paths: dirs})
-	if err != nil {
+	if err := InstallRBAC(kubicCfg, restCfg, RBACInstallOptions{Paths: dirs}); err != nil {
+		return err
+	}
+
+	if len(crdsDir) == 0 {
+		crdsDir = kubiccfg.DefaultKubicCRDDir
+	}
+	dirs = append(kubiccfg.DefaultCRDsDirs, crdsDir)
+	glog.V(1).Infof("[kubic] looking for CRDs in %v", dirs)
+	if err := InstallCRDs(kubicCfg, restCfg, CRDInstallOptions{Paths: dirs}); err != nil {
+		return err
+	}
+
+	if len(manifDir) == 0 {
+		manifDir = kubiccfg.DefaultKubicManifestsDir
+	}
+	dirs = append(kubiccfg.DefaultManifestsDirs, manifDir)
+	glog.V(1).Infof("[kubic] looking for manifests in %v", dirs)
+	if err := InstallManifests(kubicCfg, restCfg, ManifestsInstallOptions{Paths: dirs}); err != nil {
 		return err
 	}
 

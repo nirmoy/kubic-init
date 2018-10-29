@@ -7,6 +7,14 @@ kind: KubicInitConfiguration
 #   PSP: true
 # runtime:
 #   engine: crio
+# auth:
+#   oidc:
+#     # will use the <network.DNS.ExternalFQDN>:32000 by default
+#     issuer: https://some.name.com:32000
+#	  clientID: kubernetes
+#	  ca: /etc/kubernetes/pki/ca.crt
+#	  username: email
+#	  groups: groups
 # certificates:
 #   # where certificates are stored
 #   directory: /etc/kubernetes/pki
@@ -44,8 +52,11 @@ kind: KubicInitConfiguration
 #     # internal domain for Services in kubernetes
 #     domain: someDomain.local
 #     # external name for the API server
-#     # for example, it can be the DNS name of the Load Balancer that redirects
-#     # requests to the API servers
+#     # in an cluster with more than one control plane instances, this field should be
+#     # assigned the address of the external load balancer in front of the
+#     # control plane instances.
+#     # in environments with enforced node recycling, this could also be used
+#     # for assigning a stable DNS to the control plane.
 #     externalFqdn: some.name.com
 #   cni:
 #     driver: flannel

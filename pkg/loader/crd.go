@@ -190,9 +190,10 @@ func CreateCRDs(restCfg *rest.Config, crds crdsSet) error {
 
 		existing, err := cs.Apiextensions().CustomResourceDefinitions().Get(crd.Name, metav1.GetOptions{})
 		if apierrors.IsNotFound(err) {
-			glog.V(5).Infof("[kubic] %s: creating", err)
+			glog.V(5).Infof("[kubic] %s does not exist: creating", name)
 			_, err = cs.Apiextensions().CustomResourceDefinitions().Create(crd)
 			if err != nil {
+				glog.V(5).Infof("[kubic] ERROR: when creating %s: %s", name, err)
 				return err
 			}
 		} else if err != nil {
@@ -203,6 +204,7 @@ func CreateCRDs(restCfg *rest.Config, crds crdsSet) error {
 			existing.Spec.Validation = crd.Spec.Validation
 			_, err = cs.Apiextensions().CustomResourceDefinitions().Update(existing)
 			if err != nil {
+				glog.V(5).Infof("[kubic] ERROR: when updating %s: %s", name, err)
 				return err
 			}
 		}
