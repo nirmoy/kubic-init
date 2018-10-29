@@ -71,6 +71,10 @@ func getUnstructuredInYAMLFile(kubicCfg *kubiccfg.KubicInitConfiguration, fileCo
 			glog.V(1).Infof("[kubic] ERROR: when parsing manifest template: %v", err)
 			continue
 		}
+		if len(fReplaced) == 0 {
+			glog.V(1).Infof("[kubic] WARNING: nothing to process")
+			continue
+		}
 		glog.V(8).Infof("[kubic] Dex deployment:\n%s\n", fReplaced)
 
 		// we cannot create an "unstructured" directly from YAML: we must convert
@@ -80,11 +84,16 @@ func getUnstructuredInYAMLFile(kubicCfg *kubiccfg.KubicInitConfiguration, fileCo
 			glog.V(1).Infof("[kubic] ERROR: when converting to JSON: %v", err)
 			continue
 		}
+		if len(fJSON) == 0 {
+			glog.V(1).Infof("[kubic] WARNING: nothing to process")
+			continue
+		}
 
 		us := &unstructured.Unstructured{}
 		err = us.UnmarshalJSON(fJSON)
 		if err != nil {
 			glog.V(1).Infof("[kubic] ERROR: when unmarshalling JSON: %v", err)
+			glog.V(8).Infof("[kubic] ERROR: %s", fJSON)
 			continue
 		}
 		res = append(res, us)

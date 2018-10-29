@@ -47,7 +47,7 @@ const (
 func CreateOrUpdateFromUnstructured(config *rest.Config, unstr *unstructured.Unstructured) error {
 	var err error
 	gvk := unstr.GetObjectKind().GroupVersionKind()
-	glog.V(3).Infof("[kubic] loading a %s...", gvk.String())
+	glog.V(3).Infof("[kubic] loading a %s...", gvk.Kind)
 
 	dynClient, err := dynamic.NewForConfig(config)
 	if err != nil {
