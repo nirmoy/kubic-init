@@ -15,10 +15,24 @@
  *
  */
 
-// Package v1beta1 contains API Schema definitions for the kubic v1beta1 API group
-// +k8s:openapi-gen=true
-// +k8s:deepcopy-gen=package,register
-// +k8s:conversion-gen=github.com/kubic-project/kubic-init/pkg/apis/kubic
-// +k8s:defaulter-gen=TypeMeta
-// +groupName=kubic.opensuse.org
-package v1beta1
+package kubeadm
+
+import (
+	"github.com/kubic-project/kubic-init/pkg/config"
+)
+
+// NewReset resets the system
+func NewReset(kubicCfg *config.KubicInitConfiguration, args ...string) error {
+	criSocket := config.DefaultCriSocket[kubicCfg.Runtime.Engine]
+	pkiDir := kubicCfg.Certificates.Directory
+
+	args = append([]string{
+		"--cri-socket=" + criSocket,
+		"--cert-dir=" + pkiDir,
+		"--force",
+		getIgnorePreflightArg(),
+		getVerboseArg(),
+	}, args...)
+
+	return kubeadmCmd("reset", kubicCfg, nil, args...)
+}

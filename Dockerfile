@@ -2,13 +2,9 @@ FROM opensuse:tumbleweed
 
 ARG KUBIC_INIT_EXE="cmd/kubic-init/kubic-init"
 
-# for Tumbleweed
 ARG EXTRA_REPO0="https://download.opensuse.org/repositories/devel:/kubic/openSUSE_Tumbleweed/"
 
-# for Leap
-# ARG EXTRA_REPO0="https://download.opensuse.org/repositories/devel:/CaaSP:/Head:/ControllerNode/openSUSE_Leap_15.0/"
-
-ARG RUN_RPMS="cri-tools iptables iproute2 systemd"
+ARG RUN_RPMS="cri-tools iptables iproute2 systemd kubernetes-kubeadm"
 
 ENV SYSTEMCTL_FORCE_BUS 1
 ENV DBUS_SYSTEM_BUS_ADDRESS unix:path=/var/run/dbus/system_bus_socket

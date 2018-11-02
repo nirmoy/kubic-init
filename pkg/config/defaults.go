@@ -20,10 +20,13 @@ package config
 import (
 	"k8s.io/kubernetes/cmd/kubeadm/app/features"
 
-	kubeadmapiv1alpha2 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1alpha2"
+	kubeadmapiv1alpha3 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1alpha3"
 )
 
 const (
+	// Kubernetes version to deploy
+	DefaultKubernetesVersion = "1.12.2"
+
 	// Default API server port
 	DefaultAPIServerPort = 6443
 )
@@ -75,15 +78,18 @@ const (
 const (
 	// the kubic-init image by default
 	DefaultKubicInitImage = "kubic-init:latest"
+
+	// Default kubeadm path
+	DefaultKubeadmPath = "/usr/bin/kubeadm"
 )
 
 // Some important default paths
 const (
 	// Default directory for certificates
-	DefaultCertsDirectory = kubeadmapiv1alpha2.DefaultCertificatesDir
+	DefaultCertsDirectory = kubeadmapiv1alpha3.DefaultCertificatesDir
 
 	// Default CA certificate path
-	DefaultCertCA = kubeadmapiv1alpha2.DefaultCACertPath
+	DefaultCertCA = kubeadmapiv1alpha3.DefaultCACertPath
 
 	// The kubic-init entrypoint
 	DefaultKubicInitExeInstallPath = "/usr/local/bin/kubic-init"
@@ -105,6 +111,9 @@ const (
 
 	// The default kubeconfig
 	DefaultKubicKubeconfig = "/etc/kubernetes/admin.conf"
+
+	// Deafult Dex issuer port
+	DefaultDexIssuerPort = 32000
 )
 
 // OIDC defaults
@@ -165,15 +174,13 @@ var DefaultIgnoredPreflightErrors = []string{
 	"Swap",
 	"FileExisting-crictl",
 	"Port-10250",
+	"SystemVerification", // for ignoring docker graph=btrfs
 	"IsPrivilegedUser",
 }
 
 // Constant set of featureGates
 // A set of key=value pairs that describe feature gates for various features.
-var DefaultFeatureGates = (features.CoreDNS + "=true," +
-	features.HighAvailability + "=false," +
-	features.SelfHosting + "=true," +
-	// TODO: disabled until https://github.com/kubernetes/kubeadm/issues/923
-	features.StoreCertsInSecrets + "=false," +
+var DefaultFeatureGates = (
+	features.CoreDNS + "=true," +
 	// TODO: results in some errors... needs some research
-	features.DynamicKubeletConfig + "=false")
+		features.DynamicKubeletConfig + "=false")

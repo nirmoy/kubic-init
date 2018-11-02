@@ -7,6 +7,8 @@ kind: KubicInitConfiguration
 #   PSP: true
 # runtime:
 #   engine: crio
+# paths:
+#   kubeadm: /usr/bin/kubeadm
 # auth:
 #   oidc:
 #     # will use the <network.DNS.ExternalFQDN>:32000 by default
