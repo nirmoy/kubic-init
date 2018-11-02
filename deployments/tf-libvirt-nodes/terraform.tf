@@ -191,7 +191,7 @@ data "template_file" "node_cloud_init_user_data" {
   }
 }
 
-resource "libvirt_cloudinit" "node" {
+resource "libvirt_cloudinit_disk" "node" {
   count = "${var.nodes_count}"
   name = "${var.prefix}_node_cloud_init_${count.index}.iso"
   pool = "${var.img_pool}"
@@ -202,7 +202,7 @@ resource "libvirt_domain" "node" {
   count = "${var.nodes_count}"
   name = "${var.prefix}-node-${count.index}"
   memory = "${lookup(var.nodes_memory, count.index, var.default_node_memory)}"
-  cloudinit = "${element(libvirt_cloudinit.node.*.id, count.index)}"
+  cloudinit = "${element(libvirt_cloudinit_disk.node.*.id, count.index)}"
 
   disk {
     volume_id = "${element(libvirt_volume.node.*.id, count.index)}"

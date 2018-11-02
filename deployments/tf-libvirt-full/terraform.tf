@@ -187,7 +187,7 @@ data "template_file" "seed_cloud_init_user_data" {
   }
 }
 
-resource "libvirt_cloudinit" "seed" {
+resource "libvirt_cloudinit_disk" "seed" {
   name = "${var.prefix}_seed_cloud_init.iso"
   pool = "${var.img_pool}"
   user_data = "${data.template_file.seed_cloud_init_user_data.rendered}"
@@ -196,7 +196,7 @@ resource "libvirt_cloudinit" "seed" {
 resource "libvirt_domain" "seed" {
   name = "${var.prefix}-seed"
   memory = "${var.seed_memory}"
-  cloudinit = "${libvirt_cloudinit.seed.id}"
+  cloudinit = "${libvirt_cloudinit_disk.seed.id}"
 
   cpu {
     mode = "host-passthrough"
@@ -294,7 +294,7 @@ data "template_file" "node_cloud_init_user_data" {
     "libvirt_domain.seed"]
 }
 
-resource "libvirt_cloudinit" "node" {
+resource "libvirt_cloudinit_disk" "node" {
   count = "${var.nodes_count}"
   name = "${var.prefix}_node_cloud_init_${count.index}.iso"
   pool = "${var.img_pool}"
@@ -305,7 +305,7 @@ resource "libvirt_domain" "node" {
   count = "${var.nodes_count}"
   name = "${var.prefix}-node-${count.index}"
   memory = "${lookup(var.nodes_memory, count.index, var.default_node_memory)}"
-  cloudinit = "${element(libvirt_cloudinit.node.*.id, count.index)}"
+  cloudinit = "${element(libvirt_cloudinit_disk.node.*.id, count.index)}"
   depends_on = [
     "libvirt_domain.seed"]
 
