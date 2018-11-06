@@ -282,8 +282,11 @@ $(TF_LIBVIRT_FULL_DIR)/.terraform:
 tf-full-plan: $(TF_LIBVIRT_FULL_DIR)/.terraform
 	cd $(TF_LIBVIRT_FULL_DIR) && terraform plan
 
+#
 # Usage:
-# - create a only-one-seeder cluster: make tf-full-run TF_ARGS="-var nodes_count=0"
+# - create a only-one-seeder cluster:
+#   $ make tf-full-run TF_ARGS="-var nodes_count=0"
+#
 tf-full-run: tf-full-apply
 tf-full-apply: $(TF_LIBVIRT_FULL_DIR)/.terraform $(IMAGE_TAR_GZ)
 	@echo ">>> Deploying a full cluster with Terraform..."
@@ -299,11 +302,16 @@ tf-full-nuke:
 	-make tf-full-destroy
 	cd $(TF_LIBVIRT_FULL_DIR) && rm -f *.tfstate*
 
-### Terraform only-seeder deployment
+### Terraform only-seeder deployment (shortcut for `nodes_count=0`)
 
 tf-seeder-plan:
 	-make tf-full-plan TF_ARGS="-var nodes_count=0 $(TF_ARGS)"
 
+#
+# Usage:
+# - create a seeder with a specific Token:
+#   $ env TOKEN=XXXX make tf-seeder-run
+#
 tf-seeder-run: tf-seeder-apply
 tf-seeder-apply:
 	@echo ">>> Deploying only-seeder with Terraform..."
@@ -325,16 +333,21 @@ $(TF_LIBVIRT_NODES_DIR)/.terraform:
 tf-nodes-plan: $(TF_LIBVIRT_NODES_DIR)/.terraform
 	cd $(TF_LIBVIRT_NODES_DIR) && terraform plan
 
+#
+# Usage:
+# - create only one node (ie, for connecting to the seeder started locally with `make local-run`):
+#   $ env TOKEN=XXXX make tf-nodes-run
+#
 tf-nodes-run: tf-nodes-apply
 tf-nodes-apply: $(TF_LIBVIRT_NODES_DIR)/.terraform $(IMAGE_TAR_GZ)
 	@echo ">>> Deploying only-nodes with Terraform..."
-	cd $(TF_LIBVIRT_NODES_DIR) && terraform apply $(TF_ARGS_DEFAULT) $(TF_ARGS)
+	cd $(TF_LIBVIRT_NODES_DIR) && terraform init && terraform apply $(TF_ARGS_DEFAULT) $(TF_ARGS)
 
 tf-nodes-reapply:
-	cd $(TF_LIBVIRT_NODES_DIR) && terraform apply $(TF_ARGS_DEFAULT) $(TF_ARGS)
+	cd $(TF_LIBVIRT_NODES_DIR) && terraform init && terraform apply $(TF_ARGS_DEFAULT) $(TF_ARGS)
 
 tf-nodes-destroy: $(TF_LIBVIRT_NODES_DIR)/.terraform
-	cd $(TF_LIBVIRT_NODES_DIR) && terraform destroy -force $(TF_ARGS_DEFAULT) $(TF_ARGS)
+	cd $(TF_LIBVIRT_NODES_DIR) && terraform init && terraform destroy -force $(TF_ARGS_DEFAULT) $(TF_ARGS)
 
 tf-nodes-nuke:
 	-make tf-nodes-destroy
