@@ -154,7 +154,10 @@ $(KUBE_DROPIN_DST): $(KUBE_DROPIN_SRC) /var/lib/kubelet/config.yaml
 kubeadm-reset: local-reset
 local-reset: $(KUBIC_INIT_EXE)
 	@echo ">>> Resetting everything..."
-	$(SUDO_E) $(KUBIC_INIT_EXE) reset -v $(VERBOSE_LEVEL) $(KUBIC_ARGS)
+	$(SUDO_E) $(KUBIC_INIT_EXE) reset \
+		--config $(KUBIC_INIT_CFG) \
+		-v $(VERBOSE_LEVEL) \
+		$(KUBIC_ARGS)
 
 
 # Usage:
