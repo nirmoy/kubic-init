@@ -19,6 +19,9 @@ package client
 import (
 	"fmt"
 	"net/http"
+	"os"
+	"os/user"
+	"path/filepath"
 	"reflect"
 	"time"
 
@@ -36,6 +39,7 @@ import (
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/restmapper"
+	"k8s.io/client-go/tools/clientcmd"
 )
 
 const (
@@ -43,6 +47,47 @@ const (
 
 	pollTimeout = 5 * time.Minute
 )
+
+var (
+	kubeconfig, masterURL string
+)
+
+// GetConfig creates a *rest.Config for talking to a Kubernetes apiserver.
+// If --kubeconfig is set, will use the kubeconfig file at that location.  Otherwise will assume running
+// in cluster and use the cluster provided kubeconfig.
+//
+// Config precedence
+//
+// * --kubeconfig flag pointing at a file
+//
+// * KUBECONFIG environment variable pointing at a file
+//
+// * In-cluster config if running in cluster
+//
+// * $HOME/.kube/config if exists
+func GetConfig() (*rest.Config, error) {
+	// If a flag is specified with the config location, use that
+	if len(kubeconfig) > 0 {
+		return clientcmd.BuildConfigFromFlags(masterURL, kubeconfig)
+	}
+	// If an env variable is specified with the config locaiton, use that
+	if len(os.Getenv("KUBECONFIG")) > 0 {
+		return clientcmd.BuildConfigFromFlags(masterURL, os.Getenv("KUBECONFIG"))
+	}
+	// If no explicit location, try the in-cluster config
+	if c, err := rest.InClusterConfig(); err == nil {
+		return c, nil
+	}
+	// If no in-cluster config, try the default location in the user's home directory
+	if usr, err := user.Current(); err == nil {
+		if c, err := clientcmd.BuildConfigFromFlags(
+			"", filepath.Join(usr.HomeDir, ".kube", "config")); err == nil {
+			return c, nil
+		}
+	}
+
+	return nil, fmt.Errorf("could not locate a kubeconfig")
+}
 
 func CreateOrUpdateFromUnstructured(config *rest.Config, unstr *unstructured.Unstructured) error {
 	var err error
@@ -84,13 +129,13 @@ func CreateOrUpdateFromUnstructured(config *rest.Config, unstr *unstructured.Uns
 	}
 	rsi := rsc.Namespace(namespace)
 
-	if _, err = rsi.Create(unstr); err != nil {
+	if _, err = rsi.Create(unstr, metav1.CreateOptions{}); err != nil {
 		if !apierrors.IsAlreadyExists(err) {
 			return fmt.Errorf("could not create unstr %s: %s", unstr, err)
 		}
 
 		// TODO: this will probably fail if the unstr already exists: it should be merged
-		_, err = rsi.Update(unstr)
+		_, err = rsi.Update(unstr, metav1.UpdateOptions{})
 		return err
 	}
 

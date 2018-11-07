@@ -15,7 +15,7 @@
  *
  */
 
-//go:generate go run ../../vendor/k8s.io/code-generator/cmd/deepcopy-gen/main.go -O zz_generated.deepcopy -i ./... -h ../../hack/boilerplate.go.txt
+//go:generate sh -c "GO111MODULE=off deepcopy-gen -O zz_generated.deepcopy -i ./... -h ../../hack/boilerplate.go.txt"
 
 package config
 
@@ -36,10 +36,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilnet "k8s.io/apimachinery/pkg/util/net"
 	clientset "k8s.io/client-go/kubernetes"
-	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/scheme"
-	kubeadmscheme "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/scheme"
-	kubeadmapiv1alpha2 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1alpha2"
-	kubeadmutil "k8s.io/kubernetes/cmd/kubeadm/app/util"
 
 	kubicutil "github.com/kubic-project/kubic-init/pkg/util"
 )
@@ -94,6 +90,9 @@ type BindConfiguration struct {
 	Interface string `yaml:"interface,omitempty"`
 }
 
+type PathsConfigration struct {
+	Kubeadm string `yaml:"kubeadm,omitempty"`
+}
 type NetworkConfiguration struct {
 	Bind          BindConfiguration  `yaml:"bind,omitempty"`
 	Cni           CniConfiguration   `yaml:"cni,omitempty"`
@@ -101,10 +100,6 @@ type NetworkConfiguration struct {
 	Proxy         ProxyConfiguration `yaml:"proxy,omitempty"`
 	PodSubnet     string             `yaml:"podSubnet,omitempty"`
 	ServiceSubnet string             `yaml:"serviceSubnet,omitempty"`
-}
-
-type ManagerConfiguration struct {
-	Image string `yaml:"image,omitempty"`
 }
 
 type RuntimeConfiguration struct {
@@ -127,7 +122,7 @@ type ServicesConfiguration struct {
 type KubicInitConfiguration struct {
 	metav1.TypeMeta
 	Network          NetworkConfiguration          `yaml:"network,omitempty"`
-	Manager          ManagerConfiguration          `yaml:"manager,omitempty"`
+	Paths            PathsConfigration             `yaml:"paths,omitempty"`
 	ClusterFormation ClusterFormationConfiguration `yaml:"clusterFormation,omitempty"`
 	Certificates     CertsConfiguration            `yaml:"certificates,omitempty"`
 	Runtime          RuntimeConfiguration          `yaml:"runtime,omitempty"`
@@ -139,9 +134,10 @@ type KubicInitConfiguration struct {
 // defaultConfiguration is the default configuration
 var defaultConfiguration = KubicInitConfiguration{
 	Certificates: CertsConfiguration{
-		Directory: DefaultCertsDirectory},
-	Manager: ManagerConfiguration{
-		Image: DefaultKubicInitImage,
+		Directory: DefaultCertsDirectory,
+	},
+	Paths: PathsConfigration{
+		Kubeadm: DefaultKubeadmPath,
 	},
 	Network: NetworkConfiguration{
 		PodSubnet:     DefaultPodSubnet,
@@ -202,11 +198,6 @@ func ConfigFileAndDefaultsToKubicInitConfig(cfgPath string) (*KubicInitConfigura
 		internalcfg.ClusterFormation.Token = tokenEnv
 	}
 
-	if managerEnv, found := os.LookupEnv(DefaultEnvVarManager); found {
-		glog.V(3).Infof("[kubic] environment: setting kubic-manager image '%s'", managerEnv)
-		internalcfg.Manager.Image = managerEnv
-	}
-
 	// The seeder is a IP:PORT, so parse the current seeder and reformat it appropriately
 	if len(internalcfg.ClusterFormation.Seeder) > 0 {
 		seeder := internalcfg.ClusterFormation.Seeder
@@ -236,148 +227,6 @@ func ConfigFileAndDefaultsToKubicInitConfig(cfgPath string) (*KubicInitConfigura
 	}
 
 	return internalcfg, nil
-}
-
-// ToMasterConfig copies some settings to a Master configuration
-func (kubicCfg KubicInitConfiguration) ToMasterConfig(featureGates map[string]bool) (*kubeadmapiv1alpha2.MasterConfiguration, error) {
-
-	masterCfg := &kubeadmapiv1alpha2.MasterConfiguration{
-		API: kubeadmapiv1alpha2.API{
-			ControlPlaneEndpoint: kubicCfg.Network.Dns.ExternalFqdn,
-		},
-		APIServerCertSANs: []string{},
-		FeatureGates:      featureGates,
-		NodeRegistration: kubeadmapiv1alpha2.NodeRegistrationOptions{
-			KubeletExtraArgs: DefaultKubeletSettings,
-		},
-		Networking: kubeadmapiv1alpha2.Networking{
-			PodSubnet:     kubicCfg.Network.PodSubnet,
-			ServiceSubnet: kubicCfg.Network.ServiceSubnet,
-		},
-	}
-
-	nonEmpty := func(a, b string) string {
-		if len(a) > 0 {
-			return a
-		}
-		return b
-	}
-
-	// Add some extra flags in the API server for OIDC (necessary for using Dex)
-	masterCfg.APIServerExtraArgs = map[string]string{
-		"oidc-client-id":      nonEmpty(kubicCfg.Auth.OIDC.ClientID, DefaultOIDCClientID),
-		"oidc-ca-file":        nonEmpty(kubicCfg.Auth.OIDC.CA, DefaultCertCA),
-		"oidc-username-claim": nonEmpty(kubicCfg.Auth.OIDC.Username, DefaultOIDCUsernameClaim),
-		"oidc-groups-claim":   nonEmpty(kubicCfg.Auth.OIDC.Groups, DefaultOIDCGroupsClaim),
-	}
-
-	if len(kubicCfg.Auth.OIDC.Issuer) > 0 {
-		masterCfg.APIServerExtraArgs["oidc-issuer-url"] = kubicCfg.Auth.OIDC.Issuer
-	} else {
-		public, err := kubicCfg.GetPublicAPIAddress()
-		if err != nil {
-			return nil, err
-		}
-		masterCfg.APIServerExtraArgs["oidc-issuer-url"] = fmt.Sprintf("https://%s:32000", public)
-	}
-
-	if len(kubicCfg.Network.Bind.Address) > 0 && kubicCfg.Network.Bind.Address != "127.0.0.1" {
-		masterCfg.API.AdvertiseAddress = kubicCfg.Network.Bind.Address
-		masterCfg.APIServerCertSANs = append(masterCfg.APIServerCertSANs, kubicCfg.Network.Bind.Address)
-	}
-
-	// TODO: enable these two args once we have OpenSUSE images in registry.opensuse.org for k8s
-	//
-	// ImageRepository what container registry to pull control plane images from
-	// masterCfg.ImageRepository = "registry.opensuse.org"
-	//
-	// UnifiedControlPlaneImage specifies if a specific container image should
-	// be used for all control plane components.
-	// masterCfg.UnifiedControlPlaneImage = ""
-
-	if len(kubicCfg.ClusterFormation.Token) > 0 {
-		glog.V(8).Infof("[kubic] adding a default bootstrap token: %s", kubicCfg.ClusterFormation.Token)
-		var err error
-		bto := kubeadmapiv1alpha2.BootstrapToken{}
-		kubeadmapiv1alpha2.SetDefaults_BootstrapToken(&bto)
-		bto.Token, err = kubeadmapiv1alpha2.NewBootstrapTokenString(kubicCfg.ClusterFormation.Token)
-		if err != nil {
-			return nil, err
-		}
-		masterCfg.BootstrapTokens = []kubeadmapiv1alpha2.BootstrapToken{bto}
-	}
-
-	if len(kubicCfg.Network.Dns.Domain) > 0 {
-		glog.V(3).Infof("[kubic] using DNS domain '%s'", kubicCfg.Network.Dns.Domain)
-		masterCfg.Networking.DNSDomain = kubicCfg.Network.Dns.Domain
-		if masterCfg.KubeletConfiguration.BaseConfig != nil {
-			// TODO: should we create this "BaseConfig" for the kubelet?
-			masterCfg.KubeletConfiguration.BaseConfig.ClusterDomain = kubicCfg.Network.Dns.Domain
-		}
-	}
-
-	if len(kubicCfg.Network.Dns.ExternalFqdn) > 0 {
-		// TODO: add all the other ExternalFqdn's to the certs
-		masterCfg.APIServerCertSANs = append(masterCfg.APIServerCertSANs, kubicCfg.Network.Dns.ExternalFqdn)
-	}
-
-	glog.V(3).Infof("[kubic] using container engine '%s'", kubicCfg.Runtime.Engine)
-	if socket, ok := DefaultCriSocket[kubicCfg.Runtime.Engine]; ok {
-		glog.V(3).Infof("[kubic] setting CRI socket '%s'", socket)
-		masterCfg.NodeRegistration.KubeletExtraArgs["container-runtime-endpoint"] = fmt.Sprintf("unix://%s", socket)
-		masterCfg.NodeRegistration.CRISocket = socket
-	}
-
-	kubeadmscheme.Scheme.Default(masterCfg)
-
-	if glog.V(8) {
-		marshalled, err := kubeadmutil.MarshalToYamlForCodecs(masterCfg, kubeadmapiv1alpha2.SchemeGroupVersion, scheme.Codecs)
-		if err != nil {
-			return nil, err
-		}
-		glog.Infof("[kubic] master configuration produced:\n%s", marshalled)
-	}
-
-	return masterCfg, nil
-}
-
-// ToNodeConfig copies some settings to a Node configuration
-func (kubicCfg KubicInitConfiguration) ToNodeConfig(featureGates map[string]bool) (*kubeadmapiv1alpha2.NodeConfiguration, error) {
-
-	nodeCfg := &kubeadmapiv1alpha2.NodeConfiguration{
-		FeatureGates:             featureGates,
-		DiscoveryTokenAPIServers: []string{kubicCfg.ClusterFormation.Seeder},
-		Token:                    kubicCfg.ClusterFormation.Token,
-		NodeRegistration: kubeadmapiv1alpha2.NodeRegistrationOptions{
-			KubeletExtraArgs: DefaultKubeletSettings,
-		},
-	}
-
-	// Disable the ca.crt verification if no hash has been provided
-	// TODO: users should be able to provide some other methods, like a ca.crt, etc
-	if len(kubicCfg.Certificates.CaHash) == 0 {
-		glog.V(1).Infoln("WARNING: we will not verify the identity of the seeder")
-		nodeCfg.DiscoveryTokenUnsafeSkipCAVerification = true
-	}
-
-	glog.V(3).Infof("[kubic] using container engine '%s'", kubicCfg.Runtime.Engine)
-	if socket, ok := DefaultCriSocket[kubicCfg.Runtime.Engine]; ok {
-		glog.V(3).Infof("[kubic] setting CRI socket '%s'", socket)
-		nodeCfg.NodeRegistration.KubeletExtraArgs["container-runtime-endpoint"] = fmt.Sprintf("unix://%s", socket)
-		nodeCfg.NodeRegistration.CRISocket = socket
-	}
-
-	kubeadmscheme.Scheme.Default(nodeCfg)
-
-	if glog.V(8) {
-		marshalled, err := kubeadmutil.MarshalToYamlForCodecs(nodeCfg, kubeadmapiv1alpha2.SchemeGroupVersion, scheme.Codecs)
-		if err != nil {
-			return nil, err
-		}
-		glog.Infof("[kubic] node configuration produced:\n%s", marshalled)
-	}
-
-	return nodeCfg, nil
 }
 
 // ToConfigMap uploads the configuration to a "kubic-init.yaml" file in a ConfigMap

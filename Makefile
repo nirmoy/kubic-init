@@ -1,6 +1,6 @@
-# NOTE: this only works when installed in a GOPATH dir
-GOPATH_THIS_USER = $(shell basename `realpath ..`)
-GOPATH_THIS_REPO = $(shell basename `pwd`)
+GO         := GO111MODULE=on GO15VENDOREXPERIMENT=1 go
+GO_NOMOD   := GO111MODULE=off go
+GO_VERSION := $(shell $(GO) version | sed -e 's/^[^0-9.]*\([0-9.]*\).*/\1/')
 
 SOURCES_DIRS    = cmd pkg
 SOURCES_DIRS_GO = ./pkg/... ./cmd/...
@@ -8,29 +8,36 @@ SOURCES_DIRS_GO = ./pkg/... ./cmd/...
 # go source files, ignore vendor directory
 KUBIC_INIT_SRCS      = $(shell find $(SOURCES_DIRS) -type f -name '*.go' -not -path "*generated*")
 KUBIC_INIT_MAIN_SRCS = $(shell find $(SOURCES_DIRS) -type f -name '*.go' -not -path "*_test.go")
+KUBIC_INIT_GEN_SRCS  = $(shell grep -l -r "//go:generate" $(SOURCES_DIRS))
 
-KUBIC_INIT_GEN_SRCS       = $(shell grep -l -r "//go:generate" $(SOURCES_DIRS))
-KUBIC_INIT_CRD_TYPES_SRCS = $(shell find pkg/apis/kubic -type f -name "*_types.go")
+DEEPCOPY_FILENAME := zz_generated.deepcopy.go
+
+# the list of all the deepcopy.go files we are going to generate
+DEEPCOPY_GENERATED_FILES := $(foreach file,$(KUBIC_INIT_GEN_SRCS),$(dir $(file))$(DEEPCOPY_FILENAME))
+DEEPCOPY_GENERATOR       := ${GOPATH}/bin/deepcopy-gen
 
 KUBIC_INIT_EXE  = cmd/kubic-init/kubic-init
 KUBIC_INIT_MAIN = cmd/kubic-init/main.go
 KUBIC_INIT_CFG  = $(CURDIR)/config/kubic-init.yaml
 .DEFAULT_GOAL: $(KUBIC_INIT_EXE)
 
-IMAGE_BASENAME = $(GOPATH_THIS_REPO)
-IMAGE_NAME     = $(GOPATH_THIS_USER)/$(IMAGE_BASENAME)
+IMAGE_BASENAME = kubic-init
+IMAGE_NAME     = kubic-project/$(IMAGE_BASENAME)
 IMAGE_TAR_GZ   = $(IMAGE_BASENAME)-latest.tar.gz
 IMAGE_DEPS     = $(KUBIC_INIT_EXE) $(KUBIC_INIT_CFG) Dockerfile
 
-# should be non-empty when dep is installed
-DEP_EXE := $(shell command -v dep 2> /dev/null)
-
 # These will be provided to the target
-KUBIC_INIT_VERSION := 1.0.0
-KUBIC_INIT_BUILD   := `git rev-parse HEAD 2>/dev/null`
+KUBIC_INIT_VERSION    := 1.0.0
+KUBIC_INIT_BUILD      := `git rev-parse HEAD 2>/dev/null`
+KUBIC_INIT_BRANCH     := $(shell git rev-parse --abbrev-ref HEAD 2> /dev/null  || echo 'unknown')
+KUBIC_INIT_BUILD_DATE := $(shell date +%Y%m%d-%H:%M:%S)
 
 # Use linker flags to provide version/build settings to the target
-KUBIC_INIT_LDFLAGS = -ldflags "-X=main.Version=$(KUBIC_INIT_VERSION) -X=main.Build=$(KUBIC_INIT_BUILD)"
+KUBIC_INIT_LDFLAGS = -ldflags "-X=main.Version=$(KUBIC_INIT_VERSION) \
+                               -X=main.Build=$(KUBIC_INIT_BUILD) \
+                               -X=main.BuildDate=$(KUBIC_INIT_BUILD_DATE) \
+                               -X=main.Branch=$(KUBIC_INIT_BRANCH) \
+                               -X=main.GoVersion=$(GO_VERSION)"
 
 MANIFEST_LOCAL = deployments/kubelet/kubic-init-manifest.yaml
 MANIFEST_REM   = deployments/kubic-init-manifest.yaml
@@ -52,8 +59,9 @@ KUBECONFIG = /etc/kubernetes/admin.conf
 
 # increase to 8 for detailed kubeadm logs...
 # Example: make local-run VERBOSE_LEVEL=8
-VERBOSE_LEVEL = 5
+VERBOSE_LEVEL = 3
 
+# volumes to mount when running locally
 CONTAINER_VOLUMES = \
 		-v $(KUBIC_INIT_CFG):/etc/kubic/kubic-init.yaml \
         -v /etc/kubernetes:/etc/kubernetes \
@@ -72,57 +80,41 @@ CONTAINER_VOLUMES = \
 
 all: $(KUBIC_INIT_EXE)
 
-dep-exe:
-ifndef DEP_EXE
-	@echo ">>> dep does not seem to be installed. installing dep..."
-	go get -u github.com/golang/dep/cmd/dep
-endif
+print-version:
+	@echo "kubic-init version: $(KUBIC_INIT_VERSION)"
+	@echo "kubic-init build: $(KUBIC_INIT_BUILD)"
+	@echo "kubic-init branch: $(KUBIC_INIT_BRANCH)"
+	@echo "kubic-init date: $(KUBIC_INIT_BUILD_DATE)"
+	@echo "go: $(GO_VERSION)"
 
-dep-rebuild: dep-exe Gopkg.toml
-	@echo ">>> Rebuilding vendored deps (respecting Gopkg.toml constraints)"
-	rm -rf vendor Gopkg.lock
-	dep ensure -v && dep status
+# NOTE: deepcopy-gen doesn't support go1.11's modules, so we must 'go get' it
+$(DEEPCOPY_GENERATOR):
+	@echo ">>> Getting deepcopy-gen (for $(DEEPCOPY_GENERATOR))"
+	@$(GO_NOMOD) get k8s.io/code-generator/cmd/deepcopy-gen
 
-dep-ensure: dep-exe Gopkg.toml
-	@echo ">>> Checking vendored deps (respecting Gopkg.toml constraints)"
-	dep ensure -v && dep status
+define _CREATE_DEEPCOPY_TARGET
+$(1): $(DEEPCOPY_GENERATOR) $(shell grep -l "//go:generate" $(dir $1)/*)
+	@echo ">>> Updating deepcopy files in $(dir $1)"
+	@$(GO) generate -x $(dir $1)/*
+endef
 
-dep-update: dep-exe Gopkg.toml
-	@echo ">>> Updating vendored deps (respecting Gopkg.toml constraints)"
-	dep ensure -update -v && dep status
+# Use macro to generate targets for all the DEEPCOPY_GENERATED_FILES files
+$(foreach file,$(DEEPCOPY_GENERATED_FILES),$(eval $(call _CREATE_DEEPCOPY_TARGET,$(file))))
 
-# download automatically the vendored deps when "vendor" doesn't exist
-vendor: dep-exe
-	@[ -d vendor ] || dep ensure -v
+clean-generated:
+	rm -f $(DEEPCOPY_GENERATED_FILES)
 
-generate: $(KUBIC_INIT_GEN_SRCS)
-	@echo ">>> Generating files..."
-	@go generate -x $(SOURCES_DIRS_GO)
+generate: $(DEEPCOPY_GENERATOR) $(DEEPCOPY_GENERATED_FILES)
+.PHONY: generate
 
-# Create a new CRD object XXXXX with:
-#    kubebuilder create api --namespaced=false --group kubic --version v1beta1 --kind XXXXX
-
-
-manifests-rbac: $(KUBIC_INIT_CRD_TYPES_SRCS)
-	@echo ">>> Creating RBAC manifests..."
-	rm -rf config/rbac/*.yaml
-	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go rbac --name "kubic:manager"
-
-manifests-crd: $(KUBIC_INIT_CRD_TYPES_SRCS)
-	@echo ">>> Creating CRDs manifests..."
-	rm -rf config/crds/*.yaml
-	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go crd --domain "opensuse.org"
-
-manifests: manifests-rbac manifests-crd
-
-$(KUBIC_INIT_EXE): $(KUBIC_INIT_MAIN_SRCS) generate Gopkg.lock vendor
+$(KUBIC_INIT_EXE): $(KUBIC_INIT_MAIN_SRCS) $(DEEPCOPY_GENERATED_FILES)
 	@echo ">>> Building $(KUBIC_INIT_EXE)..."
-	go build $(KUBIC_INIT_LDFLAGS) -o $(KUBIC_INIT_EXE) $(KUBIC_INIT_MAIN)
+	$(GO) build $(KUBIC_INIT_LDFLAGS) -o $(KUBIC_INIT_EXE) $(KUBIC_INIT_MAIN)
 
 .PHONY: fmt
 fmt: $(KUBIC_INIT_SRCS)
 	@echo ">>> Reformatting code"
-	@go fmt $(SOURCES_DIRS_GO)
+	@$(GO) fmt $(SOURCES_DIRS_GO)
 
 .PHONY: simplify
 simplify:
@@ -131,15 +123,15 @@ simplify:
 .PHONY: check
 check:
 	@test -z $(shell gofmt -l $(KUBIC_INIT_MAIN) | tee /dev/stderr) || echo "[WARN] Fix formatting issues with 'make fmt'"
-	@for d in $$(go list ./... | grep -v /vendor/); do golint $${d}; done
-	@go tool vet ${KUBIC_INIT_SRCS}
+	@for d in $$($(GO) list ./... | grep -v /vendor/); do golint $${d}; done
+	@$(GO) tool vet ${KUBIC_INIT_SRCS}
 
 .PHONY: test
 test:
-	@go test -v ./pkg/... ./cmd/... -coverprofile cover.out
+	@$(GO) test -v ./pkg/... ./cmd/... -coverprofile cover.out
 
 .PHONY: check
-clean: docker-reset kubelet-reset docker-image-clean
+clean: docker-reset kubelet-reset docker-image-clean clean-generated
 	rm -f $(KUBIC_INIT_EXE)
 	rm -f config/rbac/*.yaml config/crds/*.yaml
 
@@ -162,43 +154,34 @@ $(KUBE_DROPIN_DST): $(KUBE_DROPIN_SRC) /var/lib/kubelet/config.yaml
 kubeadm-reset: local-reset
 local-reset: $(KUBIC_INIT_EXE)
 	@echo ">>> Resetting everything..."
-	$(SUDO_E) $(KUBIC_INIT_EXE) reset -v $(VERBOSE_LEVEL)
+	$(SUDO_E) $(KUBIC_INIT_EXE) reset -v $(VERBOSE_LEVEL) $(KUBIC_ARGS)
 
 
 # Usage:
-#  - create a local seeder: make local-run
-#  - create a local seeder with a specific token: TOKEN=XXXX make local-run
-#  - join an existing seeder: env SEEDER=1.2.3.4 TOKEN=XXXX make local-run
+#  - create a local seeder:
+#    $ make local-run
+#  - create a local seeder with a specific token:
+#    $ env TOKEN=XXXX make local-run
+#  - join an existing seeder:
+#    $ env SEEDER=1.2.3.4 TOKEN=XXXX make local-run
+#  - run a custom kubeadm, use docker, our own configuration and a higher debug level:
+#    $ make local-run \
+#     KUBIC_ARGS="--var Runtime.Engine=docker --var Paths.Kubeadm=$GOPATH/src/github.com/kubernetes/kubernetes/_output/local/bin/linux/amd64/kubeadm" \
+#     KUBIC_INIT_CFG=test.yaml \
+#     VERBOSE_LEVEL=8
 #
 # You can customize the args with something like:
 #   make local-run VERBOSE_LEVEL=8 \
 #                  KUBIC_INIT_CFG="my-config-file.yaml" \
 #                  KUBIC_ARGS="--var Runtime.Engine=docker"
 #
-local-run: $(KUBIC_INIT_EXE) $(KUBE_DROPIN_DST) local-reset
+local-run: $(KUBIC_INIT_EXE) $(KUBE_DROPIN_DST)
+	[ ! -f $(KUBECONFIG) ] || make local-reset
 	@echo ">>> Running $(KUBIC_INIT_EXE) as _root_"
 	$(SUDO_E) $(KUBIC_INIT_EXE) bootstrap \
 		-v $(VERBOSE_LEVEL) \
 		--config $(KUBIC_INIT_CFG) \
-		--deploy-manager=false \
-		--load-assets=false $(KUBIC_ARGS)
-
-# Usage:
-# - Run it locally:
-#   make local-run-manager KUBIC_INIT_CFG=test.yaml VERBOSE_LEVEL=5
-# - Start a Deployment with the manager:
-#   make local-run-manager KUBIC_ARGS="--deployment"
-#
-local-run-manager: $(KUBIC_INIT_EXE) manifests
-	[ -r $(KUBECONFIG) ] || $(SUDO_E) chmod 644 $(KUBECONFIG)
-	@echo ">>> Running $(KUBIC_INIT_EXE) as _root_"
-	$(KUBIC_INIT_EXE) manager \
-		-v $(VERBOSE_LEVEL) \
-		--config $(KUBIC_INIT_CFG) \
-		--kubeconfig /etc/kubernetes/admin.conf \
-		--load-assets=true \
-		--crds-dir config/crds \
-		--rbac-dir config/rbac \
+		--load-assets=false \
 		$(KUBIC_ARGS)
 
 # Usage:
@@ -220,11 +203,9 @@ docker-run: $(IMAGE_TAR_GZ) docker-reset $(KUBE_DROPIN_DST)
 
 docker-reset: kubeadm-reset
 
-$(IMAGE_TAR_GZ): $(IMAGE_DEPS) manifests
+$(IMAGE_TAR_GZ): $(IMAGE_DEPS)
 	@echo ">>> Creating Docker image..."
-	docker build \
-		--build-arg KUBIC_INIT_EXE=$(KUBIC_INIT_EXE) \
-		-t $(IMAGE_NAME):latest .
+	docker build -t $(IMAGE_NAME):latest .
 	@echo ">>> Creating tar for image..."
 	docker save $(IMAGE_NAME):latest | gzip > $(IMAGE_TAR_GZ)
 
@@ -264,7 +245,6 @@ kubelet-reset: kubeadm-reset
 	@echo ">>> Stopping the kubelet..."
 	@$(SUDO) systemctl stop kubelet
 	@while [ ! -e /var/run/docker.sock   ] ; do echo "Waiting for dockers socket..."     ; sleep 2 ; done
-	@while [ -e /var/run/dockershim.sock ] ; do echo "Waiting until the kubelet is down..." ; sleep 2 ; done
 	@echo ">>> Restoring a safe kubelet configuration..."
 	$(SUDO) cp /etc/kubernetes/kubelet-config.yaml /var/lib/kubelet/config.yaml
 	@-rm -f $(MANIFEST_DIR)/$(MANIFEST_REM)
@@ -276,65 +256,72 @@ kubelet-reset: kubeadm-reset
 
 ### Terraform full deplyment
 
-$(TF_LIBVIRT_FULL_DIR)/.terraform:
-	cd $(TF_LIBVIRT_FULL_DIR) && terraform init
+tf-full-plan:
+	cd $(TF_LIBVIRT_FULL_DIR) && && terraform init && terraform plan
 
-tf-full-plan: $(TF_LIBVIRT_FULL_DIR)/.terraform
-	cd $(TF_LIBVIRT_FULL_DIR) && terraform plan
-
+#
 # Usage:
-# - create a only-one-seeder cluster: make tf-full-run TF_ARGS="-var nodes_count=0"
+# - create a only-one-seeder cluster:
+#   $ make tf-full-run TF_ARGS="-var nodes_count=0"
+#
 tf-full-run: tf-full-apply
-tf-full-apply: $(TF_LIBVIRT_FULL_DIR)/.terraform $(IMAGE_TAR_GZ)
+tf-full-apply: $(IMAGE_TAR_GZ)
 	@echo ">>> Deploying a full cluster with Terraform..."
-	cd $(TF_LIBVIRT_FULL_DIR) && terraform apply $(TF_ARGS_DEFAULT) $(TF_ARGS)
+	cd $(TF_LIBVIRT_FULL_DIR) && && terraform init && terraform apply $(TF_ARGS_DEFAULT) $(TF_ARGS)
 
 tf-full-reapply:
-	cd $(TF_LIBVIRT_FULL_DIR) && terraform apply $(TF_ARGS_DEFAULT) $(TF_ARGS)
+	cd $(TF_LIBVIRT_FULL_DIR) && && terraform init && terraform apply $(TF_ARGS_DEFAULT) $(TF_ARGS)
 
-tf-full-destroy: $(TF_LIBVIRT_FULL_DIR)/.terraform
-	cd $(TF_LIBVIRT_FULL_DIR) && terraform destroy -force $(TF_ARGS_DEFAULT) $(TF_ARGS)
+tf-full-destroy:
+	cd $(TF_LIBVIRT_FULL_DIR) && && terraform init && terraform destroy -force $(TF_ARGS_DEFAULT) $(TF_ARGS)
 
 tf-full-nuke:
 	-make tf-full-destroy
 	cd $(TF_LIBVIRT_FULL_DIR) && rm -f *.tfstate*
 
-### Terraform only-seeder deployment
+### Terraform only-seeder deployment (shortcut for `nodes_count=0`)
 
 tf-seeder-plan:
 	-make tf-full-plan TF_ARGS="-var nodes_count=0 $(TF_ARGS)"
 
+#
+# Usage:
+# - create a seeder with a specific Token:
+#   $ env TOKEN=XXXX make tf-seeder-run
+#
 tf-seeder-run: tf-seeder-apply
 tf-seeder-apply:
 	@echo ">>> Deploying only-seeder with Terraform..."
-	-make tf-full-apply TF_ARGS="-var nodes_count=0 $(TF_ARGS)"
+	@make tf-full-apply TF_ARGS="-var nodes_count=0 $(TF_ARGS)"
 
 tf-seeder-reapply:
-	-make tf-full-reapply TF_ARGS="-var nodes_count=0 $(TF_ARGS)"
+	@make tf-full-reapply TF_ARGS="-var nodes_count=0 $(TF_ARGS)"
 
 tf-seeder-destroy:
-	-make tf-full-destroy TF_ARGS="-var nodes_count=0 $(TF_ARGS)"
+	@make tf-full-destroy TF_ARGS="-var nodes_count=0 $(TF_ARGS)"
 
 tf-seeder-nuke: tf-full-nuke
 
 ### Terraform only-nodes deployment
 
-$(TF_LIBVIRT_NODES_DIR)/.terraform:
-	cd $(TF_LIBVIRT_NODES_DIR) && terraform init
+tf-nodes-plan:
+	cd $(TF_LIBVIRT_NODES_DIR) && && terraform init && terraform plan
 
-tf-nodes-plan: $(TF_LIBVIRT_NODES_DIR)/.terraform
-	cd $(TF_LIBVIRT_NODES_DIR) && terraform plan
-
+#
+# Usage:
+# - create only one node (ie, for connecting to the seeder started locally with `make local-run`):
+#   $ env TOKEN=XXXX make tf-nodes-run
+#
 tf-nodes-run: tf-nodes-apply
-tf-nodes-apply: $(TF_LIBVIRT_NODES_DIR)/.terraform $(IMAGE_TAR_GZ)
+tf-nodes-apply: $(IMAGE_TAR_GZ)
 	@echo ">>> Deploying only-nodes with Terraform..."
-	cd $(TF_LIBVIRT_NODES_DIR) && terraform apply $(TF_ARGS_DEFAULT) $(TF_ARGS)
+	cd $(TF_LIBVIRT_NODES_DIR) && terraform init && terraform apply $(TF_ARGS_DEFAULT) $(TF_ARGS)
 
 tf-nodes-reapply:
-	cd $(TF_LIBVIRT_NODES_DIR) && terraform apply $(TF_ARGS_DEFAULT) $(TF_ARGS)
+	cd $(TF_LIBVIRT_NODES_DIR) && terraform init && terraform apply $(TF_ARGS_DEFAULT) $(TF_ARGS)
 
 tf-nodes-destroy: $(TF_LIBVIRT_NODES_DIR)/.terraform
-	cd $(TF_LIBVIRT_NODES_DIR) && terraform destroy -force $(TF_ARGS_DEFAULT) $(TF_ARGS)
+	cd $(TF_LIBVIRT_NODES_DIR) && terraform init && terraform destroy -force $(TF_ARGS_DEFAULT) $(TF_ARGS)
 
 tf-nodes-nuke:
 	-make tf-nodes-destroy
@@ -343,3 +330,4 @@ tf-nodes-nuke:
 #############################################################
 # Other stuff
 #############################################################
+-include Makefile.local

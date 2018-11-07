@@ -157,15 +157,14 @@ output "seeder_ip" {
 # Token                   #
 ###########################
 
-data "external" "token_gen" {
+data "external" "token_get" {
   program = [
     "python",
-    "../support/tf/gen-token.py",
-  ]
+    "../support/tf/get-token.py"]
 }
 
 output "token" {
-  value = "${data.external.token_gen.result.token}"
+  value = "${data.external.token_get.result.token}"
 }
 
 ###########################
@@ -189,7 +188,7 @@ data "template_file" "node_cloud_init_user_data" {
 
   vars {
     seeder   = "${data.external.local_net.result.ip}"
-    token    = "${data.external.token_gen.result.token}"
+    token    = "${data.external.token_get.result.token}"
     password = "${var.password}"
     hostname = "${var.prefix}-node-${count.index}"
   }
