@@ -10,6 +10,12 @@ KUBIC_INIT_SRCS      = $(shell find $(SOURCES_DIRS) -type f -name '*.go' -not -p
 KUBIC_INIT_MAIN_SRCS = $(shell find $(SOURCES_DIRS) -type f -name '*.go' -not -path "*_test.go")
 KUBIC_INIT_GEN_SRCS  = $(shell grep -l -r "//go:generate" $(SOURCES_DIRS))
 
+DEEPCOPY_FILENAME := zz_generated.deepcopy.go
+
+# the list of all the deepcopy.go files we are going to generate
+DEEPCOPY_GENERATED_FILES := $(foreach file,$(KUBIC_INIT_GEN_SRCS),$(dir $(file))$(DEEPCOPY_FILENAME))
+DEEPCOPY_GENERATOR       := ${GOPATH}/bin/deepcopy-gen
+
 KUBIC_INIT_EXE  = cmd/kubic-init/kubic-init
 KUBIC_INIT_MAIN = cmd/kubic-init/main.go
 KUBIC_INIT_CFG  = $(CURDIR)/config/kubic-init.yaml
@@ -81,18 +87,27 @@ print-version:
 	@echo "kubic-init date: $(KUBIC_INIT_BUILD_DATE)"
 	@echo "go: $(GO_VERSION)"
 
-deps: go.mod
-	@echo ">>> Checking dependencies..."
-	@$(GO) mod download
-
 # NOTE: deepcopy-gen doesn't support go1.11's modules, so we must 'go get' it
-generate: $(KUBIC_INIT_GEN_SRCS)
-	@echo ">>> Getting deepcopy-gen..."
+$(DEEPCOPY_GENERATOR):
+	@echo ">>> Getting deepcopy-gen (for $(DEEPCOPY_GENERATOR))"
 	@$(GO_NOMOD) get k8s.io/code-generator/cmd/deepcopy-gen
-	@echo ">>> Generating files..."
-	@$(GO) generate -x $(SOURCES_DIRS_GO)
 
-$(KUBIC_INIT_EXE): $(KUBIC_INIT_MAIN_SRCS) deps generate
+define _CREATE_DEEPCOPY_TARGET
+$(1): $(DEEPCOPY_GENERATOR) $(shell grep -l "//go:generate" $(dir $1)/*)
+	@echo ">>> Updating deepcopy files in $(dir $1)"
+	@$(GO) generate -x $(dir $1)/*
+endef
+
+# Use macro to generate targets for all the DEEPCOPY_GENERATED_FILES files
+$(foreach file,$(DEEPCOPY_GENERATED_FILES),$(eval $(call _CREATE_DEEPCOPY_TARGET,$(file))))
+
+clean-generated:
+	rm -f $(DEEPCOPY_GENERATED_FILES)
+
+generate: $(DEEPCOPY_GENERATOR) $(DEEPCOPY_GENERATED_FILES)
+.PHONY: generate
+
+$(KUBIC_INIT_EXE): $(KUBIC_INIT_MAIN_SRCS) $(DEEPCOPY_GENERATED_FILES)
 	@echo ">>> Building $(KUBIC_INIT_EXE)..."
 	$(GO) build $(KUBIC_INIT_LDFLAGS) -o $(KUBIC_INIT_EXE) $(KUBIC_INIT_MAIN)
 
@@ -116,7 +131,7 @@ test:
 	@$(GO) test -v ./pkg/... ./cmd/... -coverprofile cover.out
 
 .PHONY: check
-clean: docker-reset kubelet-reset docker-image-clean
+clean: docker-reset kubelet-reset docker-image-clean clean-generated
 	rm -f $(KUBIC_INIT_EXE)
 	rm -f config/rbac/*.yaml config/crds/*.yaml
 
@@ -190,9 +205,7 @@ docker-reset: kubeadm-reset
 
 $(IMAGE_TAR_GZ): $(IMAGE_DEPS)
 	@echo ">>> Creating Docker image..."
-	docker build \
-		--build-arg KUBIC_INIT_EXE=$(KUBIC_INIT_EXE) \
-		-t $(IMAGE_NAME):latest .
+	docker build -t $(IMAGE_NAME):latest .
 	@echo ">>> Creating tar for image..."
 	docker save $(IMAGE_NAME):latest | gzip > $(IMAGE_TAR_GZ)
 
@@ -232,7 +245,6 @@ kubelet-reset: kubeadm-reset
 	@echo ">>> Stopping the kubelet..."
 	@$(SUDO) systemctl stop kubelet
 	@while [ ! -e /var/run/docker.sock   ] ; do echo "Waiting for dockers socket..."     ; sleep 2 ; done
-	@while [ -e /var/run/dockershim.sock ] ; do echo "Waiting until the kubelet is down..." ; sleep 2 ; done
 	@echo ">>> Restoring a safe kubelet configuration..."
 	$(SUDO) cp /etc/kubernetes/kubelet-config.yaml /var/lib/kubelet/config.yaml
 	@-rm -f $(MANIFEST_DIR)/$(MANIFEST_REM)
@@ -244,11 +256,8 @@ kubelet-reset: kubeadm-reset
 
 ### Terraform full deplyment
 
-$(TF_LIBVIRT_FULL_DIR)/.terraform:
-	cd $(TF_LIBVIRT_FULL_DIR) && terraform init
-
-tf-full-plan: $(TF_LIBVIRT_FULL_DIR)/.terraform
-	cd $(TF_LIBVIRT_FULL_DIR) && terraform plan
+tf-full-plan:
+	cd $(TF_LIBVIRT_FULL_DIR) && && terraform init && terraform plan
 
 #
 # Usage:
@@ -256,15 +265,15 @@ tf-full-plan: $(TF_LIBVIRT_FULL_DIR)/.terraform
 #   $ make tf-full-run TF_ARGS="-var nodes_count=0"
 #
 tf-full-run: tf-full-apply
-tf-full-apply: $(TF_LIBVIRT_FULL_DIR)/.terraform $(IMAGE_TAR_GZ)
+tf-full-apply: $(IMAGE_TAR_GZ)
 	@echo ">>> Deploying a full cluster with Terraform..."
-	cd $(TF_LIBVIRT_FULL_DIR) && terraform apply $(TF_ARGS_DEFAULT) $(TF_ARGS)
+	cd $(TF_LIBVIRT_FULL_DIR) && && terraform init && terraform apply $(TF_ARGS_DEFAULT) $(TF_ARGS)
 
 tf-full-reapply:
-	cd $(TF_LIBVIRT_FULL_DIR) && terraform apply $(TF_ARGS_DEFAULT) $(TF_ARGS)
+	cd $(TF_LIBVIRT_FULL_DIR) && && terraform init && terraform apply $(TF_ARGS_DEFAULT) $(TF_ARGS)
 
-tf-full-destroy: $(TF_LIBVIRT_FULL_DIR)/.terraform
-	cd $(TF_LIBVIRT_FULL_DIR) && terraform destroy -force $(TF_ARGS_DEFAULT) $(TF_ARGS)
+tf-full-destroy:
+	cd $(TF_LIBVIRT_FULL_DIR) && && terraform init && terraform destroy -force $(TF_ARGS_DEFAULT) $(TF_ARGS)
 
 tf-full-nuke:
 	-make tf-full-destroy
@@ -283,23 +292,20 @@ tf-seeder-plan:
 tf-seeder-run: tf-seeder-apply
 tf-seeder-apply:
 	@echo ">>> Deploying only-seeder with Terraform..."
-	-make tf-full-apply TF_ARGS="-var nodes_count=0 $(TF_ARGS)"
+	@make tf-full-apply TF_ARGS="-var nodes_count=0 $(TF_ARGS)"
 
 tf-seeder-reapply:
-	-make tf-full-reapply TF_ARGS="-var nodes_count=0 $(TF_ARGS)"
+	@make tf-full-reapply TF_ARGS="-var nodes_count=0 $(TF_ARGS)"
 
 tf-seeder-destroy:
-	-make tf-full-destroy TF_ARGS="-var nodes_count=0 $(TF_ARGS)"
+	@make tf-full-destroy TF_ARGS="-var nodes_count=0 $(TF_ARGS)"
 
 tf-seeder-nuke: tf-full-nuke
 
 ### Terraform only-nodes deployment
 
-$(TF_LIBVIRT_NODES_DIR)/.terraform:
-	cd $(TF_LIBVIRT_NODES_DIR) && terraform init
-
-tf-nodes-plan: $(TF_LIBVIRT_NODES_DIR)/.terraform
-	cd $(TF_LIBVIRT_NODES_DIR) && terraform plan
+tf-nodes-plan:
+	cd $(TF_LIBVIRT_NODES_DIR) && && terraform init && terraform plan
 
 #
 # Usage:
@@ -307,7 +313,7 @@ tf-nodes-plan: $(TF_LIBVIRT_NODES_DIR)/.terraform
 #   $ env TOKEN=XXXX make tf-nodes-run
 #
 tf-nodes-run: tf-nodes-apply
-tf-nodes-apply: $(TF_LIBVIRT_NODES_DIR)/.terraform $(IMAGE_TAR_GZ)
+tf-nodes-apply: $(IMAGE_TAR_GZ)
 	@echo ">>> Deploying only-nodes with Terraform..."
 	cd $(TF_LIBVIRT_NODES_DIR) && terraform init && terraform apply $(TF_ARGS_DEFAULT) $(TF_ARGS)
 
@@ -324,3 +330,4 @@ tf-nodes-nuke:
 #############################################################
 # Other stuff
 #############################################################
+-include Makefile.local
