@@ -142,15 +142,15 @@ resource "null_resource" "download_kubic_image" {
 # Local IP (for seeding)  #
 ###########################
 
-data "external" "local_net" {
+data "external" "seeder" {
   program = [
     "python",
-    "../support/tf/local-ip.py",
+    "../support/tf/get-seeder.py",
   ]
 }
 
 output "seeder_ip" {
-  value = "${data.external.local_net.result.ip}"
+  value = "${data.external.seeder.result.ip}"
 }
 
 ###########################
@@ -187,7 +187,7 @@ data "template_file" "node_cloud_init_user_data" {
   template = "${file("../cloud-init/node.cfg.tpl")}"
 
   vars {
-    seeder   = "${data.external.local_net.result.ip}"
+    seeder   = "${data.external.seeder.result.ip}"
     token    = "${data.external.token_get.result.token}"
     password = "${var.password}"
     hostname = "${var.prefix}-node-${count.index}"
