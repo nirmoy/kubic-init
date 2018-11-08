@@ -18,8 +18,6 @@
 package config
 
 import (
-	"k8s.io/kubernetes/cmd/kubeadm/app/features"
-
 	kubeadmapiv1alpha3 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1alpha3"
 )
 
@@ -180,7 +178,4 @@ var DefaultIgnoredPreflightErrors = []string{
 
 // Constant set of featureGates
 // A set of key=value pairs that describe feature gates for various features.
-var DefaultFeatureGates = (
-	features.CoreDNS + "=true," +
-	// TODO: results in some errors... needs some research
-		features.DynamicKubeletConfig + "=false")
+var DefaultFeatureGates = ""
