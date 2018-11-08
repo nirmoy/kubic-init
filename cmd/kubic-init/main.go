@@ -143,14 +143,13 @@ func newCmdBootstrap(out io.Writer) *cobra.Command {
 	}
 
 	flagSet := cmd.PersistentFlags()
-	flagSet.StringVar(&kubicCfgFile, "config", "",
-		"Path to kubic-init config file.")
-	flagSet.BoolVar(&block, "block", block, "Block after boostrapping")
-	flagSet.StringSliceVar(&vars, "var", []string{}, "Set a configuration variable (ie, Network.Cni.Driver=cilium")
-	flagSet.BoolVar(&deployCNI, "deploy-cni", deployCNI, "Deploy the CNI driver")
+	flagSet.StringVar(&kubicCfgFile, "config", "", "path to kubic-init config file.")
+	flagSet.BoolVar(&block, "block", block, "block after boostrapping")
+	flagSet.StringSliceVar(&vars, "var", []string{}, "set a configuration variable (ie, Network.Cni.Driver=cilium")
+	flagSet.BoolVar(&deployCNI, "deploy-cni", deployCNI, "deploy the CNI driver")
 
 	// assets
-	flagSet.BoolVar(&loadAssets, "load-assets", loadAssets, "Load the CRDs, RBACs and manifests")
+	flagSet.BoolVar(&loadAssets, "load-assets", loadAssets, "load the CRDs, RBACs and manifests")
 	flagSet.StringVar(&crdsDir, "crds-dir", crdsDir, "load CRDs from this directory.")
 	flagSet.StringVar(&rbacDir, "rbac-dir", rbacDir, "load RBACs from this directory.")
 	flagSet.StringVar(&postControlManifDir, "manif-dir", postControlManifDir, "load manifests from this directory.")
@@ -203,7 +202,6 @@ func newCmdVersion(out io.Writer) *cobra.Command {
 			fmt.Fprintf(out, "            go:      %s\n", GoVersion)
 		},
 	}
-	cmd.Flags().StringP("output", "o", "", "Output format; available options are 'yaml', 'json' and 'short'")
 	return cmd
 }
 
