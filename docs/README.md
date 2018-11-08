@@ -1,19 +1,5 @@
 # kubic-init documentation
 
-## Table of Contents
-
-### Configuring Kubic before bootstrapping the cluster
-
-* [Preparing the bootstrap](config-pre.md)
-* Deployments:
-  * [Deployment examples](../deployments/README.md)
-  * Using [`cloud-init`](../deployments/cloud-init/README.md)
-
-### Post control-plane configuration
-
-The Kubernetes cluster running on Kubic can be
-configured
-
-* [External authentication](dex.md)
-* [Using other Docker registries](registries.md)
-
+* [Development](devel.md) docs and how to contribute to the `kubic-init` project.
+* [Design aspects](design.md) and architecture of the `kubic-init` container.
+* [Configuration](config.md) and usage.
