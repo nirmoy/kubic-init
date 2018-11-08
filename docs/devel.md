@@ -5,17 +5,7 @@
 This project follows the conventions presented in the [standard Golang
 project](https://github.com/golang-standards/project-layout).
 
-## Dependencies
 
-* `go >= 1.11`
-
-For running the `kubic-init` (either locally, in a container or in a Terraform
-deployment) please make sure the `kubelet` version running in the host system
-is the same `kubic-init` was compiled against.
-
-### Bumping the Kubernetes version used by `kubic-init`
-
-Update the constraints in [`go.mod`](../go.mod).
 
 ## Building
 
@@ -23,12 +13,40 @@ A simple `make` should be enough. This should compile [the main
 function](../cmd/kubic-init/main.go) and generate a `kubic-init` binary as
 well as a _Docker_ image.
 
-## Running `kubic-init` in your Development Environment
+### Prerequisites
 
-There are multiple ways you can run the `kubic-init` for bootstrapping
-and managinig your Kubernetes cluster:
+In order to build the `kubic-init` container your will need:
 
-### <a name="local"></a> ... in your local machine
+* `go >= 1.11`
+* `docker` (for building the image)
+
+**Important**: even when `kubic-init` is using Go 11's modules (and that would free you from the
+requirement of checking out the project in `$GOPATH/src/github.com/kubic-project/kubic-init`)
+the `deepcopy-gen` will not work when not inside the `$GOPATH` (see [this](https://github.com/kubernetes/code-generator/issues/21)).
+
+### Bumping the Kubernetes version used by `kubic-init`
+
+Update the constraints in [`go.mod`](../go.mod).
+
+
+
+
+## Running `kubic-init`
+
+### Prerequisites
+
+For running the `kubic-init` (either locally, in a container or in a Terraform
+deployment) please make sure the `kubelet` version running in the host system
+is the same `kubic-init` was compiled against.
+
+### Running in your Development Environment
+
+There are multiple ways you can run the `kubic-init` in your development
+environment, both locally (ie, in your laptop) as well as on virtual machines
+(with the help of Terraform). You can even use a mix of both, for example
+starting a _seeder_ in your laptop and then spawning _minions_ on VMs.
+
+#### <a name="local"></a> Running `kubic-init` in your local machine
 
 You can run the `kubic-init` container locally with:
 
@@ -56,11 +74,11 @@ You can run the `kubic-init` container locally with:
 Once you are done, you can `make local-reset`/`make docker-reset`
 for stopping the control plane and removing all the leftovers.
 
-### <a name="terraform"></a> ... with Terraform
+#### <a name="terraform"></a> Running `kubic-init` with Terraform
 
-The top-level Makefile includes some targets for creating a Kubic
-cluster with the help of Terraform. All these targets have some common
-steps, like:
+The top-level `Makefile` includes some targets for creating a _Kubic_
+cluster with the help of [Terraform](https://www.terraform.io/). All these
+targets have some common steps, like:
 
   * starting `kubic`-based VMs
   * generating some config files from the [`cloud-init` templates](../deployments/cloud-init)
