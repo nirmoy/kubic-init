@@ -57,6 +57,7 @@ require (
 	github.com/vishvananda/netns v0.0.0-20171111001504-be1fbeda1936 // indirect
 	github.com/yuroyoro/swalker v0.0.0-20160622113523-0a5950e9162f
 	golang.org/x/crypto v0.0.0-20181030102418-4d3f4d9ffa16 // indirect
+	golang.org/x/lint v0.0.0-20181026193005-c67002cb31c3 // indirect
 	golang.org/x/net v0.0.0-20181029044818-c44066c5c816 // indirect
 	golang.org/x/oauth2 v0.0.0-20181031022657-8527f56f7107 // indirect
 	golang.org/x/sys v0.0.0-20181030150119-7e31e0c00fa0 // indirect
