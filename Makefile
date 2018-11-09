@@ -91,6 +91,7 @@ print-version:
 $(DEEPCOPY_GENERATOR):
 	@echo ">>> Getting deepcopy-gen (for $(DEEPCOPY_GENERATOR))"
 	@$(GO_NOMOD) get k8s.io/code-generator/cmd/deepcopy-gen
+	@$(GO_NOMOD) get k8s.io/apimachinery
 
 define _CREATE_DEEPCOPY_TARGET
 $(1): $(DEEPCOPY_GENERATOR) $(shell grep -l "//go:generate" $(dir $1)/*)
