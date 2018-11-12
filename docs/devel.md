@@ -13,6 +13,11 @@ For running the `kubic-init` (either locally, in a container or in a Terraform
 deployment) please make sure the `kubelet` version running in the host system
 is the same `kubic-init` was compiled against.
 
+Note: 
+Currently we use golang modules but you need currently to work inside $GOPATH for developing `kubic-init`.
+Working outside GOPATH is currently **not supported**
+
+
 ### Bumping the Kubernetes version used by `kubic-init`
 
 Update the constraints in [`go.mod`](../go.mod).
