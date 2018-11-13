@@ -1,3 +1,6 @@
+
+[![CircleCI](https://circleci.com/gh/kubic-project/kubic-init/tree/master.svg?style=svg)](https://circleci.com/gh/kubic-project/kubic-init/tree/master)
+
 # Description
 
 A "init" container for [Kubic](https://en.opensuse.org/Portal:Kubic).

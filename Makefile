@@ -90,8 +90,10 @@ print-version:
 # NOTE: deepcopy-gen doesn't support go1.11's modules, so we must 'go get' it
 $(DEEPCOPY_GENERATOR):
 	@echo ">>> Getting deepcopy-gen (for $(DEEPCOPY_GENERATOR))"
-	@$(GO_NOMOD) get k8s.io/code-generator/cmd/deepcopy-gen
-	@$(GO_NOMOD) get k8s.io/apimachinery
+	-@$(GO_NOMOD) get k8s.io/code-generator/cmd/deepcopy-gen
+	-@$(GO_NOMOD) get k8s.io/apimachinery
+	-@$(GO_NOMOD) get golang.org/x/lint/golint
+
 
 define _CREATE_DEEPCOPY_TARGET
 $(1): $(DEEPCOPY_GENERATOR) $(shell grep -l "//go:generate" $(dir $1)/*)
@@ -121,6 +123,8 @@ fmt: $(KUBIC_INIT_SRCS)
 simplify:
 	@gofmt -s -l -w $(KUBIC_INIT_SRCS)
 
+# once golint is fixed add here option to golint: set_exit_status 
+#  see https://github.com/kubic-project/kubic-init/issues/69
 .PHONY: check
 check:
 	@test -z $(shell gofmt -l $(KUBIC_INIT_MAIN) | tee /dev/stderr) || echo "[WARN] Fix formatting issues with 'make fmt'"
