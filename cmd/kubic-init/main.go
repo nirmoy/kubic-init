@@ -83,7 +83,7 @@ func newCmdBootstrap(out io.Writer) *cobra.Command {
 			kubeadmutil.CheckErr(err)
 
 			if !kubicCfg.IsSeeder() {
-				glog.V(1).Infoln("[kubic] joining the seeder at %s", kubicCfg.ClusterFormation.Seeder)
+				glog.V(1).Infof("[kubic] joining the seeder at %s", kubicCfg.ClusterFormation.Seeder)
 				err := kubeadm.NewJoin(kubicCfg)
 				kubeadmutil.CheckErr(err)
 				glog.V(1).Infoln("[kubic] this node should have joined the cluster at this point")

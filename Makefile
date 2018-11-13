@@ -125,7 +125,7 @@ simplify:
 
 # once golint is fixed add here option to golint: set_exit_status 
 .PHONY: check
-check: 
+check:
 	@test -z $(shell gofmt -l $(KUBIC_INIT_MAIN) | tee /dev/stderr) || echo "[WARN] Fix formatting issues with 'make fmt'"
 	@for d in $$($(GO) list ./... | grep -v /vendor/); do golint $${d}; done
 	@$(GO) tool vet ${KUBIC_INIT_SRCS}

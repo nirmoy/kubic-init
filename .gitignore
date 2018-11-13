@@ -21,3 +21,4 @@ robots.txt*
 *generated.go
 config/rbac/*
 config/crds/*
+cover.out

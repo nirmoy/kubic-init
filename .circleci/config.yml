@@ -16,10 +16,6 @@ jobs:
       - checkout # check out source code to working directory
       - run: mkdir -p $TEST_RESULTS # create the test results directory
    
-      # TODO: this is for workaround this error on  makefile. ( find elegant solution later)
-      #  package k8s.io/apimachinery: no Go files in /go/src/k8s.io/apimachinery
-      # make: *** [/go/bin/deepcopy-gen] Error 1
-
       - run: | 
               make
 
