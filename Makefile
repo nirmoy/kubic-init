@@ -124,6 +124,7 @@ simplify:
 	@gofmt -s -l -w $(KUBIC_INIT_SRCS)
 
 # once golint is fixed add here option to golint: set_exit_status 
+#  see https://github.com/kubic-project/kubic-init/issues/69
 .PHONY: check
 check:
 	@test -z $(shell gofmt -l $(KUBIC_INIT_MAIN) | tee /dev/stderr) || echo "[WARN] Fix formatting issues with 'make fmt'"
