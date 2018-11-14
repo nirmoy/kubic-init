@@ -3,48 +3,21 @@
 
 # Description
 
-A "init" container for [Kubic](https://en.opensuse.org/Portal:Kubic).
+A container based application for creating and managing Kubernetes clusters designed on top of the [Kubic Project](https://en.opensuse.org/Portal:Kubic).
 
 # Documentation
 
-See the [current documentation](docs/README.md) for instructions on managing
+See our [documentation](docs/README.md) for instructions on creating and managing
 your Kubic cluster with `kubic-init`.
 
 # Development
 
-See the [development documentation](docs/devel.md).
+Want to join the team behind this project? have a bug patch fix or are just interested in understanding how we operate?
 
-### Roadmap/TODO
+Checkout the [development documentation](docs/devel.md). This will give you a overview on how to get involved!
 
-Before we have a functional POC we need to implement:
+# Roadmap
 
-* [X] Development environment
-* [ ] Cluster formation workflow
-  * [X] Seeder
-  * [X] Join for nodes
-    * [X] Simple joins
-    * [ ] Support certificates and safer flows
-  * [ ] Accept/reject nodes
-  * [ ] Add/remove nodes once the cluster is up and running
-    * [ ] Node addition
-      * [ ] Masters
-      * [X] Workers
-    * [ ] Node removal
-      * [ ] Masters
-      * [ ] Workers
-* [ ] Command line interface
-* [ ] Multi-master and HA
-* [ ] Manage etcd in a better way (maybe with `etcdadm` or the `etcd-operator`)
-* [ ] [CNI](pkg/cni)
-  * [X] Load CNI manifests
-  * [ ] Prepare and use an updated `flannel` image
-* [X] Dex and all the other critical pods.
-* [X] Use `podman` instead of Docker
-* [ ] Base Kubic image
-  * [ ] Install all the packages we need
-  * [X] Base our kubic-init image in Tumbleweed
-  * [ ] Base all container images in Tumbleweed
-    * [ ] `hyperkube`
-    * [ ] `etcd`
-    * [ ] `coredns`
-* [ ] All the `TODO`s in this repo...
+This project is in it's early alpha phase of development so there is still a lot of things left to do! 
+
+If you are interested in seeing our current status you can checkout our [roadmap](docs/roadmap.md) that has a high level overview of the problems we want to tackle and where we are!
