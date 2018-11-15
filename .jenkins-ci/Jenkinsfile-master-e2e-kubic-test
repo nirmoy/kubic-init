@@ -1,0 +1,65 @@
+#!/usr/bin/env groovy
+
+properties([
+    // this is how much we want to keep builds logs
+    buildDiscarder(logRotator(numToKeepStr: '500', daysToKeepStr: '30')),
+    disableConcurrentBuilds(),
+])
+
+
+// High-level description:
+//
+// this pipeline will deploy kubic-init and run some basic tests on master GitHub branch
+// we assume that this pipeline lives inside the github kubit-init repo, so you will have the terraform files already in place.
+// We will use mainly make targets so you can also run them outside jenkins not depending on it.
+
+// TODO: discuss which vars we need at begin
+
+// Remote-uri-kvm
+// VMS: 3
+// .. etc
+
+pipeline {
+    // we will define our CI by env vars
+    environment {
+        loving_kubic_init = 'yes'
+        pocahontas = "indiana"
+        wine = "toro"
+        LIBVIRT_URI = 'myfriend-remote-kvm-server'
+    }
+    // the agent is jenkins worker connect to master
+    // we assume this will have terraform + libvirt-terraform + makefile installed
+    agent {  label 'kubic-opensuse'   }
+    // trigger it hourly on master branch
+     triggers { cron('H * * * *') }
+    }
+
+    stages {
+        stage('Deploy kubic-init vms with terraform-libvirt') {
+            steps {
+                // TODO: create a var out fo this dir imho
+                dir('deployments/tf-libvirt-full') {
+                    sh 'terraform init'
+                // this will run terraform apply for unit hours max
+                // it can be usefull if we stuck somewhere
+                    timeout(time: 2, unit:'HOURS') {
+                      sh 'terraform apply'
+                    }
+                }
+            }
+        }
+
+        stage('Run e2e-kubic-tests') {
+            steps {
+	        // NOT YET IMPLEMENTED some fake commands here
+                sh "make kubic-great-again"
+            }
+        }
+
+    }
+    post {
+        always {
+            sh 'make cleanup'
+        }
+    }
+}
