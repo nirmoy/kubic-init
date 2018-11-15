@@ -1,5 +1,5 @@
 
-[![CircleCI](https://circleci.com/gh/kubic-project/kubic-init/tree/master.svg?style=svg)](https://circleci.com/gh/kubic-project/kubic-init/tree/master)
+[![Go Report Card](https://goreportcard.com/badge/github.com/kubic-project/kubic-init)](https://goreportcard.com/report/github.com/kubic-project/kubic-init)  [![GoDoc](https://godoc.org/github.com/kubic-project/kubic-init?status.svg)](https://godoc.org/github.com/kubic-project/kubic-init) [![CircleCI](https://circleci.com/gh/kubic-project/kubic-init/tree/master.svg?style=svg)](https://circleci.com/gh/kubic-project/kubic-init/tree/master)
 
 # Description
 
