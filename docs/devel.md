@@ -90,33 +90,37 @@ steps, like:
   * starting the `kubic-init` container with `podman`.
 
 These targets can be used for creating different configurations, where we can
-have combinations of a seeder and regular nodes. For example:
+have combinations of a seeder and regular nodes.
+
+_Note that, in the following examples, some Terraform variables can be set with
+both environment variables (ie, `TF_VAR_xxx=yyy`) or with the `-var` argument
+(ie, `-var xxx=yyy`)._
+
 
 1. for running a **full cluster** on the VMs:
    ```bash
-   $ make tf-full-run TF_ARGS="-var nodes_count=0"
+   $ make tf-run
    ```
    This will start a cluster with a _seeder_ and a _node_.
    You can increase the number of nodes in the cluster (or customize any
-   other variable in the [Terraform file](../deployments/tf-libvirt-full/terraform.tf))
-   passing some Terraform arguments:
+   other variable in the [Terraform file](../deployments/terraform/terraform.tf))
+   by setting the `nodes_count` variable:
    ```bash
-   $ make tf-full-apply TF_ARGS="-var nodes_count=3"
+   $ make tf-apply TF_ARGS="-var nodes_count=3"
    ```
 
-   (see the [`f-libvirt-full`](../deployments/tf-libvirt-full)
-   directory for more details).
+   (see the [`terraform`](../deployments/terraform) directory for more details).
 
 2. for running **only a seeder** on a VM:
    ```bash
-   $ make tf-seeder-run
+   $ make tf-run TF_ARGS="-var nodes_count=0"     # or define TF_VAR_nodes_count=0
    ```
-   This will start a VM where a `kubeadm` _seeder_ will be started. This
-   will use a random _token_, so you will have to look for the token in
-   the logs, so maybe it will be more convenient for you to specify
-   a token with:
+   This will start a VM where a `kubeadm` _seeder_ will be started with some
+   random _token_, so you will have to look for the _token_ in
+   the logs. In general, it will be more convenient to specify
+   a _token_ with the `token` Terraform variable (or with the `TOKEN` env var):
    ```bash
-   $ env TOKEN=XXXX make tf-seeder-run
+   $ env TOKEN=XXXX make tf-run TF_ARGS="-var nodes_count=0"  # we could use '-var token="XXXX"' too
    ```
    Note that at this point you could start a node in your local
    development machine (as described in [previous section](#local))
@@ -131,19 +135,16 @@ have combinations of a seeder and regular nodes. For example:
 
 3. for running **only nodes** on the VMs:
    ```bash
-   $ env TOKEN=XXXX make tf-nodes-run
+   $ env TOKEN=XXXX make tf-run TF_ARGS="-var seeder=localhost -var nodes_count=1"
    ```
    This will run a _one-node_ cluster (you could launch more nodes by
    setting the `nodes_count` Terraform variable, as described previously)
    that will connect to _seeder_ in the public IP address where Terraform
    is being run (you can use a different IP or name by setting the
-   `SEEDER` env variable).
+   `SEEDER` env variable or the `seeder` Terraform variable).
    
    This means that you will need to run a seeder in your local
    development machine as described in [previous section](#local).  
-
-   (see the [`tf-libvirt-nodes`](../deployments/tf-libvirt-nodes)
-   directory for more details).
    
-Once you are done with your cluster, a `make tf-*-destroy` will
+Once you are done with your cluster, a `make tf-destroy` will
 destroy the cluster.

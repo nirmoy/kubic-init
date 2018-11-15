@@ -18,18 +18,33 @@
 #
 IMG_SRC_BASE="https://download.opensuse.org/repositories/devel:/kubic:/images:/experimental/images/"
 IMG_SRC_FILENAME=
-IMG_REGEX="kubeadm-cri-o-hardware"
-IMG_GLOB=*$(echo "$IMG_REGEX" | sed -e 's|\.\*|\*|g')*.qcow2
+
+# a component in the image filename
+# note: depending on the component, some features will be availiable or not
+# IMG_REGEX="kubeadm-cri-o-hardware"
+# IMG_REGEX="MicroOS-cri-o-kvm-and-xen"
+IMG_REGEX="MicroOS-docker-kvm-and-xen"
+
 IMG_LOCAL_NAME="images/kubic.qcow2"
 IMG_REFRESH=1
 IMG_PURGE=
 UPLOAD_IMG=
 UPLOAD_POOL=
+UPLOAD_TIME=20
 
 LOCAL_VIRSH="virsh"
 REM_VIRSH="virsh"
 
 WGET="wget"
+# wget regular opts: 1) timestamps 2) try to continue downloads 3) progress on megas
+WGET_OPTS="-N -c --progress=dot:mega"
+# wget recursive opts
+WGET_REC_OPTS="-r \
+               --no-directories \
+               --no-host-directories \
+               --no-parent \
+               --accept=*.qcow2 \
+               --accept-regex=$IMG_REGEX"
 
 RUN_AT=
 
@@ -41,15 +56,15 @@ abort() { echo >&2 "!!! FATAL: $@. Aborting." ; exit 1 ; }
 
 while [ $# -gt 0 ] ; do
   case $1 in
-    --src-base|--source-base|-s)
+    --src-base|--source-base|-s|--img-src-base)
       IMG_SRC_BASE=$2
       shift
       ;;
-    --src-filename)
+    --src-filename|--img-src-filename)
       IMG_SRC_FILENAME=$2
       shift
       ;;
-    --refresh)
+    --refresh|--img-refresh)
       case $2 in
       False|false|FALSE|No|no|NO|0)
         echo "(disabling refresh for images)"
@@ -58,19 +73,19 @@ while [ $# -gt 0 ] ; do
       esac
       shift
       ;;
-    --regex)
+    --regex|--img-regex)
       IMG_REGEX="$2"
       shift
       ;;
-    --local|--L)
+    --local|--L|--img-local)
       IMG_LOCAL_NAME=$2
       shift
       ;;
-    --run-at)
+    --run-at|--img-run-at)
       RUN_AT=$2
       shift
       ;;
-    --purge)
+    --purge|--img-purge)
       IMG_PURGE=1
       ;;
     --upload-to-img)
@@ -88,8 +103,10 @@ while [ $# -gt 0 ] ; do
       case $2 in
       local)
         LOCAL_VIRSH="sudo virsh"
+        REM_VIRSH="virsh"
         ;;
       remote)
+        LOCAL_VIRSH="virsh"
         REM_VIRSH="sudo virsh"
         ;;
       both)
@@ -97,6 +114,8 @@ while [ $# -gt 0 ] ; do
         REM_VIRSH="sudo virsh"
         ;;
       none)
+        LOCAL_VIRSH="virsh"
+        REM_VIRSH="virsh"
         ;;
       esac
       shift
@@ -111,16 +130,7 @@ done
 
 ############################################
 
-# wget regular opts: use timestamps and try to continue downloads
-WGET_OPTS="-N -c"
-
-# wget recursive opts
-WGET_REC_OPTS="-r \
-               --no-directories \
-               --no-host-directories \
-               --no-parent \
-               --accept=*.qcow2 \
-               --accept-regex=$IMG_REGEX"
+IMG_GLOB=*$(echo "$IMG_REGEX" | sed -e 's|\.\*|\*|g')*.qcow2
 
 [ -n "$IMG_LOCAL_NAME" ] || IMG_LOCAL_NAME=$(mktemp /tmp/kubic-image.XXXXXX)
 
@@ -171,12 +181,12 @@ else
   if [ -n "$IMG_REFRESH" ] || ! has_volume "$IMG_LOCAL_BASENAME" ; then
     log "Downloading the latest image for importing as $IMG_LOCAL_BASENAME"
     hash $WGET 2>/dev/null || abort "wget required"
-    $WGET $WGET_OPTS $WGET_REC_OPTS $IMG_SRC_BASE
+    $WGET $WGET_OPTS $WGET_REC_OPTS "$IMG_SRC_BASE"
     [ $? -eq 0 ] || abort "download failed"
   fi
 
   latest_image="$(images | head -n1 2>/dev/null)"
-  [ -n "$latest_image" ] || abort "could not determine the latest image (with glob $IMG_GLOB)"
+  [ -n "$latest_image" ] || abort "could not determine the latest image (using glob $IMG_GLOB)"
 
   log "Latest image: $IMG_LOCAL_BASENAME -> $latest_image"
   rm -f "$IMG_LOCAL_BASENAME"
@@ -205,12 +215,15 @@ if [ -n "$UPLOAD_IMG" ] ; then
   virsh_cmd vol-create-as "$UPLOAD_POOL" "$UPLOAD_IMG" $size --format raw || \
     abort "could not create volume $UPLOAD_IMG (provided with --upload-to-img)"
 
-  log "Uploading $IMG_LOCAL_NAME to $UPLOAD_POOL/$UPLOAD_IMG"
+  log "Uploading $IMG_LOCAL_NAME to [$UPLOAD_POOL]:$UPLOAD_IMG"
   virsh_cmd vol-upload --pool "$UPLOAD_POOL" "$UPLOAD_IMG" "$IMG_LOCAL_NAME" || \
     abort "could not upload to volume $UPLOAD_IMG (provided with --upload-to-img) from $IMG_LOCAL_NAME"
 
-  log "Giving some time to the upload"
-  sleep 20
+  log "Giving some time to the upload to finish... (will wait $UPLOAD_TIME seconds)"
+  sleep $UPLOAD_TIME
+
+  log "Current volumes in pool:$UPLOAD_POOL"
+  virsh_cmd vol-list --pool "$UPLOAD_POOL"
 fi
 
 log "Done!."

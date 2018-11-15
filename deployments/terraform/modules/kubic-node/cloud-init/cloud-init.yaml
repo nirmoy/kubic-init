@@ -30,20 +30,9 @@ ntp:
     - ntp3.suse.de
 
 runcmd:
-  - /usr/bin/systemctl enable --now ntpd
   - sed -i -e 's/DHCLIENT_SET_HOSTNAME="yes"/DHCLIENT_SET_HOSTNAME="no"/g' /etc/sysconfig/network/dhcp
+  - /usr/bin/systemctl daemon-reload
+  - /usr/bin/systemctl enable --now ntpd
+  - /usr/bin/systemctl enable --now qemu-agent
 
-### TODO: this should be replaced by a "kubic" module
-write_files:
-  - path: "/etc/kubic/kubic-init.yaml"
-    permissions: "0644"
-    owner: "root"
-    content: |
-      apiVersion: kubic.suse.com/v1alpha1
-      kind: KubicInitConfiguration
-      clusterFormation:
-        token: ${token}
-      manager:
-        image: ${kubic_init_image_name}
-
-final_message: "The system is finally up, after $UPTIME seconds"
+final_message: "${hostname} is finally up, after $UPTIME seconds"

@@ -1,0 +1,4 @@
+apiVersion: kubic.suse.com/v1alpha1
+kind: KubicInitConfiguration
+clusterFormation:
+  token: ${token}

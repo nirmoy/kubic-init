@@ -6,7 +6,7 @@ kubic-init-latest.tar.gz
 go.sum
 
 # the qcow2 images
-deployments/images/*.qcow*
+deployments/terraform/images/*.qcow*
 
 # vendored deps, IDEs and other dirs
 vendor/
