@@ -3,7 +3,7 @@
 
 # Description
 
-A container based application for creating and managing Kubernetes clusters designed on top of the [Kubic Project](https://en.opensuse.org/Portal:Kubic).
+The Kubic-init repository is a project geared at simplifying the process of creating and maintaining kubernetes clusters. Our goal is to make the process as simple as possible using existing tools and developing new ones. The project has taken a highly opinionated approach to topics like security and other things we believe are important for easy maintenance of a cluster. Kubic-init is being actively developed/tested on top of the [Kubic project](https://en.opensuse.org/Portal:Kubic) but in theory could work on any linux based OS in the future.
 
 # Documentation
 
