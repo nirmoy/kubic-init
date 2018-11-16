@@ -8,7 +8,7 @@ A container based application for creating and managing Kubernetes clusters desi
 # Documentation
 
 See our [documentation](docs/README.md) for instructions on creating and managing
-your Kubic cluster with `kubic-init`.
+your Kubic cluster with `kubic-init` as well as how to get involved with the community!
 
 # Development
 
