@@ -160,7 +160,8 @@ output "seeder_ip" {
 data "external" "token_get" {
   program = [
     "python",
-    "../support/tf/get-token.py"]
+    "../support/tf/get-token.py",
+  ]
 }
 
 output "token" {

@@ -130,6 +130,7 @@ check:
 	@test -z $(shell gofmt -l $(KUBIC_INIT_MAIN) | tee /dev/stderr) || echo "[WARN] Fix formatting issues with 'make fmt'"
 	@for d in $$($(GO) list ./... | grep -v /vendor/); do golint $${d}; done
 	@$(GO) tool vet ${KUBIC_INIT_SRCS}
+	terraform fmt
 
 .PHONY: test
 test:

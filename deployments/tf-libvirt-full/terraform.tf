@@ -156,7 +156,8 @@ resource "null_resource" "download_kubic_image" {
 data "external" "token_get" {
   program = [
     "python",
-    "../support/tf/get-token.py"]
+    "../support/tf/get-token.py",
+  ]
 }
 
 output "token" {
