@@ -15,10 +15,18 @@ jobs:
     steps: # steps that comprise the `build` job
       - checkout # check out source code to working directory
       - run: mkdir -p $TEST_RESULTS # create the test results directory
-   
+      
       - run: | 
               make
-
+      - run:
+          name: Install terraform bin for running terraform fmt during check
+          command: |
+             curl -sLo /tmp/terraform.zip https://releases.hashicorp.com/terraform/0.11.10/terraform_0.11.10_linux_amd64.zip
+             unzip /tmp/terraform.zip -d /tmp
+             mkdir ~/bin
+             mv /tmp/terraform ~/bin
+             export PATH="~/bin:$PATH"
+              
       - run:
           name: Check golang style with gofmt, go vet and golint
           command: make check 
