@@ -89,10 +89,11 @@ print-version:
 
 # NOTE: deepcopy-gen doesn't support go1.11's modules, so we must 'go get' it
 $(DEEPCOPY_GENERATOR):
+	@[ -n "${GOPATH}" ] || ( echo "FATAL: GOPATH not defined" ; exit 1 ; )
 	@echo ">>> Getting deepcopy-gen (for $(DEEPCOPY_GENERATOR))"
-	-@$(GO_NOMOD) get k8s.io/code-generator/cmd/deepcopy-gen
-	-@$(GO_NOMOD) get k8s.io/apimachinery
-	-@$(GO_NOMOD) get golang.org/x/lint/golint
+	-@$(GO_NOMOD) get    -u k8s.io/code-generator/cmd/deepcopy-gen
+	-@$(GO_NOMOD) get -d -u k8s.io/apimachinery
+	-@$(GO_NOMOD) get    -u golang.org/x/lint/golint
 
 
 define _CREATE_DEEPCOPY_TARGET
