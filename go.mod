@@ -31,7 +31,7 @@ require (
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.5 // indirect
 	github.com/konsorten/go-windows-terminal-sequences v1.0.1 // indirect
-	github.com/kubernetes/kubernetes v1.13.0-alpha.3
+	github.com/kubernetes/kubernetes v1.13.0-beta.1.0.20181118005432-e64f3e02a5c0
 	github.com/markbates/inflect v1.0.4 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect
 	github.com/mholt/caddy v0.11.0 // indirect
@@ -69,18 +69,20 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/square/go-jose.v2 v2.1.9 // indirect
 	gopkg.in/yaml.v2 v2.2.1
-	k8s.io/api v0.0.0-20181102122915-de5c567eef5c
-	k8s.io/apiextensions-apiserver v0.0.0-20181031212709-9af89ad0b202
-	k8s.io/apimachinery v0.0.0-20181031012033-2e0dc82819fd
-	k8s.io/apiserver v0.0.0-20181031211722-4fdaa0c36593
+	k8s.io/api v0.0.0-20181117111428-d01564359763
+	k8s.io/apiextensions-apiserver v0.0.0-20181117114143-e1ae69ff7b8b
+	k8s.io/apimachinery v0.0.0-20181117043124-0028e7a3cc82
+	k8s.io/apiserver v0.0.0-20181118031803-e97cd0e5d627
 	k8s.io/client-go v2.0.0-alpha.0.0.20181031211421-315e03f5e13d+incompatible
 	k8s.io/cluster-bootstrap v0.0.0-20181011074507-f574069107f7 // indirect
 	k8s.io/code-generator v0.0.0-20181026224033-5d042c2d6552 // indirect
 	k8s.io/gengo v0.0.0-20181019081622-7338e4bfd691 // indirect
+	k8s.io/klog v0.1.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20181026222903-0d1aeffe1c68 // indirect
 	k8s.io/kube-proxy v0.0.0-20181011073931-16c6ff8530d8 // indirect
-	k8s.io/kubelet v0.0.0-20181011074053-d89b2dd0c892 // indirect
-	k8s.io/kubernetes v1.13.0-alpha.3
+	k8s.io/kubelet v0.0.0-20181112115338-93f3921316b2
+	k8s.io/kubernetes v1.13.0-beta.1.0.20181118005432-e64f3e02a5c0
 	k8s.io/utils v0.0.0-20181022192358-4c3feeb576b0 // indirect
 	sigs.k8s.io/controller-tools v0.1.6 // indirect
+	sigs.k8s.io/yaml v1.1.0 // indirect
 )

@@ -75,8 +75,11 @@ const (
 
 // etcd defaults
 const (
-	// the etcd image to use
-	DefaultEtdcImage = "registry.opensuse.org/devel/kubic/containers/container/kubic/etcd:3.3"
+	// the etcd image to use (the name `etcd` at the end is implied)
+	DefaultEtdcImageRepo = "registry.opensuse.org/devel/kubic/containers/container/kubic"
+
+	// tag of the image
+	DefaultEtdcImageTag = "3.3"
 )
 
 const (

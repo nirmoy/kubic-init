@@ -21,9 +21,9 @@ import (
 	"fmt"
 
 	"github.com/golang/glog"
-	kubeadmapi "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm"
 	kubeadmscheme "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/scheme"
-	configutil "k8s.io/kubernetes/cmd/kubeadm/app/util/config"
+	kubeadmapiv1beta1 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta1"
+	kubeadmutil "k8s.io/kubernetes/cmd/kubeadm/app/util"
 
 	"github.com/kubic-project/kubic-init/pkg/config"
 )
@@ -41,13 +41,12 @@ func NewJoin(kubicCfg *config.KubicInitConfiguration, args ...string) error {
 // toJoinConfig copies some settings to a Join configuration
 func toJoinConfig(kubicCfg *config.KubicInitConfiguration, featureGates map[string]bool) ([]byte, error) {
 
-	nodeCfg := &kubeadmapi.JoinConfiguration{
-		FeatureGates: featureGates,
-		NodeRegistration: kubeadmapi.NodeRegistrationOptions{
+	nodeCfg := &kubeadmapiv1beta1.JoinConfiguration{
+		NodeRegistration: kubeadmapiv1beta1.NodeRegistrationOptions{
 			KubeletExtraArgs: config.DefaultKubeletSettings,
 		},
-		Discovery: kubeadmapi.Discovery{
-			BootstrapToken: &kubeadmapi.BootstrapTokenDiscovery{
+		Discovery: kubeadmapiv1beta1.Discovery{
+			BootstrapToken: &kubeadmapiv1beta1.BootstrapTokenDiscovery{
 				APIServerEndpoint: kubicCfg.ClusterFormation.Seeder,
 				Token:             kubicCfg.ClusterFormation.Token,
 			},
@@ -69,5 +68,9 @@ func toJoinConfig(kubicCfg *config.KubicInitConfiguration, featureGates map[stri
 	}
 
 	kubeadmscheme.Scheme.Default(nodeCfg)
-	return configutil.MarshalKubeadmConfigObject(nodeCfg)
+	nodebytes, err := kubeadmutil.MarshalToYamlForCodecs(nodeCfg, kubeadmapiv1beta1.SchemeGroupVersion, kubeadmscheme.Codecs)
+	if err != nil {
+		return []byte{}, err
+	}
+	return nodebytes, nil
 }

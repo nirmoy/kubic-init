@@ -18,12 +18,14 @@
 package kubeadm
 
 import (
+	"bytes"
 	"fmt"
 
 	"github.com/golang/glog"
-	kubeadmapi "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm"
 	kubeadmscheme "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/scheme"
-	configutil "k8s.io/kubernetes/cmd/kubeadm/app/util/config"
+	kubeadmapiv1beta1 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta1"
+	kubeadmconstants "k8s.io/kubernetes/cmd/kubeadm/app/constants"
+	kubeadmutil "k8s.io/kubernetes/cmd/kubeadm/app/util"
 
 	"github.com/kubic-project/kubic-init/pkg/config"
 )
@@ -42,23 +44,20 @@ func NewInit(kubicCfg *config.KubicInitConfiguration, args ...string) error {
 func toInitConfig(kubicCfg *config.KubicInitConfiguration, featureGates map[string]bool) ([]byte, error) {
 	glog.V(3).Infof("[kubic] creating initialization configuration...")
 
-	initCfg := &kubeadmapi.InitConfiguration{
-		ClusterConfiguration: kubeadmapi.ClusterConfiguration{
+	initCfg := &kubeadmapiv1beta1.InitConfiguration{
+		ClusterConfiguration: kubeadmapiv1beta1.ClusterConfiguration{
 			ControlPlaneEndpoint: kubicCfg.Network.Dns.ExternalFqdn,
 			FeatureGates:         featureGates,
-			APIServerCertSANs:    []string{},
-			KubernetesVersion:    config.DefaultKubernetesVersion,
-			Networking: kubeadmapi.Networking{
+			APIServer: kubeadmapiv1beta1.APIServer{
+				CertSANs: []string{},
+			},
+			KubernetesVersion: config.DefaultKubernetesVersion,
+			Networking: kubeadmapiv1beta1.Networking{
 				PodSubnet:     kubicCfg.Network.PodSubnet,
 				ServiceSubnet: kubicCfg.Network.ServiceSubnet,
 			},
-			Etcd: kubeadmapi.Etcd{
-				Local: &kubeadmapi.LocalEtcd{
-					Image: config.DefaultEtdcImage,
-				},
-			},
 		},
-		NodeRegistration: kubeadmapi.NodeRegistrationOptions{
+		NodeRegistration: kubeadmapiv1beta1.NodeRegistrationOptions{
 			KubeletExtraArgs: config.DefaultKubeletSettings,
 		},
 	}
@@ -70,8 +69,19 @@ func toInitConfig(kubicCfg *config.KubicInitConfiguration, featureGates map[stri
 		return b
 	}
 
+	if kubicCfg.Etcd.LocalEtcd != nil {
+		initCfg.ClusterConfiguration.Etcd = kubeadmapiv1beta1.Etcd{
+			Local: &kubeadmapiv1beta1.LocalEtcd{
+				ImageMeta: kubeadmapiv1beta1.ImageMeta{
+					ImageRepository: config.DefaultEtdcImageRepo,
+					ImageTag:        config.DefaultEtdcImageTag,
+				},
+			},
+		}
+	}
+
 	// Add some extra flags in the API server for OIDC (necessary for using Dex)
-	initCfg.ClusterConfiguration.APIServerExtraArgs = map[string]string{
+	initCfg.ClusterConfiguration.APIServer.ExtraArgs = map[string]string{
 		"oidc-client-id":      nonEmpty(kubicCfg.Auth.OIDC.ClientID, config.DefaultOIDCClientID),
 		"oidc-ca-file":        nonEmpty(kubicCfg.Auth.OIDC.CA, config.DefaultCertCA),
 		"oidc-username-claim": nonEmpty(kubicCfg.Auth.OIDC.Username, config.DefaultOIDCUsernameClaim),
@@ -79,19 +89,19 @@ func toInitConfig(kubicCfg *config.KubicInitConfiguration, featureGates map[stri
 	}
 
 	if len(kubicCfg.Auth.OIDC.Issuer) > 0 {
-		initCfg.ClusterConfiguration.APIServerExtraArgs["oidc-issuer-url"] = kubicCfg.Auth.OIDC.Issuer
+		initCfg.ClusterConfiguration.APIServer.ExtraArgs["oidc-issuer-url"] = kubicCfg.Auth.OIDC.Issuer
 	} else {
 		public, err := kubicCfg.GetPublicAPIAddress()
 		if err != nil {
 			return nil, err
 		}
-		initCfg.ClusterConfiguration.APIServerExtraArgs["oidc-issuer-url"] = fmt.Sprintf("https://%s:%d", public, config.DefaultDexIssuerPort)
+		initCfg.ClusterConfiguration.APIServer.ExtraArgs["oidc-issuer-url"] = fmt.Sprintf("https://%s:%d", public, config.DefaultDexIssuerPort)
 	}
 
 	if len(kubicCfg.Network.Bind.Address) > 0 && kubicCfg.Network.Bind.Address != "127.0.0.1" {
 		glog.V(8).Infof("[kubic] setting bind address: %s", kubicCfg.Network.Bind.Address)
-		initCfg.APIEndpoint.AdvertiseAddress = kubicCfg.Network.Bind.Address
-		initCfg.ClusterConfiguration.APIServerCertSANs = append(initCfg.ClusterConfiguration.APIServerCertSANs, kubicCfg.Network.Bind.Address)
+		initCfg.LocalAPIEndpoint.AdvertiseAddress = kubicCfg.Network.Bind.Address
+		initCfg.ClusterConfiguration.APIServer.CertSANs = append(initCfg.ClusterConfiguration.APIServer.CertSANs, kubicCfg.Network.Bind.Address)
 	}
 
 	// TODO: enable these two args once we have OpenSUSE images in registry.opensuse.org for k8s
@@ -106,12 +116,12 @@ func toInitConfig(kubicCfg *config.KubicInitConfiguration, featureGates map[stri
 	if len(kubicCfg.ClusterFormation.Token) > 0 {
 		glog.V(8).Infof("[kubic] adding a bootstrap token: %s", kubicCfg.ClusterFormation.Token)
 		var err error
-		bto := kubeadmapi.BootstrapToken{}
-		bto.Token, err = kubeadmapi.NewBootstrapTokenString(kubicCfg.ClusterFormation.Token)
+		bto := kubeadmapiv1beta1.BootstrapToken{}
+		bto.Token, err = kubeadmapiv1beta1.NewBootstrapTokenString(kubicCfg.ClusterFormation.Token)
 		if err != nil {
 			return nil, err
 		}
-		initCfg.BootstrapTokens = []kubeadmapi.BootstrapToken{bto}
+		initCfg.BootstrapTokens = []kubeadmapiv1beta1.BootstrapToken{bto}
 	}
 
 	if len(kubicCfg.Network.Dns.Domain) > 0 {
@@ -121,7 +131,7 @@ func toInitConfig(kubicCfg *config.KubicInitConfiguration, featureGates map[stri
 
 	if len(kubicCfg.Network.Dns.ExternalFqdn) > 0 {
 		// TODO: add all the other ExternalFqdn's to the certs
-		initCfg.APIServerCertSANs = append(initCfg.APIServerCertSANs, kubicCfg.Network.Dns.ExternalFqdn)
+		initCfg.APIServer.CertSANs = append(initCfg.APIServer.CertSANs, kubicCfg.Network.Dns.ExternalFqdn)
 	}
 
 	glog.V(3).Infof("[kubic] using container engine '%s'", kubicCfg.Runtime.Engine)
@@ -132,5 +142,18 @@ func toInitConfig(kubicCfg *config.KubicInitConfiguration, featureGates map[stri
 	}
 
 	kubeadmscheme.Scheme.Default(initCfg)
-	return configutil.MarshalKubeadmConfigObject(initCfg)
+
+	initbytes, err := kubeadmutil.MarshalToYamlForCodecs(initCfg, kubeadmapiv1beta1.SchemeGroupVersion, kubeadmscheme.Codecs)
+	if err != nil {
+		return []byte{}, err
+	}
+	allFiles := [][]byte{initbytes}
+
+	clusterbytes, err := kubeadmutil.MarshalToYamlForCodecs(&initCfg.ClusterConfiguration, kubeadmapiv1beta1.SchemeGroupVersion, kubeadmscheme.Codecs)
+	if err != nil {
+		return []byte{}, err
+	}
+	allFiles = append(allFiles, clusterbytes)
+
+	return bytes.Join(allFiles, []byte(kubeadmconstants.YAMLDocumentSeparator)), nil
 }

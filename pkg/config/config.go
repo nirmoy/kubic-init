@@ -93,6 +93,16 @@ type BindConfiguration struct {
 type PathsConfigration struct {
 	Kubeadm string `yaml:"kubeadm,omitempty"`
 }
+
+type LocalEtcdConfiguration struct {
+	ServerCertSANs []string `yaml:"serverCertSANs,omitempty"`
+	PeerCertSANs   []string `yaml:"peerCertSANs,omitempty"`
+}
+
+type EtcdConfiguration struct {
+	LocalEtcd *LocalEtcdConfiguration `yaml:"local,omitempty"`
+}
+
 type NetworkConfiguration struct {
 	Bind          BindConfiguration  `yaml:"bind,omitempty"`
 	Cni           CniConfiguration   `yaml:"cni,omitempty"`
@@ -125,6 +135,7 @@ type KubicInitConfiguration struct {
 	Paths            PathsConfigration             `yaml:"paths,omitempty"`
 	ClusterFormation ClusterFormationConfiguration `yaml:"clusterFormation,omitempty"`
 	Certificates     CertsConfiguration            `yaml:"certificates,omitempty"`
+	Etcd             EtcdConfiguration             `yaml:"etcd,omitempty"`
 	Runtime          RuntimeConfiguration          `yaml:"runtime,omitempty"`
 	Features         FeaturesConfiguration         `yaml:"features,omitempty"`
 	Services         ServicesConfiguration         `yaml:"services,omitempty"`
@@ -138,6 +149,9 @@ var defaultConfiguration = KubicInitConfiguration{
 	},
 	Paths: PathsConfigration{
 		Kubeadm: DefaultKubeadmPath,
+	},
+	Etcd: EtcdConfiguration{
+		LocalEtcd: &LocalEtcdConfiguration{},
 	},
 	Network: NetworkConfiguration{
 		PodSubnet:     DefaultPodSubnet,

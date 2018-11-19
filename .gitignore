@@ -3,6 +3,8 @@
 cmd/kubic-init/kubic-init
 kubic-init-latest.tar.gz
 
+go.sum
+
 # the qcow2 images
 deployments/images/*.qcow*
 
