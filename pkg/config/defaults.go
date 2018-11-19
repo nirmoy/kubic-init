@@ -73,6 +73,12 @@ const (
 	DefaultDNSDomain = "cluster.local"
 )
 
+// etcd defaults
+const (
+	// the etcd image to use
+	DefaultEtdcImage = "registry.opensuse.org/devel/kubic/containers/container/kubic/etcd:3.3"
+)
+
 const (
 	// the kubic-init image by default
 	DefaultKubicInitImage = "kubic-init:latest"

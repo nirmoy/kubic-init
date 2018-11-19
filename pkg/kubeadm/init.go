@@ -52,6 +52,11 @@ func toInitConfig(kubicCfg *config.KubicInitConfiguration, featureGates map[stri
 				PodSubnet:     kubicCfg.Network.PodSubnet,
 				ServiceSubnet: kubicCfg.Network.ServiceSubnet,
 			},
+			Etcd: kubeadmapi.Etcd{
+				Local: &kubeadmapi.LocalEtcd{
+					Image: config.DefaultEtdcImage,
+				},
+			},
 		},
 		NodeRegistration: kubeadmapi.NodeRegistrationOptions{
 			KubeletExtraArgs: config.DefaultKubeletSettings,
