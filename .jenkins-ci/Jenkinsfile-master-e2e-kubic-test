@@ -50,7 +50,7 @@ pipeline {
     }
     post {
         always {
-                sh 'cleanup not yet implementd'
+                echo 'cleanup not yet implementd'
 //            sh "make tf-full-destroy"
         }
     }
