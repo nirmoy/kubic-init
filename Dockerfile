@@ -13,8 +13,6 @@ RUN \
 # (check the .dockerignore file for exclusions)
 
 # Copy all the static files
-ADD config/crds      /usr/lib/kubic/crds
-ADD config/rbac      /usr/lib/kubic/rbac
 ADD config/manifests /usr/lib/kubic/manifests
 
 ### TODO: do not build the kubic-init exec IN this container:
