@@ -269,7 +269,7 @@ TF_ARGS_DEFAULT      = -input=false -auto-approve -var 'kubic_init_image=$(IMAGE
 ### Terraform full deplyment
 
 tf-full-plan:
-	cd $(TF_LIBVIRT_FULL_DIR) && && terraform init && terraform plan
+	cd $(TF_LIBVIRT_FULL_DIR) && terraform init && terraform plan
 
 #
 # Usage:
@@ -279,13 +279,13 @@ tf-full-plan:
 tf-full-run: tf-full-apply
 tf-full-apply: $(IMAGE_TAR_GZ)
 	@echo ">>> Deploying a full cluster with Terraform..."
-	cd $(TF_LIBVIRT_FULL_DIR) && && terraform init && terraform apply $(TF_ARGS_DEFAULT) $(TF_ARGS)
+	cd $(TF_LIBVIRT_FULL_DIR) && terraform init && terraform apply $(TF_ARGS_DEFAULT) $(TF_ARGS)
 
 tf-full-reapply:
-	cd $(TF_LIBVIRT_FULL_DIR) && && terraform init && terraform apply $(TF_ARGS_DEFAULT) $(TF_ARGS)
+	cd $(TF_LIBVIRT_FULL_DIR) && terraform init && terraform apply $(TF_ARGS_DEFAULT) $(TF_ARGS)
 
 tf-full-destroy:
-	cd $(TF_LIBVIRT_FULL_DIR) && && terraform init && terraform destroy -force $(TF_ARGS_DEFAULT) $(TF_ARGS)
+	cd $(TF_LIBVIRT_FULL_DIR) && terraform init && terraform destroy -force $(TF_ARGS_DEFAULT) $(TF_ARGS)
 
 tf-full-nuke:
 	-make tf-full-destroy
