@@ -281,9 +281,6 @@ tf-full-apply: $(IMAGE_TAR_GZ)
 	@echo ">>> Deploying a full cluster with Terraform..."
 	cd $(TF_LIBVIRT_FULL_DIR) && terraform init && terraform apply $(TF_ARGS_DEFAULT) $(TF_ARGS)
 
-tf-full-reapply:
-	cd $(TF_LIBVIRT_FULL_DIR) && terraform init && terraform apply $(TF_ARGS_DEFAULT) $(TF_ARGS)
-
 tf-full-destroy:
 	cd $(TF_LIBVIRT_FULL_DIR) && terraform init && terraform destroy -force $(TF_ARGS_DEFAULT) $(TF_ARGS)
 
@@ -306,9 +303,6 @@ tf-seeder-apply:
 	@echo ">>> Deploying only-seeder with Terraform..."
 	@make tf-full-apply TF_ARGS="-var nodes_count=0 $(TF_ARGS)"
 
-tf-seeder-reapply:
-	@make tf-full-reapply TF_ARGS="-var nodes_count=0 $(TF_ARGS)"
-
 tf-seeder-destroy:
 	@make tf-full-destroy TF_ARGS="-var nodes_count=0 $(TF_ARGS)"
 
@@ -317,7 +311,7 @@ tf-seeder-nuke: tf-full-nuke
 ### Terraform only-nodes deployment
 
 tf-nodes-plan:
-	cd $(TF_LIBVIRT_NODES_DIR) && && terraform init && terraform plan
+	cd $(TF_LIBVIRT_NODES_DIR) && terraform init && terraform plan
 
 #
 # Usage:
@@ -327,9 +321,6 @@ tf-nodes-plan:
 tf-nodes-run: tf-nodes-apply
 tf-nodes-apply: $(IMAGE_TAR_GZ)
 	@echo ">>> Deploying only-nodes with Terraform..."
-	cd $(TF_LIBVIRT_NODES_DIR) && terraform init && terraform apply $(TF_ARGS_DEFAULT) $(TF_ARGS)
-
-tf-nodes-reapply:
 	cd $(TF_LIBVIRT_NODES_DIR) && terraform init && terraform apply $(TF_ARGS_DEFAULT) $(TF_ARGS)
 
 tf-nodes-destroy: $(TF_LIBVIRT_NODES_DIR)/.terraform
