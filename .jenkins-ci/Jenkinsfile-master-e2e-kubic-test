@@ -14,6 +14,9 @@ properties([
 // We will use mainly make targets so you can also run them outside jenkins not depending on it.
 
 // Currently pipeline just deploy and destroy via terraform kubic-init
+// TODO: add real stages
+
+// TODO: use if possible a remote-uri and bridge.
 
 
 pipeline {
@@ -30,16 +33,25 @@ pipeline {
                 // this will run terraform apply for unit hours max
                 // it can be usefull if we stuck somewhere
                     timeout(time: 4, unit:'HOURS') {
-                      sh 'make tf-full-apply'
+			echo 'deploy.. not yet implemented'
+//                      sh 'make tf-full-apply'
                     }
                 }
+
+        stage('Run 2e2 tests') {
+            steps {
+                echo 'tests.. Not yet implemnted'
+            }
+        }
+
             }
         }
 
     }
     post {
         always {
-            sh "make tf-full-destroy"
+                sh 'cleanup not yet implementd'
+//            sh "make tf-full-destroy"
         }
     }
 }
