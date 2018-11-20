@@ -46,10 +46,6 @@ MANIFEST_DIR   = /etc/kubernetes/manifests
 KUBE_DROPIN_SRC = init/kubelet.drop-in.conf
 KUBE_DROPIN_DST = /etc/systemd/system/kubelet.service.d/kubelet.drop-in.conf
 
-TF_LIBVIRT_FULL_DIR  = deployments/tf-libvirt-full
-TF_LIBVIRT_NODES_DIR = deployments/tf-libvirt-nodes
-TF_ARGS_DEFAULT      = -input=false -auto-approve -var 'kubic_init_image=$(IMAGE_TAR_GZ)'
-
 # sudo command (and version passing env vars)
 SUDO = sudo
 SUDO_E = $(SUDO) -E
@@ -263,6 +259,12 @@ kubelet-reset: kubeadm-reset
 #############################################################
 # Terraform deployments
 #############################################################
+
+
+TF_LIBVIRT_FULL_DIR  = deployments/tf-libvirt-full
+TF_LIBVIRT_NODES_DIR = deployments/tf-libvirt-nodes
+TF_ARGS_DEFAULT      = -input=false -auto-approve -var 'kubic_init_image=$(IMAGE_TAR_GZ)'
+
 
 ### Terraform full deplyment
 
