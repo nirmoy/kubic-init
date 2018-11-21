@@ -19,8 +19,6 @@ vendor/
 robots.txt*
 
 # generated files
-*deepcopy.go
-*generated.go
 config/rbac/*
 config/crds/*
 cover.out
