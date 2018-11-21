@@ -57,7 +57,7 @@ jobs:
       - checkout
       - run:
           name: Execute lint tests
-           command: |
+          command: |
              curl -sLo /tmp/terraform.zip https://releases.hashicorp.com/terraform/0.11.10/terraform_0.11.10_linux_amd64.zip
              unzip /tmp/terraform.zip -d /go/bin
              make check
