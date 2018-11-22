@@ -25,7 +25,6 @@ pipeline {
     agent {  label 'kubic-opensuse'   }
     // trigger it hourly on master branch
      triggers { cron('H * * * *') }
-    }
 
     stages {
         stage('Deploy kubic-init vms with terraform-libvirt') {
@@ -46,8 +45,6 @@ pipeline {
 
             }
         }
-
-    }
     post {
         always {
                 echo 'cleanup not yet implementd'
