@@ -1,0 +1,12 @@
+[Unit]
+Description=jenkins-worker
+After=network.target
+
+[Service]
+Type=simple
+User=jenkins
+ExecStart=/usr/bin/java -jar /usr/bin/swarm-client-3.9.jar -master https://ci.suse.de/ -disableSslVerification -disableClientsUniqueId -name kubic-ci -description "CI runner used by the kubic" -username containers -password BAUBAU -labels kubic-init -executors 3 -mode exclusive -fsroot /home/jenkins/jobs -deleteExistingClients 
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,4 @@
+test -s ~/.alias && . ~/.alias || true
+export GOPATH=$HOME/go
+export VIRSH_DEFAULT_CONNECT_URI="qemu:///system"
+export PATH=$PATH:$GOPATH/bin:/usr/local/go/bin
