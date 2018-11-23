@@ -104,9 +104,8 @@ test:
 	@$(GO) test -v ./pkg/... ./cmd/... -coverprofile cover.out
 
 .PHONY: check
-clean: docker-reset kubelet-reset docker-image-clean
+clean:
 	rm -f $(KUBIC_INIT_EXE)
 	rm -f config/rbac/*.yaml config/crds/*.yaml
-
 
 include build/make/*.mk
