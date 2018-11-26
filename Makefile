@@ -108,4 +108,8 @@ clean:
 	rm -f $(KUBIC_INIT_EXE)
 	rm -f config/rbac/*.yaml config/crds/*.yaml
 
+.PHONY: coverage
+coverage: 
+$(GO_NOMOD) tool cover -html=cover.out
+
 include build/make/*.mk

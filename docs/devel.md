@@ -44,6 +44,23 @@ Have a PR(Pull Request) you would like to make to the project? Here are a few he
  - squash your commits into one. Our goal is to have one meaningful change per commit.
  - when making the PR, ensure you explain the reason for the PR and or link the issue it solves.
 
+## Running tests
+
+Unit tests can be run using `make test`
+
+### Code Coverage:
+
+Run first the tests.
+
+Then you can visualize the profile in html format:
+
+`go tool cover -html=cover.out`
+
+or use the `make coverage` target
+
+Feel free to read more about this on : https://blog.golang.org/cover.
+
+
 ## Running `kubic-init` in your Development Environment
 
 There are multiple ways you can run the `kubic-init` for bootstrapping
