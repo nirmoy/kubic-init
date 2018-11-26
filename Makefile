@@ -110,6 +110,6 @@ clean:
 
 .PHONY: coverage
 coverage: 
-$(GO_NOMOD) tool cover -html=cover.out
+	$(GO_NOMOD) tool cover -html=cover.out
 
 include build/make/*.mk
