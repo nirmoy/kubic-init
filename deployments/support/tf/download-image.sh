@@ -45,8 +45,7 @@ WGET_REC_OPTS="-r \
                --no-directories \
                --no-host-directories \
                --no-parent \
-               --accept=*.qcow2 \
-               --accept-regex=$IMG_REGEX"
+               --accept=*.qcow2"
 
 RUN_AT=
 
@@ -137,6 +136,7 @@ done
 ############################################
 
 IMG_GLOB=*$(echo "$IMG_REGEX" | sed -e 's|\.\*|\*|g')*.qcow2
+WGET_REC_OPTS="$WGET_REC_OPTS --accept-regex=$IMG_REGEX"
 
 [ -n "$IMG_LOCAL_NAME" ] || IMG_LOCAL_NAME=$(mktemp /tmp/kubic-image.XXXXXX)
 
