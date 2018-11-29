@@ -94,7 +94,7 @@ $(GO_BIN)/golint:
 .PHONY: check
 check: $(GO_BIN)/golint
 	@test -z $(shell gofmt -l $(KUBIC_INIT_MAIN) | tee /dev/stderr) || echo "[WARN] Fix formatting issues with 'make fmt'"
-	@for d in $$($(GO) list ./... | grep -v /vendor/); do $(GO_BIN)/golint $${d}; done
+	@for d in $$($(GO) list ./... | grep -v /vendor/); do $(GO_BIN)/golint -set_exit_status $${d}; done
 	@$(GO) tool vet ${KUBIC_INIT_SRCS}
 	terraform fmt
 lint: check
