@@ -13,6 +13,7 @@ chpasswd:
   list: |
     root:${password}
   expire: False
+disable_root: false
 
 users:
   - name: qa
@@ -30,7 +31,7 @@ ntp:
     - ntp3.suse.de
 
 runcmd:
-  - /usr/bin/systemctl enable --now ntpd
+  - /usr/bin/systemctl enable --now ntpd || bin/true
   - sed -i -e 's/DHCLIENT_SET_HOSTNAME="yes"/DHCLIENT_SET_HOSTNAME="no"/g' /etc/sysconfig/network/dhcp
 
 ### TODO: this should be replaced by a "kubic" module
