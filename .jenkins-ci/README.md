@@ -15,7 +15,7 @@ Important is that all jenkins workers will have the label `kubic-init` or other 
 
 For setting up a new worker read the following documentation:
 
-# New  Worker requirements:
+# New  Worker requirements for kubic-init:
 
 The new worker should have following requisites for running a kubic-init pipeline.
 
@@ -48,6 +48,8 @@ systemctl enable jenkins-worker.service
 systemctl start jenkins-worker.service
 systemctl status jenkins-worker.service
 ```
+
+3) you should see connected. Go to the master server and execute/create the jenkins pipeline job with the label defined on the worker
 
 # Pipelines
 
