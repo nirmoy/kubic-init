@@ -39,13 +39,13 @@ const (
 	// FlannelClusterRoleName sets the name for the flannel ClusterRole
 	FlannelClusterRoleName = "kubic:flannel"
 
-	// the PSP cluster role
+	// FlannelClusterRoleNamePSP the PSP cluster role
 	FlannelClusterRoleNamePSP = "kubic:psp:flannel"
 
 	// FlannelServiceAccountName describes the name of the ServiceAccount for the flannel addon
 	FlannelServiceAccountName = "kubic-flannel"
 
-	// Default health port for Glannel
+	// FlannelHealthPort Default health port for Glannel
 	FlannelHealthPort = 8471
 )
 

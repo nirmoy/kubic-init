@@ -18,6 +18,7 @@
 package flannel
 
 const (
+	// FlannelConfigMap19 the flannel config map
 	FlannelConfigMap19 = `
 kind: ConfigMap
 apiVersion: v1
@@ -57,7 +58,7 @@ data:
       }
     }
 `
-
+	// FlannelDaemonSet19 flannel deamon set
 	FlannelDaemonSet19 = `
 apiVersion: apps/v1
 kind: DaemonSet

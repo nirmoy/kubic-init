@@ -23,23 +23,26 @@ import (
 	"github.com/kubic-project/kubic-init/pkg/config"
 )
 
-// A CNI plugin is a function that is responsible for setting up everything
-type CniPlugin func(*config.KubicInitConfiguration, clientset.Interface) error
+// Plugin A CNI plugin is a function that is responsible for setting up everything
+type Plugin func(*config.KubicInitConfiguration, clientset.Interface) error
 
-type CniRegistry map[string]CniPlugin
+type registryMap map[string]Plugin
 
-func (registry CniRegistry) Register(name string, plugin CniPlugin) {
+// Register registers a plugin with the cni
+func (registry registryMap) Register(name string, plugin Plugin) {
 	registry[name] = plugin
 }
 
-func (registry CniRegistry) Has(name string) bool {
+// Has checks if it has a registry with the given name
+func (registry registryMap) Has(name string) bool {
 	_, found := registry[name]
 	return found
 }
 
-func (registry CniRegistry) Load(name string, cfg *config.KubicInitConfiguration, client clientset.Interface) error {
+// Load loads a registry
+func (registry registryMap) Load(name string, cfg *config.KubicInitConfiguration, client clientset.Interface) error {
 	return registry[name](cfg, client)
 }
 
-// Global Registry
-var Registry = CniRegistry{}
+// Registry is the Global Registry
+var Registry = registryMap{}

@@ -14,6 +14,7 @@
  * limitations under the License.
  *
  */
+
 package main
 
 import (
@@ -42,11 +43,19 @@ import (
 	"github.com/kubic-project/kubic-init/pkg/loader"
 )
 
-// to be set from the build process
+// Version to be set from the build process
 var Version string
+
+// Build to be set by the build process
 var Build string
+
+// BuildDate to be set by the build process
 var BuildDate string
+
+// Branch to be set by the build process
 var Branch string
+
+// GoVersion to be set by the build process
 var GoVersion string
 
 // newCmdBootstrap returns a "kubic-init bootstrap" command.
