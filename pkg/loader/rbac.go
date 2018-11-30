@@ -14,6 +14,7 @@
  * limitations under the License.
  *
  */
+
 package loader
 
 import (
@@ -53,7 +54,7 @@ type RBACInstallOptions struct {
 	ErrorIfPathMissing bool
 }
 
-// necessary until https://github.com/kubernetes-sigs/controller-tools/pull/77 is merged
+// InstallRBAC necessary until https://github.com/kubernetes-sigs/controller-tools/pull/77 is merged
 func InstallRBAC(kubicCfg *kubiccfg.KubicInitConfiguration, config *rest.Config, options RBACInstallOptions) error {
 
 	cs, err := clientset.NewForConfig(config)
