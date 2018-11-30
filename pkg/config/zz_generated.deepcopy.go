@@ -224,7 +224,7 @@ func (in *NetworkConfiguration) DeepCopyInto(out *NetworkConfiguration) {
 	*out = *in
 	out.Bind = in.Bind
 	out.Cni = in.Cni
-	out.Dns = in.Dns
+	out.DNS = in.DNS
 	out.Proxy = in.Proxy
 	return
 }

@@ -40,7 +40,7 @@ import (
 	kubicutil "github.com/kubic-project/kubic-init/pkg/util"
 )
 
-// The CNI configuration
+// CniConfiguration The CNI configuration
 // Subnets details are specified in the kubeadm configuration file
 type CniConfiguration struct {
 	BinDir  string `json:"binDir,omitempty"`
@@ -49,12 +49,14 @@ type CniConfiguration struct {
 	Image   string `json:"image,omitempty"`
 }
 
+// ClusterFormationConfiguration struct
 type ClusterFormationConfiguration struct {
 	Seeder      string `json:"seeder,omitempty"`
 	Token       string `json:"token,omitempty"`
 	AutoApprove bool   `json:"autoApprove,omitempty"`
 }
 
+// OIDCConfiguration struct
 type OIDCConfiguration struct {
 	Issuer   string `yaml:"issuer,omitempty"`
 	ClientID string `yaml:"clientID,omitempty"`
@@ -63,67 +65,79 @@ type OIDCConfiguration struct {
 	Groups   string `yaml:"groups,omitempty"`
 }
 
+// AuthConfiguration struct
 type AuthConfiguration struct {
 	OIDC OIDCConfiguration `yaml:"OIDC,omitempty"`
 }
 
+// CertsConfiguration struct
 type CertsConfiguration struct {
 	// TODO
 	Directory string `yaml:"directory,omitempty"`
 	CaHash    string `yaml:"caCrtHash,omitempty"`
 }
 
+// DNSConfiguration struct
 type DNSConfiguration struct {
 	Domain       string `yaml:"domain,omitempty"`
 	ExternalFqdn string `yaml:"externalFqdn,omitempty"`
 }
 
+// ProxyConfiguration struct
 type ProxyConfiguration struct {
-	Http       string `yaml:"http,omitempty"`
-	Https      string `yaml:"https,omitempty"`
+	HTTP       string `yaml:"http,omitempty"`
+	HTTPS      string `yaml:"https,omitempty"`
 	NoProxy    string `yaml:"noProxy,omitempty"`
 	SystemWide bool   `yaml:"systemWide,omitempty"`
 }
 
+// BindConfiguration struct
 type BindConfiguration struct {
 	Address   string `yaml:"address,omitempty"`
 	Interface string `yaml:"interface,omitempty"`
 }
 
+// PathsConfigration struct
 type PathsConfigration struct {
 	Kubeadm string `yaml:"kubeadm,omitempty"`
 }
 
+// LocalEtcdConfiguration struct
 type LocalEtcdConfiguration struct {
 	ServerCertSANs []string `yaml:"serverCertSANs,omitempty"`
 	PeerCertSANs   []string `yaml:"peerCertSANs,omitempty"`
 }
 
+// EtcdConfiguration struct
 type EtcdConfiguration struct {
 	LocalEtcd *LocalEtcdConfiguration `yaml:"local,omitempty"`
 }
 
+// NetworkConfiguration struct
 type NetworkConfiguration struct {
 	Bind          BindConfiguration  `yaml:"bind,omitempty"`
 	Cni           CniConfiguration   `yaml:"cni,omitempty"`
-	Dns           DNSConfiguration   `yaml:"dns,omitempty"`
+	DNS           DNSConfiguration   `yaml:"dns,omitempty"`
 	Proxy         ProxyConfiguration `yaml:"proxy,omitempty"`
 	PodSubnet     string             `yaml:"podSubnet,omitempty"`
 	ServiceSubnet string             `yaml:"serviceSubnet,omitempty"`
 }
 
+// RuntimeConfiguration struct
 type RuntimeConfiguration struct {
 	Engine string `yaml:"engine,omitempty"`
 }
 
+// FeaturesConfiguration struct
 type FeaturesConfiguration struct {
 	PSP bool `yaml:"PSP,omitempty"`
 }
 
+// ServicesConfiguration struct
 type ServicesConfiguration struct {
 }
 
-// The kubic-init configuration
+// KubicInitConfiguration The kubic-init configuration
 //
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -156,7 +170,7 @@ var defaultConfiguration = KubicInitConfiguration{
 	Network: NetworkConfiguration{
 		PodSubnet:     DefaultPodSubnet,
 		ServiceSubnet: DefaultServiceSubnet,
-		Dns: DNSConfiguration{
+		DNS: DNSConfiguration{
 			Domain: DefaultDNSDomain,
 		},
 		Cni: CniConfiguration{
@@ -177,8 +191,8 @@ var defaultConfiguration = KubicInitConfiguration{
 	},
 }
 
-// Load a Kubic configuration file, setting some default values
-func ConfigFileAndDefaultsToKubicInitConfig(cfgPath string) (*KubicInitConfiguration, error) {
+// FileAndDefaultsToKubicInitConfig Load a Kubic configuration file, setting some default values
+func FileAndDefaultsToKubicInitConfig(cfgPath string) (*KubicInitConfiguration, error) {
 	var err error
 
 	internalcfg := defaultConfiguration.DeepCopy()
@@ -306,6 +320,7 @@ func (kubicCfg *KubicInitConfiguration) SetVars(vars []string) error {
 	return nil
 }
 
+// IsSeeder returns if the config is a seeder config
 func (kubicCfg KubicInitConfiguration) IsSeeder() bool {
 	return len(kubicCfg.ClusterFormation.Seeder) == 0
 }
@@ -315,46 +330,47 @@ func (kubicCfg KubicInitConfiguration) GetBindIP() (net.IP, error) {
 	if len(kubicCfg.Network.Bind.Interface) > 0 {
 		// TODO: not implemented yet: get the IP address for that interface
 		return net.IP{}, nil
-	} else {
-		defaultAddrStr := "0.0.0.0"
-		if len(kubicCfg.Network.Bind.Address) > 0 {
-			defaultAddrStr = kubicCfg.Network.Bind.Address
-		}
-
-		defaultAddr := net.ParseIP(defaultAddrStr)
-		bindIP, err := utilnet.ChooseBindAddress(defaultAddr)
-		if err != nil {
-			return nil, err
-		}
-		return bindIP, nil
 	}
+
+	defaultAddrStr := "0.0.0.0"
+	if len(kubicCfg.Network.Bind.Address) > 0 {
+		defaultAddrStr = kubicCfg.Network.Bind.Address
+	}
+
+	defaultAddr := net.ParseIP(defaultAddrStr)
+	bindIP, err := utilnet.ChooseBindAddress(defaultAddr)
+	if err != nil {
+		return nil, err
+	}
+	return bindIP, nil
 }
 
 // GetPublicAPIAddress gets a DNS name (or IP address)
 // that can be used for reaching the API server
 func (kubicCfg KubicInitConfiguration) GetPublicAPIAddress() (string, error) {
-	if len(kubicCfg.Network.Dns.ExternalFqdn) > 0 {
-		return kubicCfg.Network.Dns.ExternalFqdn, nil
-	} else {
-		// ok, we don't have a user-provided DNS name, so we
-		// must apply some heuristics...
-
-		// 1. if this is the seeder, there will be an API server running here:
-		// just return the local IP address as the IP address of the API server
-		if kubicCfg.IsSeeder() {
-			localIP, err := utilnet.ChooseHostInterface()
-			if err != nil {
-				return "", err
-			}
-			return localIP.String(), nil
-		}
+	if len(kubicCfg.Network.DNS.ExternalFqdn) > 0 {
+		return kubicCfg.Network.DNS.ExternalFqdn, nil
 	}
+
+	// ok, we don't have a user-provided DNS name, so we
+	// must apply some heuristics...
+
+	// 1. if this is the seeder, there will be an API server running here:
+	// just return the local IP address as the IP address of the API server
+	if kubicCfg.IsSeeder() {
+		localIP, err := utilnet.ChooseHostInterface()
+		if err != nil {
+			return "", err
+		}
+		return localIP.String(), nil
+	}
+
 	return "", fmt.Errorf("cannot determine an public DNS name or address for the API server")
 }
 
-// GetInternalDNSName gets a FQDN DNS name in ther internal network for `name`
+// GetServiceDNSName gets a FQDN DNS name in ther internal network for `name`
 func (kubicCfg KubicInitConfiguration) GetServiceDNSName(obj kubicutil.ObjNamespacer) string {
-	domain := kubicCfg.Network.Dns.Domain
+	domain := kubicCfg.Network.DNS.Domain
 	if len(obj.GetNamespace()) > 0 {
 		return fmt.Sprintf("%s.%s.svc.%s", obj.GetName(), obj.GetNamespace(), domain)
 	}

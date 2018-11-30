@@ -76,7 +76,7 @@ func newCmdBootstrap(out io.Writer) *cobra.Command {
 			glog.V(1).Infof("[kubic] branch:  %s", Branch)
 			glog.V(1).Infof("[kubic] go:      %s", GoVersion)
 
-			kubicCfg, err = kubiccfg.ConfigFileAndDefaultsToKubicInitConfig(kubicCfgFile)
+			kubicCfg, err = kubiccfg.FileAndDefaultsToKubicInitConfig(kubicCfgFile)
 			kubeadmutil.CheckErr(err)
 
 			err = kubicCfg.SetVars(vars)
@@ -170,7 +170,7 @@ func newCmdReset(in io.Reader, out io.Writer) *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			var err error
 
-			kubicCfg, err = kubiccfg.ConfigFileAndDefaultsToKubicInitConfig(kubicCfgFile)
+			kubicCfg, err = kubiccfg.FileAndDefaultsToKubicInitConfig(kubicCfgFile)
 			kubeadmutil.CheckErr(err)
 
 			err = kubicCfg.SetVars(vars)

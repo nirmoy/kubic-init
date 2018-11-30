@@ -46,7 +46,7 @@ func toInitConfig(kubicCfg *config.KubicInitConfiguration, featureGates map[stri
 
 	initCfg := &kubeadmapiv1beta1.InitConfiguration{
 		ClusterConfiguration: kubeadmapiv1beta1.ClusterConfiguration{
-			ControlPlaneEndpoint: kubicCfg.Network.Dns.ExternalFqdn,
+			ControlPlaneEndpoint: kubicCfg.Network.DNS.ExternalFqdn,
 			FeatureGates:         featureGates,
 			APIServer: kubeadmapiv1beta1.APIServer{
 				CertSANs: []string{},
@@ -124,14 +124,14 @@ func toInitConfig(kubicCfg *config.KubicInitConfiguration, featureGates map[stri
 		initCfg.BootstrapTokens = []kubeadmapiv1beta1.BootstrapToken{bto}
 	}
 
-	if len(kubicCfg.Network.Dns.Domain) > 0 {
-		glog.V(3).Infof("[kubic] using DNS domain '%s'", kubicCfg.Network.Dns.Domain)
-		initCfg.Networking.DNSDomain = kubicCfg.Network.Dns.Domain
+	if len(kubicCfg.Network.DNS.Domain) > 0 {
+		glog.V(3).Infof("[kubic] using DNS domain '%s'", kubicCfg.Network.DNS.Domain)
+		initCfg.Networking.DNSDomain = kubicCfg.Network.DNS.Domain
 	}
 
-	if len(kubicCfg.Network.Dns.ExternalFqdn) > 0 {
+	if len(kubicCfg.Network.DNS.ExternalFqdn) > 0 {
 		// TODO: add all the other ExternalFqdn's to the certs
-		initCfg.APIServer.CertSANs = append(initCfg.APIServer.CertSANs, kubicCfg.Network.Dns.ExternalFqdn)
+		initCfg.APIServer.CertSANs = append(initCfg.APIServer.CertSANs, kubicCfg.Network.DNS.ExternalFqdn)
 	}
 
 	glog.V(3).Infof("[kubic] using container engine '%s'", kubicCfg.Runtime.Engine)

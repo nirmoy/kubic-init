@@ -22,29 +22,30 @@ import (
 )
 
 const (
-	// Kubernetes version to deploy
+	// DefaultKubernetesVersion Kubernetes version to deploy
 	DefaultKubernetesVersion = "1.12.2"
 
-	// Default API server port
+	// DefaultAPIServerPort Default API server port
 	DefaultAPIServerPort = 6443
 )
 
 const (
-	// The environment variable used for passing the seeder
+	// DefaultEnvVarSeeder The environment variable used for passing the seeder
 	DefaultEnvVarSeeder = "SEEDER"
 
-	// The environment variable used for passing the token
+	// DefaultEnvVarToken The environment variable used for passing the token
 	DefaultEnvVarToken = "TOKEN"
 
-	// The environment variable used for passing the kubic-manager image
+	// DefaultEnvVarManager The environment variable used for passing the kubic-manager image
 	DefaultEnvVarManager = "MANAGER_IMAGE"
 )
 
 const (
-	// Default runtime engine
+	// DefaultRuntimeEngine Default runtime engine
 	DefaultRuntimeEngine = "crio"
 )
 
+// DefaultCriSocket info
 var DefaultCriSocket = map[string]string{
 	"docker":     "/var/run/dockershim.sock",
 	"crio":       "/var/run/crio/crio.sock",
@@ -83,10 +84,10 @@ const (
 )
 
 const (
-	// the kubic-init image by default
+	// DefaultKubicInitImage the kubic-init image by default
 	DefaultKubicInitImage = "kubic-init:latest"
 
-	// Default kubeadm path
+	// DefaultKubeadmPath Default kubeadm path
 	DefaultKubeadmPath = "/usr/bin/kubeadm"
 )
 
@@ -125,15 +126,18 @@ const (
 
 // OIDC defaults
 const (
+	// Default OIDC client
 	DefaultOIDCClientID = "kubernetes"
 
+	// Default OIDC username
 	DefaultOIDCUsernameClaim = "email"
 
+	// Default OIDC groups
 	DefaultOIDCGroupsClaim = "group"
 )
 
 var (
-	// Default directories for loading RBACs
+	// DefaultManifestsDirs Default directories for loading RBACs
 	DefaultManifestsDirs = []string{
 		"/usr/lib/kubic/config/manifests",
 		"/usr/lib/kubic/manifests",
@@ -142,7 +146,7 @@ var (
 		"config/manifests",
 	}
 
-	// Default directories for loading RBACs
+	// DefaultRBACDirs Default directories for loading RBACs
 	DefaultRBACDirs = []string{
 		"/usr/lib/kubic/config/rbac",
 		"/usr/lib/kubic/rbac",
@@ -151,7 +155,7 @@ var (
 		"config/rbac",
 	}
 
-	// Default directories for loading CRDs
+	// DefaultCRDsDirs Default directories for loading CRDs
 	DefaultCRDsDirs = []string{
 		"/usr/lib/kubic/config/crds",
 		"/usr/lib/kubic/crds",
@@ -163,10 +167,11 @@ var (
 
 // k8s permissions, groups and RBAC defaults
 const (
+	// DefaultClusterAdminRole the default admin role
 	DefaultClusterAdminRole = "cluster-admin"
 )
 
-// Default list of kubelet arguments
+// DefaultKubeletSettings Default list of kubelet arguments
 // Some of these arguments are automatically set by kubeadm
 // (see https://github.com/kubernetes/kubernetes/blob/2c933695fa61d57d1c6fa5defb89caed7d49f773/cmd/kubeadm/app/phases/kubelet/flags.go#L71)
 var DefaultKubeletSettings = map[string]string{
@@ -175,7 +180,7 @@ var DefaultKubeletSettings = map[string]string{
 	"cni-bin-dir":    DefaultCniBinDir,
 }
 
-// Hardcoded list of errors to ignore
+// DefaultIgnoredPreflightErrors Hardcoded list of errors to ignore
 var DefaultIgnoredPreflightErrors = []string{
 	"Service-Docker",
 	"Swap",
@@ -185,6 +190,6 @@ var DefaultIgnoredPreflightErrors = []string{
 	"IsPrivilegedUser",
 }
 
-// Constant set of featureGates
+// DefaultFeatureGates Constant set of featureGates
 // A set of key=value pairs that describe feature gates for various features.
 var DefaultFeatureGates = ""
