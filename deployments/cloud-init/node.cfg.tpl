@@ -13,7 +13,6 @@ chpasswd:
   list: |
     root:${password}
   expire: False
-disable_root: false
 
 users:
   - name: qa
@@ -38,5 +37,7 @@ write_files:
 runcmd:
   - /usr/bin/systemctl enable --now ntpd || bin/true
   - sed -i -e 's/DHCLIENT_SET_HOSTNAME="yes"/DHCLIENT_SET_HOSTNAME="no"/g' /etc/sysconfig/network/dhcp
+  - echo PermitRootLogin yes >> /etc/ssh/sshd_config
+  - systemctl restart sshd
 
 final_message: "The system is finally up, after $UPTIME seconds"

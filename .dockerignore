@@ -1,7 +1,14 @@
-# exclude everything
-**
-
-# ... except some key files/directories:
-!/cmd/**
-!/build/**
-!/config/**
+# ignore all this
+cover.out
+deployments/**
+Dockerfile
+docs/**
+go.*
+hack/**
+init/**
+kubic-init-latest.*
+LICENSE
+Makefile
+pkg/**
+PROJECT
+README.md

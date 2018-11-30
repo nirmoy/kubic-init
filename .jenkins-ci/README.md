@@ -1,16 +1,46 @@
-# Some CI around Jenkins-pipelines:
+# Jenkins-CI:
+
+# Goals:
+
+The goal of this pipelines is to be runned locally, and  independently of jenkins-server.
+
+- terraform
+- terraform-libvirt
+- libvirt-devel and libvirt daemon up and running.
+- proper bashrc in jenkins user (see file `bashrc`)
+- libvirtd.conf well setted ( see conf file.) warning: the file is relaxed on security and is used only as an example. feel free to improve security if you wish
+- golang installed ( kubic-init req.)
+- docker up and running (kubic-init req.)
+- java ( this is needed for the jenkins worker)
+- jenkins user with home dir ( this user should belong to kvm and docker groups, and access all things needed)
+
+## How to create a jenkins-worker quick tutorial.
+
+0) Download the swarm plugin on the server you want to create as Jenkins worker.
+
+https://wiki.jenkins.io/display/JENKINS/Swarm+Plugin
+
+```bash
+wget https://repo.jenkins-ci.org/releases/org/jenkins-ci/plugins/swarm-client/3.9/swarm-client-3.9.jar
+mv swarm-client-3.9.jar /usr/bin
+```
+1) Change name and label on jenkins-worker service. Change/adapt user and password on the unit-service file
+2) copy the service `jenkins-worker.service` and run it
+
+```bash
+cp jenkins-worker.service  /etc/systemd/system/
+systemctl enable jenkins-worker.service
+systemctl start jenkins-worker.service
+systemctl status jenkins-worker.service
+```
+
+# Pipelines
 
 Welcome to kubic-init pipeline.
 
 The goal of this pipelines is to be runned locally, and  independently of jenkins-server.
 
-The only requirement are currently:
-
-`terraform`, `terraform-libvirt-plugin` and libvirt-client plus a kvm server where you will need to have the vms.
-
-# Portability:
-
-By design this pipelines will not rely on external plugin and/or jenknins library.
+So you can run them by using the makefile targets.
 
 # How to create a jenkins-worker quick tutorial.
 
@@ -27,7 +57,7 @@ wget https://repo.jenkins-ci.org/releases/org/jenkins-ci/plugins/swarm-client/3.
 1) Run the swarm plugin on the server you want to make ci-server with ( adapt this command with your PWD and user, and all the vars)
 
 ```bash
-/usr/bin/java -jar /usr/bin/swarm-client-3.9.jar -master https://ci.suse.de/ -disableSslVerification -disableClientsUniqueId -name kubic-ci -description "CI runner used by the kubic" -username containers -password BauBaus -labels kubic-init -executors 3 -mode exclusive -fsroot /home/jenkins/build -deleteExistingClients 
+/usr/bin/java -jar /usr/bin/swarm-client-3.9.jar -master https://ci.suse.de/ -disableSslVerification -disableClientsUniqueId -name kubic-ci -description "CI runner used by the kubic" -username containers -password BauBaus -labels kubic-init -executors 3 -mode exclusive -fsroot /home/jenkins/build -deleteExistingClients
 ```
 
 This will connect the Jenkins worker to the master server.

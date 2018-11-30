@@ -1,54 +1,48 @@
 #!/usr/bin/env groovy
 
 properties([
-    // this is how much we want to keep builds logs
-    buildDiscarder(logRotator(numToKeepStr: '500', daysToKeepStr: '30')),
+    buildDiscarder(logRotator(numToKeepStr: '500', daysToKeepStr: '4')),
     disableConcurrentBuilds(),
 ])
 
-
-// High-level description:
-//
-// this pipeline will deploy kubic-init and run some basic tests on master GitHub branch
-// we assume that this pipeline lives inside the github kubit-init repo, so you will have the terraform files already in place.
-// We will use mainly make targets so you can also run them outside jenkins not depending on it.
-
-// Currently pipeline just deploy and destroy via terraform kubic-init
-// TODO: add real stages
-
-// TODO: use if possible a remote-uri and bridge.
-
-
 pipeline {
-    // the agent is jenkins worker connect to master
-    // we assume this will have terraform + libvirt-terraform + makefile installed
-    agent {  label 'kubic-opensuse'   }
-    // trigger it hourly on master branch
-     triggers { cron('H * * * *') }
-
+  environment { 
+    // avoid root for virsh
+    IMG_SUDO = "TF_VAR_img_sudo_virsh=none"
+    GOPATH= "$HOME/go"
+    PATH = "$PATH:/usr/local/go/bin"
+ 
+   }
+     agent {
+         node {
+          label 'kubic-init'
+          // we want to work on $GOPATH. Take care to run go get -u PRJ the 1st time to worker
+          customWorkspace '/home/jenkins/go/src/github.com/kubic-project/kubic-init'
+        }
+       }
+   // trigger ever 1 hours
+    triggers {
+        cron('H H/1 * * *')
+    }
     stages {
-        stage('Deploy kubic-init vms with terraform-libvirt') {
-            steps {
-                // this will run terraform apply for unit hours max
-                // it can be usefull if we stuck somewhere
-                    timeout(time: 4, unit:'HOURS') {
-			echo 'deploy.. not yet implemented'
-//                      sh 'make tf-full-apply'
-                    }
-                }
-
-        stage('Run 2e2 tests') {
-            steps {
-                echo 'tests.. Not yet implemnted'
-            }
+      
+      stage('Kubic-init build') {
+        steps {
+                echo 'build kubic-init from src'
+                sh "make"
+              }
         }
-
-            }
+      stage('Kubic-init deploy') {
+        steps {
+                echo 'Deploy kubic-init'
+                sh "${IMG_SUDO} make tf-full-apply"
+              }
         }
-    post {
+    }
+   post { 
         always {
-                echo 'cleanup not yet implementd'
-//            sh "make tf-full-destroy"
+            echo 'Destroy env.'
+            sh "make tf-full-nuke"
         }
     }
 }
