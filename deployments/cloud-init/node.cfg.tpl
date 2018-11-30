@@ -13,6 +13,7 @@ chpasswd:
   list: |
     root:${password}
   expire: False
+disable_root: false
 
 users:
   - name: qa
@@ -35,7 +36,7 @@ write_files:
         token: ${token}
 
 runcmd:
-  - /usr/bin/systemctl enable --now ntpd
+  - /usr/bin/systemctl enable --now ntpd || bin/true
   - sed -i -e 's/DHCLIENT_SET_HOSTNAME="yes"/DHCLIENT_SET_HOSTNAME="no"/g' /etc/sysconfig/network/dhcp
 
 final_message: "The system is finally up, after $UPTIME seconds"
