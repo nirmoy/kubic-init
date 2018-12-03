@@ -123,6 +123,10 @@ func newCmdBootstrap(out io.Writer) *cobra.Command {
 				}
 
 				if deployCNI {
+					glog.V(1).Infof("[kubic] preparing CNI")
+					err = cni.Prepare()
+					kubeadmutil.CheckErr(err)
+
 					glog.V(1).Infof("[kubic] deploying CNI DaemonSet with '%s' driver", kubicCfg.Network.Cni.Driver)
 					err = cni.Registry.Load(kubicCfg.Network.Cni.Driver, kubicCfg, client)
 					kubeadmutil.CheckErr(err)
