@@ -2,6 +2,8 @@ GO         := GO111MODULE=on GO15VENDOREXPERIMENT=1 go
 GO_NOMOD   := GO111MODULE=off go
 GO_VERSION := $(shell $(GO) version | sed -e 's/^[^0-9.]*\([0-9.]*\).*/\1/')
 GO_BIN     := $(shell [ -n "${GOBIN}" ] && echo ${GOBIN} || (echo `echo ${GOPATH} | cut -f1 -d':'`/bin))
+GO_VERSION_MAJ := $(shell echo $(GO_VERSION) | cut -f1 -d'.')
+GO_VERSION_MIN := $(shell echo $(GO_VERSION) | cut -f2 -d'.')
 
 SOURCES_DIRS    = cmd pkg
 SOURCES_DIRS_GO = ./pkg/... ./cmd/...
@@ -70,7 +72,11 @@ clean-generated:
 generate: $(DEEPCOPY_GENERATOR) $(DEEPCOPY_GENERATED_FILES)
 .PHONY: generate
 
-$(KUBIC_INIT_EXE): $(KUBIC_INIT_MAIN_SRCS) $(DEEPCOPY_GENERATED_FILES)
+go-version-check:
+	@[ $(GO_VERSION_MAJ) -ge 2 ] || \
+		[ $(GO_VERSION_MAJ) -eq 1 -a $(GO_VERSION_MIN) -ge 11 ] || (echo "FATAL: Go version:$(GO_VERSION) does not support modules" ; exit 1 ; )
+
+$(KUBIC_INIT_EXE): $(KUBIC_INIT_MAIN_SRCS) $(DEEPCOPY_GENERATED_FILES) go-version-check
 	@echo ">>> Building $(KUBIC_INIT_EXE)..."
 	$(GO) build $(KUBIC_INIT_LDFLAGS) -o $(KUBIC_INIT_EXE) $(KUBIC_INIT_MAIN)
 
