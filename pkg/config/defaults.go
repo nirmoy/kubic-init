@@ -23,7 +23,7 @@ import (
 
 const (
 	// DefaultKubernetesVersion Kubernetes version to deploy
-	DefaultKubernetesVersion = "1.12.2"
+	DefaultKubernetesVersion = "1.13.0"
 
 	// DefaultAPIServerPort Default API server port
 	DefaultAPIServerPort = 6443
@@ -42,7 +42,7 @@ const (
 
 const (
 	// DefaultRuntimeEngine Default runtime engine
-	DefaultRuntimeEngine = "crio"
+	DefaultRuntimeEngine = "docker"
 )
 
 // DefaultCriSocket info
@@ -54,7 +54,7 @@ var DefaultCriSocket = map[string]string{
 
 // CNI and network defaults
 const (
-	DefaultCniDriver = "flannel"
+	DefaultCniDriver = "cilium"
 
 	DefaultCniImage = "registry.opensuse.org/devel/caasp/kubic-container/container/kubic/flannel:0.9.1"
 
