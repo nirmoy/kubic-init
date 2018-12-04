@@ -1,5 +1,4 @@
-FROM opensuse/leap:15.0
-
+FROM opensuse:tumbleweed
 
 ENV SYSTEMCTL_FORCE_BUS 1
 ENV DBUS_SYSTEM_BUS_ADDRESS unix:path=/var/run/dbus/system_bus_socket
