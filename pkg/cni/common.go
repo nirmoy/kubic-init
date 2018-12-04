@@ -22,6 +22,7 @@ import (
 	"os"
 
 	"github.com/golang/glog"
+	"github.com/renstrom/dedent"
 )
 
 const (
@@ -45,11 +46,14 @@ const (
 
 // Prepare prepares the CNI deployment
 func Prepare() error {
-	if _, err := os.Stat(DefaultCNIConflist); !os.IsNotExist(err) {
+	if _, err := os.Stat(DefaultCNIConflist); os.IsNotExist(err) {
 		glog.V(1).Infof("[kubic] creating default configuration for CNI in '%s'", DefaultCNIConflist)
-		if err := ioutil.WriteFile(DefaultCNIConflist, []byte(DefaultCNIConflistContents), 0644); err != nil {
+		contents := []byte(dedent.Dedent(DefaultCNIConflistContents))
+		if err := ioutil.WriteFile(DefaultCNIConflist, contents, 0644); err != nil {
 			return err
 		}
+	} else {
+		glog.V(1).Infof("[kubic] default CNI configuration already present at '%s'", DefaultCNIConflist)
 	}
 
 	return nil
