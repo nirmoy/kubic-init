@@ -37,6 +37,7 @@ import (
 	kubicclient "github.com/kubic-project/kubic-init/pkg/client"
 	kubiccluster "github.com/kubic-project/kubic-init/pkg/cluster"
 	"github.com/kubic-project/kubic-init/pkg/cni"
+	_ "github.com/kubic-project/kubic-init/pkg/cni/cilium"
 	_ "github.com/kubic-project/kubic-init/pkg/cni/flannel"
 	kubiccfg "github.com/kubic-project/kubic-init/pkg/config"
 	"github.com/kubic-project/kubic-init/pkg/kubeadm"
