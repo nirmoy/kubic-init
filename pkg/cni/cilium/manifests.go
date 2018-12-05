@@ -36,7 +36,7 @@ data:
   etcd-config: |-
     ---
     endpoints:
-    - localhost:2073
+    - https://localhost:2379
     #
     # In case you want to use TLS in etcd, uncomment the following line
     # and add the certificate as explained in the comment labeled "ETCD-CERT"
