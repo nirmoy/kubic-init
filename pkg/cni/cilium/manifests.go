@@ -55,69 +55,6 @@ data:
 	// CiliumDaemonSet cilium deamon set
 	CiliumDaemonSet = `
 ---
-kind: ClusterRole
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: cilium
-rules:
-- apiGroups:
-  - "networking.k8s.io"
-  resources:
-  - networkpolicies
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - ""
-  resources:
-  - namespaces
-  - services
-  - nodes
-  - endpoints
-  - componentstatuses
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - ""
-  resources:
-  - pods
-  - nodes
-  verbs:
-  - get
-  - list
-  - watch
-  - update
-- apiGroups:
-  - extensions
-  resources:
-  - networkpolicies #FIXME remove this when we drop support for k8s NP-beta GH-1202
-  - thirdpartyresources
-  - ingresses
-  verbs:
-  - create
-  - get
-  - list
-  - watch
-- apiGroups:
-  - "apiextensions.k8s.io"
-  resources:
-  - customresourcedefinitions
-  verbs:
-  - create
-  - get
-  - list
-  - watch
-  - update
-- apiGroups:
-  - cilium.io
-  resources:
-  - ciliumnetworkpolicies
-  - ciliumendpoints
-  verbs:
-- "*"
 kind: DaemonSet
 apiVersion: apps/v1
 metadata:
@@ -148,7 +85,7 @@ spec:
         scheduler.alpha.kubernetes.io/tolerations: >-
           [{"key":"dedicated","operator":"Equal","value":"master","effect":"NoSchedule"}]
     spec:
-      serviceAccountName: {{ .ServiceAccountName }}
+      serviceAccountName: cilium
       initContainers:
       - name: install-cni-conf
         image: kubic/cilium:1.2

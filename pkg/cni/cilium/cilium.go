@@ -144,19 +144,17 @@ func EnsureCiliumAddon(cfg *config.KubicInitConfiguration, client clientset.Inte
 
 	ciliumDaemonSetBytes, err = kubeadmutil.ParseTemplate(CiliumDaemonSet,
 		struct {
-			Image              string
-			LogLevel           int
-			HealthzPort        int
-			ConfDir            string
-			BinDir             string
-			ServiceAccountName string
+			Image       string
+			LogLevel    int
+			HealthzPort int
+			ConfDir     string
+			BinDir      string
 		}{
 			cfg.Network.Cni.Image,
 			1, // TODO: replace by some config arg
 			CiliumHealthPort,
 			cfg.Network.Cni.ConfDir,
 			cfg.Network.Cni.BinDir,
-			CiliumServiceAccountName,
 		})
 
 	if err != nil {
