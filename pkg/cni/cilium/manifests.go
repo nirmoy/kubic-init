@@ -26,7 +26,6 @@ metadata:
   name: cilium-config
   namespace: kube-system
   labels:
-    tier: node
     app: cilium
 data:
   # This etcd-config contains the etcd endpoints of your cluster. If you use
@@ -61,7 +60,6 @@ metadata:
   name: cilium
   namespace: kube-system
   labels:
-    tier: node
     k8s-app: cilium
 spec:
   updateStrategy:
@@ -73,12 +71,10 @@ spec:
       maxUnavailable: "100%"
   selector:
     matchLabels:
-      tier: node
       k8s-app: cilium
   template:
     metadata:
       labels:
-        tier: node
         k8s-app: cilium
       annotations:
         scheduler.alpha.kubernetes.io/critical-pod: ''
@@ -225,5 +221,37 @@ spec:
       - key: CriticalAddonsOnly
         operator: "Exists"
 
+`
+	CiliumClusterRoleBinding = `
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: cilium
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cilium
+subjects:
+- kind: ServiceAccount
+  name: cilium
+  namespace: kube-system
+- kind: Group
+  name: system:nodes
+`
+	CiliumClusterRoleBindingPSP = `
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: suse:caasp:psp:cilium
+roleRef:
+  kind: ClusterRole
+  name: suse:caasp:psp:privileged
+  apiGroup: rbac.authorization.k8s.io
+subjects:
+- kind: ServiceAccount
+  name: cilium
+  namespace: kube-system
 `
 )
