@@ -26,6 +26,7 @@ metadata:
   name: cilium-config
   namespace: kube-system
   labels:
+    tier: node
     app: cilium
 data:
   # This etcd-config contains the etcd endpoints of your cluster. If you use
@@ -60,6 +61,7 @@ metadata:
   name: cilium
   namespace: kube-system
   labels:
+    tier: node
     k8s-app: cilium
 spec:
   updateStrategy:
@@ -75,6 +77,7 @@ spec:
   template:
     metadata:
       labels:
+        tier: node
         k8s-app: cilium
       annotations:
         scheduler.alpha.kubernetes.io/critical-pod: ''
