@@ -128,7 +128,7 @@ func EnsureCiliumAddon(cfg *config.KubicInitConfiguration, client clientset.Inte
 		return fmt.Errorf("error when creating cilium service account: %v", err)
 	}
 
-	var ciliumConfigMapBytes, ciliumDaemonSetBytes, ciliumcrbBytes, ciliumpsp []byte
+	var ciliumConfigMapBytes, ciliumDaemonSetBytes, ciliumcrbBytes, ciliumpsp, ciliumrole []byte
 	ciliumConfigMapBytes, err := kubeadmutil.ParseTemplate(CiliumConfigMap,
 		struct {
 			Network string
@@ -185,12 +185,25 @@ func EnsureCiliumAddon(cfg *config.KubicInitConfiguration, client clientset.Inte
 	if err != nil {
 		return fmt.Errorf("error when parsing cilium ClusterRoleBindingPSP template: %v", err)
 	}
-	if err := createCiliumAddon(ciliumConfigMapBytes, ciliumDaemonSetBytes, ciliumcrbBytes, ciliumpsp, client); err != nil {
-		return err
+	ciliumrole, err = kubeadmutil.ParseTemplate(CiliumClusterRole19,
+		struct {
+			ANetwork string
+			ABackend string
+		}{
+			cfg.Network.PodSubnet,
+			"vxlan", // TODO: replace by some config arg
+		})
+
+	if err != nil {
+		return fmt.Errorf("error when parsing cilium CiliumClusterRole template: %v", err)
 	}
 
 	if err := createRBACRules(client, cfg.Features.PSP); err != nil {
 		return fmt.Errorf("error when creating cilium RBAC rules: %v", err)
+	}
+
+	if err := createCiliumAddon(ciliumConfigMapBytes, ciliumDaemonSetBytes, ciliumcrbBytes, ciliumpsp, ciliumrole, client); err != nil {
+		return err
 	}
 
 	glog.V(1).Infof("[kubic] installed cilium CNI driver")
@@ -202,7 +215,7 @@ func createServiceAccount(client clientset.Interface) error {
 	return apiclient.CreateOrUpdateServiceAccount(client, &serviceAccount)
 }
 
-func createCiliumAddon(configMapBytes, daemonSetbytes, crbBytes, psp []byte, client clientset.Interface) error {
+func createCiliumAddon(configMapBytes, daemonSetbytes, crbBytes, psp, crole []byte, client clientset.Interface) error {
 	ciliumConfigMap := &v1.ConfigMap{}
 	if err := kuberuntime.DecodeInto(clientsetscheme.Codecs.UniversalDecoder(), configMapBytes, ciliumConfigMap); err != nil {
 		return fmt.Errorf("unable to decode cilium configmap %v", err)
@@ -227,9 +240,10 @@ func createCiliumAddon(configMapBytes, daemonSetbytes, crbBytes, psp []byte, cli
 	if err := kuberuntime.DecodeInto(clientsetscheme.Codecs.UniversalDecoder(), crbBytes, ciliumrbac); err != nil {
 		return fmt.Errorf("unable to decode cilium rbac %v", err)
 	}
+
 	ciliumpsp := &rbac.ClusterRoleBinding{}
 	if err := kuberuntime.DecodeInto(clientsetscheme.Codecs.UniversalDecoder(), psp, ciliumpsp); err != nil {
-		return fmt.Errorf("unable to decode cilium rbac %v", err)
+		return fmt.Errorf("unable to decode cilium psp %v", err)
 	}
 	fmt.Print("**\n")
 	fmt.Print(*ciliumrbac)
@@ -240,7 +254,14 @@ func createCiliumAddon(configMapBytes, daemonSetbytes, crbBytes, psp []byte, cli
 		return fmt.Errorf("unable to decode cilium ciliumrbac %v", err)
 	}
 
-	return apiclient.CreateOrUpdateClusterRoleBinding(client, ciliumpsp)
+	if err := apiclient.CreateOrUpdateClusterRoleBinding(client, ciliumpsp); err != nil {
+		return fmt.Errorf("unable to decode cilium ciliumpsp %v", err)
+	}
+	ciliumrole := &rbac.ClusterRole{}
+	if err := kuberuntime.DecodeInto(clientsetscheme.Codecs.UniversalDecoder(), crole, ciliumrole); err != nil {
+		return fmt.Errorf("unable to decode cilium cluster role %v", err)
+	}
+	return apiclient.CreateOrUpdateClusterRole(client, ciliumrole)
 
 }
 
