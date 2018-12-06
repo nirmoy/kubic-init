@@ -104,27 +104,6 @@ while [ $# -gt 0 ] ; do
     --debug)
       set -x
       ;;
-    --sudo-virsh)
-      case $2 in
-      local)
-        LOCAL_VIRSH="sudo virsh"
-        REM_VIRSH="virsh"
-        ;;
-      remote)
-        LOCAL_VIRSH="virsh"
-        REM_VIRSH="sudo virsh"
-        ;;
-      both)
-        LOCAL_VIRSH="sudo virsh"
-        REM_VIRSH="sudo virsh"
-        ;;
-      none)
-        LOCAL_VIRSH="virsh"
-        REM_VIRSH="virsh"
-        ;;
-      esac
-      shift
-      ;;
     *)
       echo "Unknown argument $1"
       exit 1

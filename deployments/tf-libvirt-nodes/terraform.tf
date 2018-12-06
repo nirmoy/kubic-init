@@ -55,11 +55,6 @@ variable "img_down_extra_args" {
   description = "Extra arguments for the images downloader"
 }
 
-variable "img_sudo_virsh" {
-  default     = "local"
-  description = "Run virsh wioth sudo on [local|remote|both]"
-}
-
 variable "img_regex" {
   type        = "string"
   default     = "kubeadm-cri-o-kvm-and-xen"
@@ -140,7 +135,7 @@ resource "null_resource" "download_kubic_image" {
   count = "${length(var.img_url_base) == 0 ? 0 : 1}"
 
   provisioner "local-exec" {
-    command = "../support/tf/download-image.sh --img-regex '${var.img_regex}' --libvirt-uri '${var.libvirt_uri}' --sudo-virsh '${var.img_sudo_virsh}' --src-base '${var.img_url_base}' --refresh '${var.img_refresh}' --local '${var.img}' --upload-to-img '${var.prefix}_base_${basename(var.img)}' --upload-to-pool '${var.img_pool}' --src-filename '${var.img_src_filename}' ${var.img_down_extra_args}"
+    command = "../support/tf/download-image.sh --img-regex '${var.img_regex}' --libvirt-uri '${var.libvirt_uri}' --src-base '${var.img_url_base}' --refresh '${var.img_refresh}' --local '${var.img}' --upload-to-img '${var.prefix}_base_${basename(var.img)}' --upload-to-pool '${var.img_pool}' --src-filename '${var.img_src_filename}' ${var.img_down_extra_args}"
   }
 }
 
