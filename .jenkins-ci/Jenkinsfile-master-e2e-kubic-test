@@ -7,8 +7,6 @@ properties([
 
 pipeline {
   environment { 
-    // avoid root for virsh
-    IMG_SUDO = "TF_VAR_img_sudo_virsh=none"
     GOPATH= "$HOME/go"
     PATH = "$PATH:/usr/local/go/bin"
  
@@ -35,7 +33,7 @@ pipeline {
       stage('Kubic-init deploy') {
         steps {
                 echo 'Deploy kubic-init'
-                sh "${IMG_SUDO} make tf-full-apply"
+                sh "make tf-full-apply"
               }
         }
     }
