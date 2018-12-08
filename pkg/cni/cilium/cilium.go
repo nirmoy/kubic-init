@@ -37,7 +37,7 @@ import (
 
 const (
 	// CiliumClusterRoleName sets the name for the cilium ClusterRole
-	CiliumClusterRoleName = "kubic:cilium"
+	CiliumClusterRoleName = "cilium"
 
 	// CiliumClusterRoleNamePSP the PSP cluster role
 	CiliumClusterRoleNamePSP = "kubic:psp:cilium"
@@ -63,19 +63,34 @@ var (
 		},
 		Rules: []rbac.PolicyRule{
 			{
-				APIGroups: []string{""},
-				Resources: []string{"pods"},
-				Verbs:     []string{"get"},
+				APIGroups: []string{"networking.k8s.io"},
+				Resources: []string{"networkpolicies"},
+				Verbs:     []string{"get", "list", "watch"},
 			},
 			{
 				APIGroups: []string{""},
-				Resources: []string{"nodes"},
-				Verbs:     []string{"list", "watch"},
+				Resources: []string{"namespace", "services", "nodes", "endpoints", "componentstatuses"},
+				Verbs:     []string{"get", "list", "watch"},
 			},
 			{
 				APIGroups: []string{""},
-				Resources: []string{"nodes/status"},
-				Verbs:     []string{"patch"},
+				Resources: []string{"pods", "nodes"},
+				Verbs:     []string{"get", "list", "watch", "update"},
+			},
+			{
+				APIGroups: []string{"extensions"},
+				Resources: []string{"networkpolicies", "thirdpartyresources", "ingresses"},
+				Verbs:     []string{"get", "list", "watch", "create"},
+			},
+			{
+				APIGroups: []string{"apiextensions.k8s.io"},
+				Resources: []string{"customresourcedefinitions"},
+				Verbs:     []string{"create", "get", "list", "watch", "update"},
+			},
+			{
+				APIGroups: []string{"cilium.io"},
+				Resources: []string{"ciliumnetworkpolicies", "ciliumendpoints"},
+				Verbs:     []string{"*"},
 			},
 		},
 	}
@@ -236,31 +251,32 @@ func createCiliumAddon(configMapBytes, daemonSetbytes, crbBytes, psp, crole []by
 		return err
 	}
 
-	ciliumrbac := &rbac.ClusterRoleBinding{}
-	if err := kuberuntime.DecodeInto(clientsetscheme.Codecs.UniversalDecoder(), crbBytes, ciliumrbac); err != nil {
-		return fmt.Errorf("unable to decode cilium rbac %v", err)
-	}
+	//ciliumrbac := &rbac.ClusterRoleBinding{}
+	//if err := kuberuntime.DecodeInto(clientsetscheme.Codecs.UniversalDecoder(), crbBytes, ciliumrbac); err != nil {
+	//	return fmt.Errorf("unable to decode cilium rbac %v", err)
+	//}
 
-	ciliumpsp := &rbac.ClusterRoleBinding{}
-	if err := kuberuntime.DecodeInto(clientsetscheme.Codecs.UniversalDecoder(), psp, ciliumpsp); err != nil {
-		return fmt.Errorf("unable to decode cilium psp %v", err)
-	}
+	//ciliumpsp := &rbac.ClusterRoleBinding{}
+	//if err := kuberuntime.DecodeInto(clientsetscheme.Codecs.UniversalDecoder(), psp, ciliumpsp); err != nil {
+	//	return fmt.Errorf("unable to decode cilium psp %v", err)
+	//}
+	//fmt.Print("**\n")
+	//fmt.Print(*ciliumrbac)
 	fmt.Print("**\n")
-	fmt.Print(*ciliumrbac)
+	//fmt.Print(*ciliumpsp)
 	fmt.Print("**\n")
-	fmt.Print(*ciliumpsp)
-	fmt.Print("**\n")
-	if err := apiclient.CreateOrUpdateClusterRoleBinding(client, ciliumrbac); err != nil {
-		return fmt.Errorf("unable to decode cilium ciliumrbac %v", err)
-	}
+	//if err := apiclient.CreateOrUpdateClusterRoleBinding(client, ciliumrbac); err != nil {
+	//	return fmt.Errorf("unable to decode cilium ciliumrbac %v", err)
+	//}
 
-	if err := apiclient.CreateOrUpdateClusterRoleBinding(client, ciliumpsp); err != nil {
-		return fmt.Errorf("unable to decode cilium ciliumpsp %v", err)
-	}
+	//if err := apiclient.CreateOrUpdateClusterRoleBinding(client, ciliumpsp); err != nil {
+	//	return fmt.Errorf("unable to decode cilium ciliumpsp %v", err)
+	//}
 	ciliumrole := &rbac.ClusterRole{}
 	if err := kuberuntime.DecodeInto(clientsetscheme.Codecs.UniversalDecoder(), crole, ciliumrole); err != nil {
 		return fmt.Errorf("unable to decode cilium cluster role %v", err)
 	}
+	fmt.Print(*ciliumrole)
 	return apiclient.CreateOrUpdateClusterRole(client, ciliumrole)
 
 }

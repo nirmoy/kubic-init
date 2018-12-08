@@ -215,14 +215,7 @@ spec:
             path: /etc/kubernetes/pki/
       restartPolicy: Always
       tolerations:
-      - effect: NoSchedule
-        key: node-role.kubernetes.io/master
-      - effect: NoSchedule
-        key: node.cloudprovider.kubernetes.io/uninitialized
-        value: "true"
-      # Mark cilium's pod as critical for rescheduling
-      - key: CriticalAddonsOnly
-        operator: "Exists"
+      - operator: "Exists"
 
 `
 	CiliumClusterRoleBinding = `
