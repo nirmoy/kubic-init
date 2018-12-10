@@ -22,3 +22,4 @@ robots.txt*
 config/rbac/*
 config/crds/*
 cover.out
+*.coverprofile

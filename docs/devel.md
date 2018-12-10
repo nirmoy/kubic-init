@@ -1,13 +1,5 @@
 # Development environment for `kubic-init`
 
-## Community
-
-Currently the Kubic-init project lives inside the kubic echosystem.
-
-If you have a question to ask? Want to join in the disscussion? Find community information including chat and mailing lists on the main [Kubic](https://en.opensuse.org/Portal:Kubic) page.
-
-Want to get involved but don't know what to do? Try looking at our github [issues](https://github.com/kubic-project/kubic-init/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) and use the tags `good first issue` or `help wanted`!
-
 ## Project structure
 
 This project follows the conventions presented in the [standard Golang
@@ -35,28 +27,27 @@ A simple `make` should be enough. This should compile [the main
 function](../cmd/kubic-init/main.go) and generate a `kubic-init` binary as
 well as a _Docker_ image.
 
-## Making a Pull Request
-
-Have a PR(Pull Request) you would like to make to the project? Here are a few helpful tips to ensure that the PR moves along quickly!
-
- - make sure all files pass gofmt.
- - run the existing unit tests locally.
- - squash your commits into one. Our goal is to have one meaningful change per commit.
- - when making the PR, ensure you explain the reason for the PR and or link the issue it solves.
-
-## Running tests
+## Running unit-tests
 
 Unit tests can be run using `make test`
 
+## Run e2e tests
+
+Once you have a deployed cluster, you can run the e2e tests on this cluster.
+
+0) Deploy `make tf-full-apply`
+
+1) Once you have the cluster in `kubic-init/tests` directory do :
+
+```bash
+SEEDER=192.168.122.73 ./run_suites.sh
+```
+
+Developing test guide is here: [E2E-TESTS](../tests/README.md)
+
 ### Code Coverage:
 
-Run first the tests.
-
-Then you can visualize the profile in html format:
-
-`go tool cover -html=cover.out`
-
-or use the `make coverage` target
+Run first the tests. Then use `make coverage` for visualizing coverage.
 
 Feel free to read more about this on : https://blog.golang.org/cover.
 
@@ -164,3 +155,12 @@ have combinations of a seeder and regular nodes. For example:
    
 Once you are done with your cluster, a `make tf-*-destroy` will
 destroy the cluster.
+
+## Community
+
+Currently the Kubic-init project lives inside the kubic echosystem.
+
+If you have a question to ask? Want to join in the disscussion? Find community information including chat and mailing lists on the main [Kubic](https://en.opensuse.org/Portal:Kubic) page.
+
+Want to get involved but don't know what to do? Try looking at our github [issues](https://github.com/kubic-project/kubic-init/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) and use the tags `good first issue` or `help wanted`!
+
