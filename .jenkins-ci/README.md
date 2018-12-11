@@ -4,6 +4,7 @@
 
 The goal of this pipelines is to be runned locally, and  independently of jenkins-server.
 
+# Prerequisites for running a kubic-init pipeline
 - terraform
 - terraform-libvirt
 - libvirt-devel and libvirt daemon up and running.
@@ -14,33 +15,6 @@ The goal of this pipelines is to be runned locally, and  independently of jenkin
 - java ( this is needed for the jenkins worker)
 - jenkins user with home dir ( this user should belong to kvm and docker groups, and access all things needed)
 
-## How to create a jenkins-worker quick tutorial.
-
-0) Download the swarm plugin on the server you want to create as Jenkins worker.
-
-https://wiki.jenkins.io/display/JENKINS/Swarm+Plugin
-
-```bash
-wget https://repo.jenkins-ci.org/releases/org/jenkins-ci/plugins/swarm-client/3.9/swarm-client-3.9.jar
-mv swarm-client-3.9.jar /usr/bin
-```
-1) Change name and label on jenkins-worker service. Change/adapt user and password on the unit-service file
-2) copy the service `jenkins-worker.service` and run it
-
-```bash
-cp jenkins-worker.service  /etc/systemd/system/
-systemctl enable jenkins-worker.service
-systemctl start jenkins-worker.service
-systemctl status jenkins-worker.service
-```
-
-# Pipelines
-
-Welcome to kubic-init pipeline.
-
-The goal of this pipelines is to be runned locally, and  independently of jenkins-server.
-
-So you can run them by using the makefile targets.
 
 # How to create a jenkins-worker quick tutorial.
 
