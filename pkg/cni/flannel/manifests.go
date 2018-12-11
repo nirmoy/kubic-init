@@ -163,6 +163,9 @@ spec:
         # Mark the pod as a critical add-on for rescheduling.
         - key: "CriticalAddonsOnly"
           operator: "Exists"
+        - key: node.kubernetes.io/not-ready
+          operator: Exists
+          effect: NoSchedule
       volumes:
         - name: run
           hostPath:

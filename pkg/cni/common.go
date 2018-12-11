@@ -26,7 +26,7 @@ import (
 )
 
 const (
-	// DefaultCNIConflist is the default confinguration for CNI
+	// DefaultCNIConflist is the default configuration for CNI
 	DefaultCNIConflist = "/etc/cni/net.d/default.conflist"
 
 	// DefaultCNIConflistContents is the default contents in the CNI file
