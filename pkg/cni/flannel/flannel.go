@@ -142,6 +142,11 @@ func EnsureFlannelAddon(cfg *config.KubicInitConfiguration, client clientset.Int
 		return fmt.Errorf("error when parsing flannel configmap template: %v", err)
 	}
 
+	image := cfg.Network.Cni.Image
+	if len(image) == 0 {
+		image = config.DefaultFlannelImage
+	}
+
 	flannelDaemonSetBytes, err = kubeadmutil.ParseTemplate(FlannelDaemonSet19,
 		struct {
 			Image          string
@@ -151,7 +156,7 @@ func EnsureFlannelAddon(cfg *config.KubicInitConfiguration, client clientset.Int
 			BinDir         string
 			ServiceAccount string
 		}{
-			cfg.Network.Cni.Image,
+			image,
 			1, // TODO: replace by some config arg
 			FlannelHealthPort,
 			cfg.Network.Cni.ConfDir,

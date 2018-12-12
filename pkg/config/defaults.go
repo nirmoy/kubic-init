@@ -56,7 +56,8 @@ var DefaultCriSocket = map[string]string{
 const (
 	DefaultCniDriver = "flannel"
 
-	DefaultCniImage = "registry.opensuse.org/devel/caasp/kubic-container/container/kubic/flannel:0.9.1"
+	DefaultFlannelImage = "registry.opensuse.org/devel/caasp/kubic-container/container/kubic/flannel:0.9.1"
+	DefaultCiliumImage  = "registry.opensuse.org/devel/caasp/kubic-container/container/kubic/cilium:1.2"
 
 	// Default directory for CNI binaries
 	DefaultCniBinDir = "/var/lib/kubelet/cni/bin"
