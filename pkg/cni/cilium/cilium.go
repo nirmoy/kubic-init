@@ -206,6 +206,11 @@ func EnsureCiliumAddon(cfg *config.KubicInitConfiguration, client clientset.Inte
 		return fmt.Errorf("error when creating cilium secret  %v", err)
 	}
 
+	image := cfg.Network.Cni.Image
+	if len(image) == 0 {
+		image = config.DefaultCiliumImage
+	}
+
 	ciliumDaemonSetBytes, err = kubeadmutil.ParseTemplate(CiliumDaemonSet,
 		struct {
 			Image          string
@@ -214,7 +219,7 @@ func EnsureCiliumAddon(cfg *config.KubicInitConfiguration, client clientset.Inte
 			SecretName     string
 			ServiceAccount string
 		}{
-			cfg.Network.Cni.Image,
+			image,
 			cfg.Network.Cni.ConfDir,
 			cfg.Network.Cni.BinDir,
 			CiliumCertSecret,

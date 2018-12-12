@@ -177,7 +177,6 @@ var defaultConfiguration = KubicInitConfiguration{
 			Driver:  DefaultCniDriver,
 			BinDir:  DefaultCniBinDir,
 			ConfDir: DefaultCniConfDir,
-			Image:   DefaultCniImage,
 		},
 	},
 	ClusterFormation: ClusterFormationConfiguration{
