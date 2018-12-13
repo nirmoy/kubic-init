@@ -66,4 +66,7 @@ kind: KubicInitConfiguration
 #     externalFqdn: some.name.com
 #   cni:
 #     driver: flannel
+#     # the CNI driver image
+#     # do not set this unless you _really_ want to use something different that the
+#     # default one (ie, for using a experimental version)
 #     image: registry.opensuse.org/devel/caasp/kubic-container/container/kubic/flannel:0.9.1
