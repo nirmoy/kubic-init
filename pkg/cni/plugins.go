@@ -18,6 +18,8 @@
 package cni
 
 import (
+	"fmt"
+
 	clientset "k8s.io/client-go/kubernetes"
 
 	"github.com/kubic-project/kubic-init/pkg/config"
@@ -41,7 +43,11 @@ func (registry registryMap) Has(name string) bool {
 
 // Load loads a registry
 func (registry registryMap) Load(name string, cfg *config.KubicInitConfiguration, client clientset.Interface) error {
-	return registry[name](cfg, client)
+	if registry.Has(name) {
+		return registry[name](cfg, client)
+	}
+
+	return fmt.Errorf("%s cni plugin is not supported", name)
 }
 
 // Registry is the Global Registry
