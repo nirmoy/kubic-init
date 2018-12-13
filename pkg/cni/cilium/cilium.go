@@ -222,6 +222,7 @@ func EnsureCiliumAddon(cfg *config.KubicInitConfiguration, client clientset.Inte
 		image = config.DefaultCiliumImage
 	}
 
+	glog.V(1).Infof("[kubic] using %s as cni image", image)
 	ciliumDaemonSetBytes, err = kubeadmutil.ParseTemplate(CiliumDaemonSet,
 		struct {
 			Image          string
