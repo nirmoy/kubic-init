@@ -1,7 +1,7 @@
-GO         := GO111MODULE=on GO15VENDOREXPERIMENT=1 go
-GO_NOMOD   := GO111MODULE=off go
-GO_VERSION := $(shell $(GO) version | sed -e 's/^[^0-9.]*\([0-9.]*\).*/\1/')
-GO_BIN     := $(shell [ -n "${GOBIN}" ] && echo ${GOBIN} || (echo `echo ${GOPATH} | cut -f1 -d':'`/bin))
+GO             := GO111MODULE=on GO15VENDOREXPERIMENT=1 go
+GO_NOMOD       := GO111MODULE=off go
+GO_VERSION     := $(shell $(GO) version | sed -e 's/^[^0-9.]*\([0-9.]*\).*/\1/')
+GO_BIN         := $(shell [ -n "${GOBIN}" ] && echo ${GOBIN} || (echo `echo ${GOPATH} | cut -f1 -d':'`/bin))
 GO_VERSION_MAJ := $(shell echo $(GO_VERSION) | cut -f1 -d'.')
 GO_VERSION_MIN := $(shell echo $(GO_VERSION) | cut -f2 -d'.')
 
@@ -45,10 +45,10 @@ all: $(KUBIC_INIT_EXE)
 
 print-version:
 	@echo "kubic-init version: $(KUBIC_INIT_VERSION)"
-	@echo "kubic-init build: $(KUBIC_INIT_BUILD)"
-	@echo "kubic-init branch: $(KUBIC_INIT_BRANCH)"
-	@echo "kubic-init date: $(KUBIC_INIT_BUILD_DATE)"
-	@echo "go: $(GO_VERSION)"
+	@echo "kubic-init build:   $(KUBIC_INIT_BUILD)"
+	@echo "kubic-init branch:  $(KUBIC_INIT_BRANCH)"
+	@echo "kubic-init date:    $(KUBIC_INIT_BUILD_DATE)"
+	@echo "go:                 $(GO_VERSION)"
 
 # NOTE: deepcopy-gen doesn't support go1.11's modules, so we must 'go get' it
 $(DEEPCOPY_GENERATOR):
