@@ -18,8 +18,26 @@
 package cilium
 
 const (
-	// CiliumConfigMap is the cilium configuration file
-	CiliumConfigMap = `
+	// CiliumCniConfigMap the config map for cni config
+	CiliumCniConfigMap = `
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: cilium-cni-config-map
+  namespace: kube-system
+  labels:
+    tier: node
+    app: cilium
+data:
+  cni-conf.json: |
+    {
+        "name": "cilium",
+        "type": "cilium-cni"
+    }
+`
+
+	// CiliumConfigMap the config map for etcd credentials
+	CiliumEtcdConfigMap = `
 kind: ConfigMap
 apiVersion: v1
 metadata:
@@ -92,10 +110,13 @@ spec:
         command:
           - /bin/sh
           - "-c"
-          - "cp -f /etc/cni/net.d/10-cilium-cni.conf /host/etc/cni/net.d/10-cilium-cni.conf"
+          - "cp -f /etc/cilium-cni/cni-conf.json /host/etc/cni/net.d/10-cilium-cni.conf"
         volumeMounts:
         - name: host-cni-conf
           mountPath: /host/etc/cni/net.d
+        - name: cilium-cni-config
+          mountPath: /etc/cilium-cni/
+
       - name: install-cni-bin
         image: {{ .Image }}
         command:
@@ -213,6 +234,9 @@ spec:
         - name: cilium-etcd-secret-mount
           secret:
             secretName: {{.SecretName}}
+        - name: cilium-cni-config
+          configMap:
+            name: cilium-cni-config-map
             
       restartPolicy: Always
       tolerations:
