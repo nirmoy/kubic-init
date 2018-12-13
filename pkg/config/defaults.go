@@ -23,7 +23,7 @@ import (
 
 const (
 	// DefaultKubernetesVersion Kubernetes version to deploy
-	DefaultKubernetesVersion = "1.12.2"
+	DefaultKubernetesVersion = "1.13.0"
 
 	// DefaultAPIServerPort Default API server port
 	DefaultAPIServerPort = 6443
