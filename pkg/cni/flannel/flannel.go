@@ -147,6 +147,7 @@ func EnsureFlannelAddon(cfg *config.KubicInitConfiguration, client clientset.Int
 		image = config.DefaultFlannelImage
 	}
 
+	glog.V(1).Infof("[kubic] using %s as cni image", image)
 	flannelDaemonSetBytes, err = kubeadmutil.ParseTemplate(FlannelDaemonSet19,
 		struct {
 			Image          string
