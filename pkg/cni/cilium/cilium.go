@@ -154,7 +154,7 @@ func init() {
 // EnsureCiliumAddon creates the cilium addons
 func EnsureCiliumAddon(cfg *config.KubicInitConfiguration, client clientset.Interface) error {
 	etcdDir := strings.Join([]string{cfg.Certificates.Directory, "/etcd"}, "")
-	var ciliumConfigMapBytes, ciliumDaemonSetBytes []byte
+	var ciliumCniConfigMapBytes, ciliumEtcdConfigMapBytes, ciliumDaemonSetBytes []byte
 
 	caCert, caKey, err := pkiutil.TryLoadCertAndKeyFromDisk(etcdDir, "ca")
 	if err != nil {
@@ -179,7 +179,7 @@ func EnsureCiliumAddon(cfg *config.KubicInitConfiguration, client clientset.Inte
 		return fmt.Errorf("error when trying to retrieve etcd server IP %v", err)
 	}
 
-	ciliumConfigMapBytes, err = kubeadmutil.ParseTemplate(CiliumConfigMap,
+	ciliumCniConfigMapBytes, err = kubeadmutil.ParseTemplate(CiliumCniConfigMap,
 		struct {
 			EtcdServer string
 		}{
@@ -187,7 +187,18 @@ func EnsureCiliumAddon(cfg *config.KubicInitConfiguration, client clientset.Inte
 		})
 
 	if err != nil {
-		return fmt.Errorf("error when parsing cilium configmap template: %v", err)
+		return fmt.Errorf("error when parsing cilium cni configmap template: %v", err)
+	}
+
+	ciliumEtcdConfigMapBytes, err = kubeadmutil.ParseTemplate(CiliumEtcdConfigMap,
+		struct {
+			EtcdServer string
+		}{
+			etcdServer.String(),
+		})
+
+	if err != nil {
+		return fmt.Errorf("error when parsing cilium etcd configmap template: %v", err)
 	}
 
 	secret := &v1.Secret{
@@ -234,7 +245,7 @@ func EnsureCiliumAddon(cfg *config.KubicInitConfiguration, client clientset.Inte
 		return fmt.Errorf("error when creating flannel RBAC rules: %v", err)
 	}
 
-	if err := createCiliumAddon(ciliumConfigMapBytes, ciliumDaemonSetBytes, client); err != nil {
+	if err := createCiliumAddon(ciliumEtcdConfigMapBytes, ciliumCniConfigMapBytes, ciliumDaemonSetBytes, client); err != nil {
 		return err
 	}
 
@@ -247,20 +258,30 @@ func createServiceAccount(client clientset.Interface) error {
 	return apiclient.CreateOrUpdateServiceAccount(client, &serviceAccount)
 }
 
-func createCiliumAddon(configMapBytes, daemonSetbytes []byte, client clientset.Interface) error {
-	ciliumConfigMap := &v1.ConfigMap{}
-	if err := kuberuntime.DecodeInto(clientsetscheme.Codecs.UniversalDecoder(), configMapBytes, ciliumConfigMap); err != nil {
+func createCiliumAddon(cniConfigMapBytes, etcdConfigMapBytes, daemonSetbytes []byte, client clientset.Interface) error {
+	ciliumCniConfigMap := &v1.ConfigMap{}
+	if err := kuberuntime.DecodeInto(clientsetscheme.Codecs.UniversalDecoder(), cniConfigMapBytes, ciliumCniConfigMap); err != nil {
 		return fmt.Errorf("unable to decode cilium configmap %v", err)
 	}
 
 	// Create the ConfigMap for cilium or update it in case it already exists
-	if err := apiclient.CreateOrUpdateConfigMap(client, ciliumConfigMap); err != nil {
+	if err := apiclient.CreateOrUpdateConfigMap(client, ciliumCniConfigMap); err != nil {
+		return err
+	}
+
+	ciliumEtcdConfigMap := &v1.ConfigMap{}
+	if err := kuberuntime.DecodeInto(clientsetscheme.Codecs.UniversalDecoder(), etcdConfigMapBytes, ciliumEtcdConfigMap); err != nil {
+		return fmt.Errorf("unable to decode cilium cni configmap %v", err)
+	}
+
+	// Create the ConfigMap for cilium or update it in case it already exists
+	if err := apiclient.CreateOrUpdateConfigMap(client, ciliumEtcdConfigMap); err != nil {
 		return err
 	}
 
 	ciliumDaemonSet := &apps.DaemonSet{}
 	if err := kuberuntime.DecodeInto(clientsetscheme.Codecs.UniversalDecoder(), daemonSetbytes, ciliumDaemonSet); err != nil {
-		return fmt.Errorf("unable to decode cilium daemonset %v", err)
+		return fmt.Errorf("unable to decode cilium etcd daemonset %v", err)
 	}
 
 	// Create the DaemonSet for cilium or update it in case it already exists
