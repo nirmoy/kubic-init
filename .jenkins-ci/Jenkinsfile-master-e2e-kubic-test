@@ -35,7 +35,7 @@ pipeline {
                 sh "make tf-full-apply"
               }
         }
-      stage('Kubic-init deploy') {
+      stage('Kubic-init e2e tests') {
         steps {
                 echo 'Run e2e tests for kubic-init'
 		sh "make tf-e2e-tests"
