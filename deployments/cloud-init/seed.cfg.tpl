@@ -45,6 +45,9 @@ write_files:
       kind: KubicInitConfiguration
       clusterFormation:
         token: ${token}
+      network:
+        cni:
+          driver: ${cni_driver}
       manager:
         image: ${kubic_init_image_name}
 

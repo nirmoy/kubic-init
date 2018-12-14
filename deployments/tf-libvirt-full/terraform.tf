@@ -78,6 +78,12 @@ variable "network" {
   description = "an existing network to use for the VMs"
 }
 
+variable "cni_driver" {
+  type        = "string"
+  default     = "flannel"
+  description = "the CNI driver to use: flannel, cilium..."
+}
+
 variable "password" {
   type        = "string"
   default     = "linux"
@@ -187,6 +193,7 @@ data "template_file" "seed_cloud_init_user_data" {
     hostname              = "${var.prefix}-seed"
     token                 = "${data.external.token_get.result.token}"
     kubic_init_image_name = "${var.kubic_init_image_name}"
+    cni_driver            = "${var.cni_driver}"
   }
 }
 
@@ -293,10 +300,11 @@ data "template_file" "node_cloud_init_user_data" {
   template = "${file("../cloud-init/node.cfg.tpl")}"
 
   vars {
-    seeder   = "${libvirt_domain.seed.network_interface.0.addresses.0}"
-    token    = "${data.external.token_get.result.token}"
-    password = "${var.password}"
-    hostname = "${var.prefix}-node-${count.index}"
+    seeder     = "${libvirt_domain.seed.network_interface.0.addresses.0}"
+    token      = "${data.external.token_get.result.token}"
+    password   = "${var.password}"
+    hostname   = "${var.prefix}-node-${count.index}"
+    cni_driver = "${var.cni_driver}"
   }
 
   depends_on = [
