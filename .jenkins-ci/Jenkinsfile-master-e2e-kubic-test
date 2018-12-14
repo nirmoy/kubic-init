@@ -11,19 +11,18 @@ pipeline {
     PATH = "$PATH:/usr/local/go/bin"
  
    }
-     agent {
-         node {
-          label 'kubic-init'
-          // we want to work on $GOPATH. Take care to run go get -u PRJ the 1st time to worker
-          customWorkspace '/home/jenkins/go/src/github.com/kubic-project/kubic-init'
-        }
-       }
-   // trigger ever 1 hours
-    triggers {
-        cron('H H/1 * * *')
-    }
-    stages {
-      
+   agent {
+       node {
+        label 'kubic-init'
+        // we want to work on $GOPATH. Take care to run go get -u PRJ the 1st time to worker
+        customWorkspace '/home/jenkins/go/src/github.com/kubic-project/kubic-init'
+      }
+   }
+   triggers {
+     cron('* */1 * * *')
+   }
+
+   stages {
       stage('Kubic-init build') {
         steps {
                 echo 'build kubic-init from src'
@@ -34,6 +33,12 @@ pipeline {
         steps {
                 echo 'Deploy kubic-init'
                 sh "make tf-full-apply"
+              }
+        }
+      stage('Kubic-init deploy') {
+        steps {
+                echo 'Run e2e tests for kubic-init'
+		sh "make tf-e2e-tests"
               }
         }
     }
