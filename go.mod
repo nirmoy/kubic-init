@@ -58,7 +58,7 @@ require (
 	github.com/vishvananda/netlink v0.0.0-20171026164508-b2de5d10e38e // indirect
 	github.com/vishvananda/netns v0.0.0-20171111001504-be1fbeda1936 // indirect
 	github.com/yuroyoro/swalker v0.0.0-20160622113523-0a5950e9162f
-	golang.org/x/crypto v0.0.0-20181203042331-505ab145d0a9 // indirect
+	golang.org/x/crypto v0.0.0-20181203042331-505ab145d0a9
 	golang.org/x/lint v0.0.0-20181026193005-c67002cb31c3 // indirect
 	golang.org/x/net v0.0.0-20181029044818-c44066c5c816 // indirect
 	golang.org/x/oauth2 v0.0.0-20181031022657-8527f56f7107 // indirect
