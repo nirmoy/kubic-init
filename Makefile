@@ -26,7 +26,7 @@ KUBIC_INIT_CFG  = $(CURDIR)/config/kubic-init.yaml
 
 # These will be provided to the target
 KUBIC_INIT_VERSION    := 1.0.0
-KUBIC_INIT_BUILD      := `git rev-parse HEAD 2>/dev/null`
+KUBIC_INIT_BUILD      := $(shell git rev-parse HEAD 2>/dev/null)
 KUBIC_INIT_BRANCH     := $(shell git rev-parse --abbrev-ref HEAD 2> /dev/null  || echo 'unknown')
 KUBIC_INIT_BUILD_DATE := $(shell date +%Y%m%d-%H:%M:%S)
 
@@ -76,7 +76,8 @@ go-version-check:
 	@[ $(GO_VERSION_MAJ) -ge 2 ] || \
 		[ $(GO_VERSION_MAJ) -eq 1 -a $(GO_VERSION_MIN) -ge 11 ] || (echo "FATAL: Go version:$(GO_VERSION) does not support modules" ; exit 1 ; )
 
-$(KUBIC_INIT_EXE): $(KUBIC_INIT_MAIN_SRCS) $(DEEPCOPY_GENERATED_FILES) go-version-check
+$(KUBIC_INIT_EXE): $(KUBIC_INIT_MAIN_SRCS) $(DEEPCOPY_GENERATED_FILES)
+	@make go-version-check
 	@echo ">>> Building $(KUBIC_INIT_EXE)..."
 	$(GO) build $(KUBIC_INIT_LDFLAGS) -o $(KUBIC_INIT_EXE) $(KUBIC_INIT_MAIN)
 

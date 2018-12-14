@@ -55,7 +55,7 @@ func getUnstructuredInYAMLFile(kubicCfg *kubiccfg.KubicInitConfiguration, fileCo
 
 	sepYamlfiles := strings.Split(fileContents, "---")
 	for _, f := range sepYamlfiles {
-		if f == "\n" || f == "" {
+		if f == "\n" || f == "" || strings.TrimSpace(f) == "" {
 			// ignore empty cases
 			continue
 		}
@@ -166,3 +166,4 @@ func InstallManifests(kubicCfg *kubiccfg.KubicInitConfiguration, config *rest.Co
 
 	return nil
 }
+

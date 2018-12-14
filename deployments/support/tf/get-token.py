@@ -9,7 +9,7 @@ import os
 # use the TOKEN variable if preset
 token = os.environ.get('TOKEN')
 if token is None:
-    token = "%0x.%0x" % (random.SystemRandom().getrandbits(3*8),
-                         random.SystemRandom().getrandbits(8*8))
+    a = "%0x" % random.SystemRandom().getrandbits(13*8)
+    token = a[:6] + "." + a[6:22]
 
 print(json.dumps({'token': token}, indent=2))
