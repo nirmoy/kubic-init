@@ -30,6 +30,9 @@ write_files:
     content: |
       apiVersion: kubic.suse.com/v1alpha1
       kind: KubicInitConfiguration
+      network:
+        cni:
+          driver: ${cni_driver}
       clusterFormation:
         seeder: ${seeder}
         token: ${token}
