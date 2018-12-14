@@ -20,14 +20,17 @@ package cni
 import (
 	"io/ioutil"
 	"os"
+	"path"
 
 	"github.com/golang/glog"
 	"github.com/renstrom/dedent"
+
+	"github.com/kubic-project/kubic-init/pkg/config"
 )
 
 const (
 	// DefaultCNIConflist is the default configuration for CNI
-	DefaultCNIConflist = "/etc/cni/net.d/default.conflist"
+	DefaultCNIConfName = "default.conflist"
 
 	// DefaultCNIConflistContents is the default contents in the CNI file
 	DefaultCNIConflistContents = `
@@ -45,15 +48,21 @@ const (
 )
 
 // Prepare prepares the CNI deployment
-func Prepare() error {
-	if _, err := os.Stat(DefaultCNIConflist); os.IsNotExist(err) {
-		glog.V(1).Infof("[kubic] creating default configuration for CNI in '%s'", DefaultCNIConflist)
+func Prepare(cfg *config.KubicInitConfiguration) error {
+	cniConflist := path.Join(config.DefaultCniConfDir, DefaultCNIConfName)
+
+	if len(cfg.Network.Cni.ConfDir) > 0 {
+		cniConflist = path.Join(cfg.Network.Cni.ConfDir, DefaultCNIConfName)
+	}
+
+	if _, err := os.Stat(cniConflist); os.IsNotExist(err) {
+		glog.V(1).Infof("[kubic] creating default configuration for CNI in '%s'", cniConflist)
 		contents := []byte(dedent.Dedent(DefaultCNIConflistContents))
-		if err := ioutil.WriteFile(DefaultCNIConflist, contents, 0644); err != nil {
+		if err := ioutil.WriteFile(cniConflist, contents, 0644); err != nil {
 			return err
 		}
 	} else {
-		glog.V(1).Infof("[kubic] default CNI configuration already present at '%s'", DefaultCNIConflist)
+		glog.V(1).Infof("[kubic] default CNI configuration already present at '%s'", cniConflist)
 	}
 
 	return nil
