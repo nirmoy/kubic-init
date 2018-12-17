@@ -9,16 +9,15 @@ KUBIC_INIT_BUILD      := `git rev-parse HEAD 2>/dev/null`
 KUBIC_INIT_BRANCH     := $(shell git rev-parse --abbrev-ref HEAD 2> /dev/null  || echo 'unknown')
 KUBIC_INIT_BUILD_DATE := $(shell date +%Y%m%d-%H:%M:%S)
 
+# extra args to add to the `kubic-init bootstrap` command
+KUBIC_INIT_EXTRA_ARGS =
+
 MANIFEST_LOCAL = deployments/kubelet/kubic-init-manifest.yaml
 MANIFEST_REM   = deployments/kubic-init-manifest.yaml
 MANIFEST_DIR   = /etc/kubernetes/manifests
 
 KUBE_DROPIN_SRC = init/kubelet.drop-in.conf
 KUBE_DROPIN_DST = /etc/systemd/system/kubelet.service.d/kubelet.drop-in.conf
-
-TF_LIBVIRT_FULL_DIR  = deployments/tf-libvirt-full
-TF_LIBVIRT_NODES_DIR = deployments/tf-libvirt-nodes
-TF_ARGS_DEFAULT      = -input=false -auto-approve -var 'kubic_init_image=$(IMAGE_TAR_GZ)'
 
 # sudo command (and version passing env vars)
 SUDO = sudo
@@ -71,7 +70,7 @@ local-reset: $(KUBIC_INIT_EXE)
 	$(SUDO_E) $(KUBIC_INIT_EXE) reset \
 		--config $(KUBIC_INIT_CFG) \
 		-v $(VERBOSE_LEVEL) \
-		$(KUBIC_ARGS)
+		$(KUBIC_INIT_EXTRA_ARGS)
 
 
 # Usage:
@@ -83,14 +82,14 @@ local-reset: $(KUBIC_INIT_EXE)
 #    $ env SEEDER=1.2.3.4 TOKEN=XXXX make local-run
 #  - run a custom kubeadm, use docker, our own configuration and a higher debug level:
 #    $ make local-run \
-#     KUBIC_ARGS="--var Runtime.Engine=docker --var Paths.Kubeadm=$GOPATH/src/github.com/kubernetes/kubernetes/_output/local/bin/linux/amd64/kubeadm" \
+#     KUBIC_INIT_EXTRA_ARGS="--var Runtime.Engine=docker --var Paths.Kubeadm=/somewhere/linux/amd64/kubeadm" \
 #     KUBIC_INIT_CFG=test.yaml \
 #     VERBOSE_LEVEL=8
 #
 # You can customize the args with something like:
 #   make local-run VERBOSE_LEVEL=8 \
 #                  KUBIC_INIT_CFG="my-config-file.yaml" \
-#                  KUBIC_ARGS="--var Runtime.Engine=docker"
+#                  KUBIC_INIT_EXTRA_ARGS="--var Runtime.Engine=docker"
 #
 local-run: $(KUBIC_INIT_EXE) $(KUBE_DROPIN_DST)
 	[ ! -f $(KUBECONFIG) ] || make local-reset
@@ -99,7 +98,7 @@ local-run: $(KUBIC_INIT_EXE) $(KUBE_DROPIN_DST)
 		-v $(VERBOSE_LEVEL) \
 		--config $(KUBIC_INIT_CFG) \
 		--load-assets=false \
-		$(KUBIC_ARGS)
+		$(KUBIC_INIT_EXTRA_ARGS)
 
 # Usage:
 #  - create a local seeder: make docker-run
@@ -116,7 +115,7 @@ docker-run: $(IMAGE_TAR_GZ) docker-reset $(KUBE_DROPIN_DST)
 		-e SEEDER \
 		-e TOKEN \
 		$(CONTAINER_VOLUMES) \
-		$(IMAGE_NAME):latest $(KUBIC_ARGS)
+		$(IMAGE_NAME):latest $(KUBIC_INIT_EXTRA_ARGS)
 
 docker-reset: kubeadm-reset
 
@@ -144,7 +143,7 @@ podman-run: podman-image podman-reset $(KUBE_DROPIN_DST)
 		-e SEEDER \
 		-e TOKEN \
 		$(CONTAINER_VOLUMES) \
-		$(IMAGE_NAME):latest $(KUBIC_ARGS)
+		$(IMAGE_NAME):latest $(KUBIC_INIT_EXTRA_ARGS)
 
 kubelet-run: $(IMAGE_TAR_GZ) kubelet-reset $(KUBE_DROPIN_DST)
 	@echo ">>> Pushing $(IMAGE_NAME):latest to docker Hub"
@@ -166,85 +165,3 @@ kubelet-reset: kubeadm-reset
 	$(SUDO) cp -f $(KUBELET_CONFIG) /var/lib/kubelet/config.yaml
 	@-rm -f $(MANIFEST_DIR)/$(MANIFEST_REM)
 
-#############################################################
-# End To End Tests
-#############################################################
-SEEDER := $(shell cd $(TF_LIBVIRT_FULL_DIR) && terraform output -json seeder 2>/dev/null | python -c 'import sys, json; print json.load(sys.stdin)["value"]' 2>/dev/null || echo "unknown")
-tf-e2e-tests:
-	cd tests && SEEDER=$(SEEDER) ./run_suites.sh
-#############################################################
-# Terraform deployments
-#############################################################
-
-### Terraform full deplyment
-
-tf-full-plan:
-	cd $(TF_LIBVIRT_FULL_DIR) && terraform init && terraform plan
-
-#
-# Usage:
-# - create a only-one-seeder cluster:
-#   $ make tf-full-run TF_ARGS="-var nodes_count=0"
-#
-tf-full-run: tf-full-apply
-tf-full-apply: $(IMAGE_TAR_GZ)
-	@echo ">>> Deploying a full cluster with Terraform..."
-	cd $(TF_LIBVIRT_FULL_DIR) && terraform init && terraform apply $(TF_ARGS_DEFAULT) $(TF_ARGS)
-
-tf-full-reapply:
-	cd $(TF_LIBVIRT_FULL_DIR) && terraform init && terraform apply $(TF_ARGS_DEFAULT) $(TF_ARGS)
-
-tf-full-destroy:
-	cd $(TF_LIBVIRT_FULL_DIR) && terraform init && terraform destroy -force $(TF_ARGS_DEFAULT) $(TF_ARGS)
-
-tf-full-nuke:
-	-make tf-full-destroy
-	cd $(TF_LIBVIRT_FULL_DIR) && rm -f *.tfstate*
-
-### Terraform only-seeder deployment (shortcut for `nodes_count=0`)
-
-tf-seeder-plan:
-	-make tf-full-plan TF_ARGS="-var nodes_count=0 $(TF_ARGS)"
-
-#
-# Usage:
-# - create a seeder with a specific Token:
-#   $ env TOKEN=XXXX make tf-seeder-run
-#
-tf-seeder-run: tf-seeder-apply
-tf-seeder-apply:
-	@echo ">>> Deploying only-seeder with Terraform..."
-	@make tf-full-apply TF_ARGS="-var nodes_count=0 $(TF_ARGS)"
-
-tf-seeder-reapply:
-	@make tf-full-reapply TF_ARGS="-var nodes_count=0 $(TF_ARGS)"
-
-tf-seeder-destroy:
-	@make tf-full-destroy TF_ARGS="-var nodes_count=0 $(TF_ARGS)"
-
-tf-seeder-nuke: tf-full-nuke
-
-### Terraform only-nodes deployment
-
-tf-nodes-plan:
-	cd $(TF_LIBVIRT_NODES_DIR) && terraform init && terraform plan
-
-#
-# Usage:
-# - create only one node (ie, for connecting to the seeder started locally with `make local-run`):
-#   $ env TOKEN=XXXX make tf-nodes-run
-#
-tf-nodes-run: tf-nodes-apply
-tf-nodes-apply: $(IMAGE_TAR_GZ)
-	@echo ">>> Deploying only-nodes with Terraform..."
-	cd $(TF_LIBVIRT_NODES_DIR) && terraform init && terraform apply $(TF_ARGS_DEFAULT) $(TF_ARGS)
-
-tf-nodes-reapply:
-	cd $(TF_LIBVIRT_NODES_DIR) && terraform init && terraform apply $(TF_ARGS_DEFAULT) $(TF_ARGS)
-
-tf-nodes-destroy: $(TF_LIBVIRT_NODES_DIR)/.terraform
-	cd $(TF_LIBVIRT_NODES_DIR) && terraform init && terraform destroy -force $(TF_ARGS_DEFAULT) $(TF_ARGS)
-
-tf-nodes-nuke:
-	-make tf-nodes-destroy
-	cd $(TF_LIBVIRT_NODES_DIR) && rm -f *.tfstate*

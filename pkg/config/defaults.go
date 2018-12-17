@@ -184,11 +184,13 @@ var DefaultKubeletSettings = map[string]string{
 // DefaultIgnoredPreflightErrors Hardcoded list of errors to ignore
 var DefaultIgnoredPreflightErrors = []string{
 	"Service-Docker",
+	"Service-Kubelet", // ignore the warning if the Kubelet is down
 	"Swap",
 	"FileExisting-crictl",
 	"Port-10250",
 	"SystemVerification", // for ignoring docker graph=btrfs
 	"IsPrivilegedUser",
+	"NumCPU", // we will not always have >=2 CPUs in our VMs
 }
 
 // DefaultFeatureGates Constant set of featureGates

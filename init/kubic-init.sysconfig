@@ -1,8 +1,40 @@
 # configuration file in /etc/sysconfig/kubic-init
 
+# the configuration file
+KUBIC_INIT_CFG = /etc/kubic/kubic-init.yaml
+
+# debug level (from 0 to ...)
+KUBIC_INIT_DEBUGLEVEL = 3
+
 # TODO: replace for an official image
 # FIXME: localhost needs changing if the container runtime is docker
-IMAGE_KUBIC_INIT="localhost/kubic-project/kubic-init:latest"
+KUBIC_INIT_IMAGE = "localhost/kubic-project/kubic-init:latest"
 
-# unified image for running hyperkube
-# IMAGE_UNIFIED_K8S=""
+# The runner for containers
+KUBIC_INIT_RUNNER = /usr/bin/podman
+
+# Arguments for the runner
+KUBIC_INIT_RUNNER_ARGS = "--privileged=true \
+                          --net=host \
+                          --security-opt seccomp:unconfined \
+                          --cap-add=SYS_ADMIN \
+                          --name=kubic-init"
+
+# Volumes to mount in the runner
+KUBIC_INIT_RUNNER_VOLS = "-v /etc/kubic:/etc/kubic \
+                          -v /etc/kubernetes:/etc/kubernetes \
+                          -v /usr/bin/kubelet:/usr/bin/kubelet:ro \
+                          -v /var/lib/kubelet:/var/lib/kubelet \
+                          -v /etc/cni/net.d:/etc/cni/net.d \
+                          -v /var/lib/etcd:/var/lib/etcd \
+                          -v /var/run/dbus:/var/run/dbus \
+                          -v /usr/lib/systemd:/usr/lib/systemd:ro \
+                          -v /run/systemd:/run/systemd:ro \
+                          -v /var/run/crio:/var/run/crio \
+                          -v /sys/fs/cgroup:/sys/fs/cgroup \
+                          -v /lib/modules:/lib/modules:ro"
+
+# Extra args for the `kubic-init bootstrap` command
+KUBIC_INIT_EXTRA_ARGS =
+
+

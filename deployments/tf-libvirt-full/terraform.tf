@@ -98,14 +98,26 @@ variable "devel" {
 
 variable "kubic_init_image_name" {
   type        = "string"
-  default     = "localhost/kubic-project/kubic-init:latest"
+  default     = "kubic-project/kubic-init:latest"
   description = "the default kubic init image name"
 }
 
-variable "kubic_init_image" {
+variable "kubic_init_image_tgz" {
   type        = "string"
   default     = "kubic-init-latest.tar.gz"
   description = "a kubic-init container image"
+}
+
+variable "kubic_init_runner" {
+  type        = "string"
+  default     = "podman"
+  description = "the kubic-init runner: docker or podman"
+}
+
+variable "kubic_init_extra_args" {
+  type        = "string"
+  default     = ""
+  description = "extra args for the kubic-init bootstrap"
 }
 
 variable "seed_memory" {
@@ -132,7 +144,10 @@ data "template_file" "init_script" {
   template = "${file("../support/tf/init.sh.tpl")}"
 
   vars {
-    kubic_init_image = "${var.kubic_init_image}"
+    kubic_init_image_name = "${var.kubic_init_image_name}"
+    kubic_init_image_tgz  = "${var.kubic_init_image_tgz}"
+    kubic_init_runner     = "${var.kubic_init_runner}"
+    kubic_init_extra_args = "${var.kubic_init_extra_args}"
   }
 }
 
@@ -266,8 +281,8 @@ resource "null_resource" "upload_config_seeder" {
   }
 
   provisioner "file" {
-    source      = "../../${var.kubic_init_image}"
-    destination = "/tmp/${var.kubic_init_image}"
+    source      = "../../${var.kubic_init_image_tgz}"
+    destination = "/tmp/${var.kubic_init_image_tgz}"
   }
 
   # TODO: this is only for development
@@ -383,8 +398,8 @@ resource "null_resource" "upload_config_nodes" {
   }
 
   provisioner "file" {
-    source      = "../../${var.kubic_init_image}"
-    destination = "/tmp/${var.kubic_init_image}"
+    source      = "../../${var.kubic_init_image_tgz}"
+    destination = "/tmp/${var.kubic_init_image_tgz}"
   }
 
   # TODO: this is only for development
