@@ -44,7 +44,10 @@ pipeline {
     }
    post { 
         always {
-            echo 'Destroy env.'
+            echo 'cleaning up docker images'
+            sh "docker system prune -a -f"
+
+            echo 'Destroy terraform vms'
             sh "make tf-full-nuke"
         }
     }
