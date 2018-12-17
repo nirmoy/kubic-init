@@ -33,6 +33,7 @@ import (
 	kubeadmconstants "k8s.io/kubernetes/cmd/kubeadm/app/constants"
 	kubeadmutil "k8s.io/kubernetes/cmd/kubeadm/app/util"
 	kubeconfigutil "k8s.io/kubernetes/cmd/kubeadm/app/util/kubeconfig"
+	goversion "github.com/hashicorp/go-version"
 
 	kubicclient "github.com/kubic-project/kubic-init/pkg/client"
 	kubiccluster "github.com/kubic-project/kubic-init/pkg/cluster"
@@ -91,6 +92,19 @@ func newCmdBootstrap(out io.Writer) *cobra.Command {
 
 			err = kubicCfg.SetVars(vars)
 			kubeadmutil.CheckErr(err)
+
+			// get the kubeadm version
+			kubeadmVersionInfo, err := kubeadm.NewVersion(kubicCfg)
+			kubeadmVersion := fmt.Sprintf("%s.%s", kubeadmVersionInfo.ClientVersion.Major, kubeadmVersionInfo.ClientVersion.Minor)
+			glog.V(1).Infof("[kubic] kubeadm version: %s", kubeadmVersion)
+
+			// .. and check it is ok for the kubernetes version we are trying to manage
+			parsedKubeadmVersion, err := goversion.NewVersion(kubeadmVersion)
+			parsedKubernetesVersion, err := goversion.NewVersion(kubiccfg.DefaultKubernetesVersion)
+			if parsedKubeadmVersion.LessThan(parsedKubernetesVersion) {
+				glog.V(1).Infof("[kubic] FATAL: invalid kubeadm version: %s when we want to create a %s cluster",
+					kubeadmVersion, kubiccfg.DefaultKubernetesVersion)
+			}
 
 			if !kubicCfg.IsSeeder() {
 				glog.V(1).Infof("[kubic] joining the seeder at %s", kubicCfg.ClusterFormation.Seeder)

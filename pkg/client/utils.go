@@ -314,4 +314,3 @@ func WaitForURL(request *rest.Request) error {
 
 	return err
 }
-

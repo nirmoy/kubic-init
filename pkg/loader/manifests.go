@@ -166,4 +166,3 @@ func InstallManifests(kubicCfg *kubiccfg.KubicInitConfiguration, config *rest.Co
 
 	return nil
 }
-

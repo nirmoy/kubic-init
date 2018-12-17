@@ -18,21 +18,31 @@
 package kubeadm
 
 import (
+	"encoding/json"
+
+	"github.com/golang/glog"
+	"k8s.io/kubernetes/cmd/kubeadm/app/cmd"
+
 	"github.com/kubic-project/kubic-init/pkg/config"
 )
 
-// NewReset resets the system
-func NewReset(kubicCfg *config.KubicInitConfiguration, args ...string) error {
-	criSocket := config.DefaultCriSocket[kubicCfg.Runtime.Engine]
-	pkiDir := kubicCfg.Certificates.Directory
-
+// NewVersion gets the kubeadm version information
+func NewVersion(kubicCfg *config.KubicInitConfiguration, args ...string) (cmd.Version, error) {
 	args = append([]string{
-		"--cri-socket=" + criSocket,
-		"--cert-dir=" + pkiDir,
-		"--force",
-		getIgnorePreflightArg(),
-		getVerboseArg(),
+		"--output=json",
 	}, args...)
 
-	return kubeadmWithConfig("reset", kubicCfg, nil, args...)
+	output, err := kubeadmCmdOut("version", kubicCfg, args...)
+	if err != nil {
+		return cmd.Version{}, err
+	}
+	glog.V(8).Infof("[kubic] `kubeadm` version output: %s", output.String())
+
+	v := cmd.Version{}
+	dec := json.NewDecoder(&output)
+	if err := dec.Decode(&v); err != nil {
+		return cmd.Version{}, err
+	}
+
+	return v, nil
 }

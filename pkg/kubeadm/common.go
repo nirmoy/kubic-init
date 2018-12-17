@@ -19,6 +19,7 @@ package kubeadm
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -35,18 +36,58 @@ import (
 
 const kubeadmConfigTemplate = "kubic-kubeadm.*.yaml"
 
-// toKubeadmConfig is a function that can trransalte a kubic-init config to a kukbeadm config
+type stringConsumer func(msg string)
+
+// kubeadm runs a "kubeadm" command
+func kubeadm(name string, kubicCfg *config.KubicInitConfiguration,
+	stdoutProc stringConsumer, stderrProc stringConsumer,
+	args ...string) error {
+
+	args = append([]string{name}, args...)
+
+	kubeadmPath := kubicCfg.Paths.Kubeadm
+
+	// Now we can run the "kubeadm" command
+	glog.V(1).Infof("[kubic] exec: %s %s", kubeadmPath, strings.Join(args, " "))
+	cmd := exec.Command(kubeadmPath, args...)
+
+	stdoutPipe, _ := cmd.StdoutPipe()
+	stderrPipe, _ := cmd.StderrPipe()
+	stdoutScan := bufio.NewScanner(stdoutPipe)
+	stderrScan := bufio.NewScanner(stderrPipe)
+
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+
+	go func() {
+		for stdoutScan.Scan() {
+			stdoutProc(stdoutScan.Text())
+		}
+	}()
+
+	go func() {
+		for stderrScan.Scan() {
+			stderrProc(stderrScan.Text())
+		}
+	}()
+
+	return cmd.Wait()
+}
+
+// toKubeadmConfig is a function that can translate a kubic-init config to
+// a kubeadm config
 type toKubeadmConfig func(*config.KubicInitConfiguration, map[string]bool) ([]byte, error)
 
-// kubeadmCmd runs a "kubeadm" command
-func kubeadmCmd(name string, kubicCfg *config.KubicInitConfiguration, configer toKubeadmConfig, args ...string) error {
+// kubeadmWithConfig runs a "kubeadm" command
+func kubeadmWithConfig(name string, kubicCfg *config.KubicInitConfiguration, configer toKubeadmConfig, args ...string) error {
 
 	featureGates, err := features.NewFeatureGate(&features.InitFeatureGates, config.DefaultFeatureGates)
 	kubeadmutil.CheckErr(err)
 	glog.V(3).Infof("[kubic] feature gates: %+v", featureGates)
 
-	args = append([]string{name}, args...)
-
+	// generate a kubeadm config file
+	// some kubeadm commands do not really need any configuration, so this is optional
 	if configer != nil {
 		configFile, err := ioutil.TempFile(os.TempDir(), kubeadmConfigTemplate)
 		if err != nil {
@@ -72,28 +113,28 @@ func kubeadmCmd(name string, kubicCfg *config.KubicInitConfiguration, configer t
 		args = append(args, "--config="+configFile.Name())
 	}
 
-	kubeadmPath := kubicCfg.Paths.Kubeadm
-
-	// Now we can run the "kubeadm" command
-	glog.V(1).Infof("[kubic] exec: %s %s", kubeadmPath, strings.Join(args, " "))
-	cmd := exec.Command(kubeadmPath, args...)
-	stderr, _ := cmd.StderrPipe()
-	if err := cmd.Start(); err != nil {
-		return err
-	}
-
-	scanner := bufio.NewScanner(stderr)
-	scanner.Split(bufio.ScanLines)
-	for scanner.Scan() {
-		m := scanner.Text()
+	printer := func(m string) {
 		fmt.Println(m)
 	}
-
-	if err := cmd.Wait(); err != nil {
-		return err
+	logger := func(m string) {
+		glog.V(1).Infoln(m)
 	}
 
-	return nil
+	return kubeadm(name, kubicCfg, logger, printer, args...)
+}
+
+// kubeadmCmdOut runs a "kubeadm" command waiting for the
+func kubeadmCmdOut(name string, kubicCfg *config.KubicInitConfiguration, args ...string) (bytes.Buffer, error) {
+
+	output := bytes.Buffer{}
+	bufferer := func(m string) {
+		output.WriteString(m)
+	}
+
+	if err := kubeadm(name, kubicCfg, bufferer, bufferer, args...); err != nil {
+		return bytes.Buffer{}, err
+	}
+	return output, nil
 }
 
 // getIgnorePreflightArg returns the arg for ignoring pre-flight errors

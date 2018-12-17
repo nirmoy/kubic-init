@@ -37,7 +37,7 @@ func NewInit(kubicCfg *config.KubicInitConfiguration, args ...string) error {
 		getIgnorePreflightArg(),
 		getVerboseArg())
 
-	return kubeadmCmd("init", kubicCfg, toInitConfig, args...)
+	return kubeadmWithConfig("init", kubicCfg, toInitConfig, args...)
 }
 
 // toInitConfig copies some settings to a Init configuration

@@ -35,7 +35,7 @@ func NewJoin(kubicCfg *config.KubicInitConfiguration, args ...string) error {
 		getIgnorePreflightArg(),
 		getVerboseArg())
 
-	return kubeadmCmd("join", kubicCfg, toJoinConfig, args...)
+	return kubeadmWithConfig("join", kubicCfg, toJoinConfig, args...)
 }
 
 // toJoinConfig copies some settings to a Join configuration
