@@ -327,8 +327,27 @@ func (kubicCfg KubicInitConfiguration) IsSeeder() bool {
 // GetBindIP gets a valid IP address where we can bind
 func (kubicCfg KubicInitConfiguration) GetBindIP() (net.IP, error) {
 	if len(kubicCfg.Network.Bind.Interface) > 0 {
-		// TODO: not implemented yet: get the IP address for that interface
-		return net.IP{}, nil
+		ifc, err := net.InterfaceByName(kubicCfg.Network.Bind.Interface)
+		if err != nil {
+			return nil, err
+		}
+
+		addrs, err := ifc.Addrs()
+		if err != nil {
+			return nil, err
+		}
+
+		// just return the first IP (maybe we could do some smarter heuristics...)
+		for _, addr := range addrs {
+			switch v := addr.(type) {
+			case *net.IPNet:
+				return v.IP, nil
+			case *net.IPAddr:
+				return v.IP, nil
+			}
+		}
+
+		return nil, fmt.Errorf("No address found in %s", kubicCfg.Network.Bind.Interface)
 	}
 
 	defaultAddrStr := "0.0.0.0"
