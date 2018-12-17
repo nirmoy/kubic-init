@@ -8,8 +8,7 @@ properties([
 pipeline {
   environment { 
     GOPATH= "$HOME/go"
-    PATH = "$PATH:/usr/local/go/bin"
- 
+    PATH = "$PATH:/usr/local/go/bin:$HOME/go/bin"
    }
    agent {
        node {
