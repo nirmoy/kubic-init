@@ -92,7 +92,6 @@ local-reset: $(KUBIC_INIT_EXE)
 #                  KUBIC_INIT_EXTRA_ARGS="--var Runtime.Engine=docker"
 #
 local-run: $(KUBIC_INIT_EXE) $(KUBE_DROPIN_DST)
-	[ ! -f $(KUBECONFIG) ] || make local-reset
 	@echo ">>> Running $(KUBIC_INIT_EXE) as _root_"
 	$(SUDO_E) $(KUBIC_INIT_EXE) bootstrap \
 		-v $(VERBOSE_LEVEL) \
@@ -104,7 +103,7 @@ local-run: $(KUBIC_INIT_EXE) $(KUBE_DROPIN_DST)
 #  - create a local seeder: make docker-run
 #  - create a local seeder with a specific token: TOKEN=XXXX make docker-run
 #  - join an existing seeder: env SEEDER=1.2.3.4 TOKEN=XXXX make docker-run
-docker-run: $(IMAGE_TAR_GZ) docker-reset $(KUBE_DROPIN_DST)
+docker-run: $(IMAGE_TAR_GZ) $(KUBE_DROPIN_DST)
 	@echo ">>> Running $(IMAGE_NAME):latest in the local Docker"
 	docker run -it --rm \
 		--privileged=true \
@@ -132,7 +131,7 @@ docker-image-clean:
 
 # TODO: build the image for podman
 # TODO: implement podman-reset
-podman-run: podman-image podman-reset $(KUBE_DROPIN_DST)
+podman-run: podman-image $(KUBE_DROPIN_DST)
 	$(SUDO_E) podman run -it --rm \
 		--privileged=true \
 		--net=host \
@@ -145,7 +144,7 @@ podman-run: podman-image podman-reset $(KUBE_DROPIN_DST)
 		$(CONTAINER_VOLUMES) \
 		$(IMAGE_NAME):latest $(KUBIC_INIT_EXTRA_ARGS)
 
-kubelet-run: $(IMAGE_TAR_GZ) kubelet-reset $(KUBE_DROPIN_DST)
+kubelet-run: $(IMAGE_TAR_GZ) $(KUBE_DROPIN_DST)
 	@echo ">>> Pushing $(IMAGE_NAME):latest to docker Hub"
 	docker push $(IMAGE_NAME):latest
 	@echo ">>> Copying manifest to $(MANIFEST_DIR) (will require root password)"
