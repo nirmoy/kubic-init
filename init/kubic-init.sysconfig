@@ -1,8 +1,5 @@
 # configuration file in /etc/sysconfig/kubic-init
 
-# the configuration file
-KUBIC_INIT_CFG = /etc/kubic/kubic-init.yaml
-
 # debug level (from 0 to ...)
 KUBIC_INIT_DEBUGLEVEL = 3
 
