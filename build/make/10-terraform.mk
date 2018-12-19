@@ -25,7 +25,7 @@ tf-full-plan:
 #    KUBIC_INIT_EXTRA_ARGS="--var Runtime.Engine=docker"
 #
 tf-full-run: tf-full-apply
-tf-full-apply: $(IMAGE_TAR_GZ)
+tf-full-apply: docker-image
 	@echo ">>> Deploying a full cluster with Terraform..."
 	cd $(TF_LIBVIRT_FULL_DIR) && terraform init && terraform apply $(TF_ARGS_DEFAULT) $(TF_ARGS)
 
@@ -73,7 +73,7 @@ tf-nodes-plan:
 #   $ env TOKEN=XXXX make tf-nodes-run
 #
 tf-nodes-run: tf-nodes-apply
-tf-nodes-apply: $(IMAGE_TAR_GZ)
+tf-nodes-apply: docker-image
 	@echo ">>> Deploying only-nodes with Terraform..."
 	cd $(TF_LIBVIRT_NODES_DIR) && terraform init && terraform apply $(TF_ARGS_DEFAULT) $(TF_ARGS)
 

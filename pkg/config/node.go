@@ -24,10 +24,13 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
-	v1 "k8s.io/api/core/v1"
+	"k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/clientcmd"
 	certutil "k8s.io/client-go/util/cert"
 	"k8s.io/kubernetes/cmd/kubeadm/app/constants"
+	kubeadmconstants "k8s.io/kubernetes/cmd/kubeadm/app/constants"
+
+	kubicutil "github.com/kubic-project/kubic-init/pkg/util"
 )
 
 // GetNodeNameFromKubeletConfig gets the node name from a kubelet config file
@@ -66,6 +69,27 @@ func GetNodeNameFromKubeletConfig() (string, error) {
 
 	// gets the node name from the certificate common name
 	return strings.TrimPrefix(cert.Subject.CommonName, constants.NodesUserPrefix), nil
+}
+
+// KubeadmLeftovers returns true if some kubeadm configuration files are present
+func KubeadmLeftovers() bool {
+	manifestsDir := filepath.Join(kubeadmconstants.KubernetesDir, kubeadmconstants.ManifestsSubDirName)
+	mustNotExist := []string{
+		kubeadmconstants.GetStaticPodFilepath(kubeadmconstants.KubeAPIServer, manifestsDir),
+		kubeadmconstants.GetStaticPodFilepath(kubeadmconstants.KubeControllerManager, manifestsDir),
+		kubeadmconstants.GetStaticPodFilepath(kubeadmconstants.KubeScheduler, manifestsDir),
+		kubeadmconstants.GetStaticPodFilepath(kubeadmconstants.Etcd, manifestsDir),
+		filepath.Join(kubeadmconstants.KubernetesDir, kubeadmconstants.KubeletKubeConfigFileName),
+		filepath.Join(kubeadmconstants.KubernetesDir, kubeadmconstants.KubeletBootstrapKubeConfigFileName),
+	}
+
+	for _, f := range mustNotExist {
+		if kubicutil.FileExists(f) {
+			return true
+		}
+	}
+
+	return false
 }
 
 // PrintNodeProperties prints some node properties

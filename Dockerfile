@@ -1,8 +1,5 @@
 FROM opensuse:tumbleweed
 
-ENV SYSTEMCTL_FORCE_BUS 1
-ENV DBUS_SYSTEM_BUS_ADDRESS unix:path=/var/run/dbus/system_bus_socket
-
 RUN \
   zypper ar --refresh --enable --no-gpgcheck https://download.opensuse.org/repositories/devel:/kubic/openSUSE_Tumbleweed extra-repo0 && \
   zypper ref -r extra-repo0 && \
@@ -23,5 +20,8 @@ RUN chmod 755 /usr/local/bin/kubic-init*
 
 ### Directories we will mount from the host
 VOLUME /sys/fs/cgroup
+
+ENV SYSTEMCTL_FORCE_BUS 1
+ENV DBUS_SYSTEM_BUS_ADDRESS unix:path=/var/run/dbus/system_bus_socket
 
 CMD /usr/local/bin/kubic-init

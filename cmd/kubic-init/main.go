@@ -122,7 +122,12 @@ func newCmdBootstrap(out io.Writer) *cobra.Command {
 			_, err = os.Stat(adminKubeconfig)
 			if err != nil {
 				if os.IsNotExist(err) {
-					glog.V(1).Infoln("[kubic] no existing 'admin.conf' found: assuming this is the first setup")
+					if kubiccfg.KubeadmLeftovers() {
+						glog.V(1).Infoln("[kubic] no existing 'admin.conf' but some leftovers found: we will reset the environment")
+						needsReset = true
+					} else {
+						glog.V(1).Infoln("[kubic] no existing 'admin.conf' found: assuming this is the first setup")
+					}
 				} else {
 					// some error, but not the admin-conf-doesn't-exist error
 					glog.V(1).Infof("[kubic] error when looking for an existing admin.conf: %s", err)
