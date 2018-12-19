@@ -23,6 +23,13 @@ set_var() {
     # TODO: add a case for where the file exists but the var doesn't
 }
 
+print_file() {
+    echo ">>> Contents of $1:"
+    echo ">>> ------------------------------------"
+    cat $1 | awk '{ print ">>> " $0 }'
+    echo ">>> ------------------------------------"
+}
+
 mkdir -p /var/lib/etcd
 
 echo ">>> Setting up network..."
@@ -55,6 +62,9 @@ if [ -n "$EXTRA_ARGS" ] ; then
     echo ">>> Setting kubic-init extra args = $EXTRA_ARGS"
     set_var KUBIC_INIT_EXTRA_ARGS "\"$EXTRA_ARGS\"" /etc/sysconfig/kubic-init
 fi
+
+print_file /etc/sysconfig/kubic-init
+print_file /etc/kubic/kubic-init.yaml
 
 echo ">>> Enabling the kubic-init service..."
 sysctl --system
