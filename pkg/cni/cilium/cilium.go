@@ -246,7 +246,7 @@ func EnsureCiliumAddon(cfg *config.KubicInitConfiguration, client clientset.Inte
 		return fmt.Errorf("error when creating flannel RBAC rules: %v", err)
 	}
 
-	if err := createCiliumAddon(ciliumEtcdConfigMapBytes, ciliumCniConfigMapBytes, ciliumDaemonSetBytes, client); err != nil {
+	if err := createCiliumAddon(ciliumCniConfigMapBytes, ciliumEtcdConfigMapBytes, ciliumDaemonSetBytes, client); err != nil {
 		return err
 	}
 
