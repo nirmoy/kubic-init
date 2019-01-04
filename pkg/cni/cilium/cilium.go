@@ -20,7 +20,7 @@ package cilium
 import (
 	"crypto/x509"
 	"fmt"
-	"strings"
+	"path/filepath"
 
 	"github.com/golang/glog"
 	apps "k8s.io/api/apps/v1"
@@ -153,7 +153,7 @@ func init() {
 
 // EnsureCiliumAddon creates the cilium addons
 func EnsureCiliumAddon(cfg *config.KubicInitConfiguration, client clientset.Interface) error {
-	etcdDir := strings.Join([]string{cfg.Certificates.Directory, "/etcd"}, "")
+	etcdDir := filepath.Join(cfg.Certificates.Directory, "etcd")
 	var ciliumCniConfigMapBytes, ciliumEtcdConfigMapBytes, ciliumDaemonSetBytes []byte
 
 	caCert, caKey, err := pkiutil.TryLoadCertAndKeyFromDisk(etcdDir, "ca")
