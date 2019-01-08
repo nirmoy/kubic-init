@@ -303,12 +303,13 @@ func (kubicCfg *KubicInitConfiguration) SetVars(vars []string) error {
 			glog.V(8).Infof("[kubic] setting '%s'='%s'", components[0], components[1])
 			boolVar, err := strconv.ParseBool(components[1])
 			if err != nil {
-				err = swalker.Write(components[0], kubicCfg, components[1])
+				if err := swalker.Write(components[0], kubicCfg, components[1]); err != nil {
+					return err
+				}
 			} else {
-				err = swalker.Write(components[0], kubicCfg, boolVar)
-			}
-			if err != nil {
-				return err
+				if err := swalker.Write(components[0], kubicCfg, boolVar); err != nil {
+					return err
+				}
 			}
 		}
 
