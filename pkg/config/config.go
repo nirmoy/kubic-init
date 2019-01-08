@@ -26,6 +26,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/golang/glog"
@@ -293,7 +294,6 @@ func (kubicCfg *KubicInitConfiguration) ToConfigMap(client clientset.Interface, 
 // is a path in the configuration hierarchy (ie, "Network.Cni.Driver")
 func (kubicCfg *KubicInitConfiguration) SetVars(vars []string) error {
 	if len(vars) > 0 {
-		var err error
 		for _, v := range vars {
 			components := strings.Split(v, "=")
 			if len(components) != 2 {
@@ -301,7 +301,12 @@ func (kubicCfg *KubicInitConfiguration) SetVars(vars []string) error {
 			}
 
 			glog.V(8).Infof("[kubic] setting '%s'='%s'", components[0], components[1])
-			err = swalker.Write(components[0], kubicCfg, components[1])
+			boolVar, err := strconv.ParseBool(components[1])
+			if err != nil {
+				err = swalker.Write(components[0], kubicCfg, components[1])
+			} else {
+				err = swalker.Write(components[0], kubicCfg, boolVar)
+			}
 			if err != nil {
 				return err
 			}
