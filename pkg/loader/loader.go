@@ -53,14 +53,12 @@ func loadFilesIn(directory string, glob string, descr string) ([]*bytes.Buffer, 
 
 // InstallAllAssets tries to install all the assets: CRDs and RBACs
 func InstallAllAssets(restCfg *rest.Config, kubicCfg *kubiccfg.KubicInitConfiguration, manifDir, crdsDir, rbacDir string) error {
-	dirs := []string{}
-
 	glog.V(1).Infof("[kubic] installing all the assets...")
 
 	if len(rbacDir) == 0 {
 		rbacDir = kubiccfg.DefaultKubicRBACDir
 	}
-	dirs = append(kubiccfg.DefaultRBACDirs, rbacDir)
+	dirs := append(kubiccfg.DefaultRBACDirs, rbacDir)
 	glog.V(1).Infof("[kubic] looking for RBACs in %v", dirs)
 	if err := InstallRBAC(kubicCfg, restCfg, RBACInstallOptions{Paths: dirs}); err != nil {
 		return err
