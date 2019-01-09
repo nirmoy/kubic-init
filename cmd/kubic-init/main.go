@@ -98,12 +98,15 @@ func newCmdBootstrap(out io.Writer) *cobra.Command {
 
 			// get the kubeadm version
 			kubeadmVersionInfo, err := kubeadm.NewVersion(kubicCfg)
+			kubeadmutil.CheckErr(err)
 			kubeadmVersion := fmt.Sprintf("%s.%s", kubeadmVersionInfo.ClientVersion.Major, kubeadmVersionInfo.ClientVersion.Minor)
 			glog.V(1).Infof("[kubic] kubeadm version: %s", kubeadmVersion)
 
 			// .. and check it is ok for the kubernetes version we are trying to manage
 			parsedKubeadmVersion, err := goversion.NewVersion(kubeadmVersion)
+			kubeadmutil.CheckErr(err)
 			parsedKubernetesVersion, err := goversion.NewVersion(kubiccfg.DefaultKubernetesVersion)
+			kubeadmutil.CheckErr(err)
 			if parsedKubeadmVersion.LessThan(parsedKubernetesVersion) {
 				glog.V(1).Infof("[kubic] FATAL: invalid kubeadm version: %s when we want to create a %s cluster",
 					kubeadmVersion, kubiccfg.DefaultKubernetesVersion)
