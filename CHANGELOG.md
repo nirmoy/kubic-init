@@ -4,7 +4,7 @@
 - Check if the kubic-init must reset or bootstrap before going forward
 - cni: make default cni config placement configurable
 - cni: add cilium cni plugin
-- Fix Flannel initialization and make the CNI configuration and binaries dirs configurable
+- cni: flannel initialization and make the CNI configuration and binaries dirs configurable
 - config: parse bind interface
 - Use Flannel as default CNI
 - Load the kubic-manager once the seeder has finished with the control-plane
