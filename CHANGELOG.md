@@ -6,7 +6,7 @@
 - cni: add cilium cni plugin
 - cni: flannel initialization and make the CNI configuration and binaries dirs configurable
 - config: parse bind interface
-- Use Flannel as default CNI
+- cni: use flannel as the default CNI driver
 - Load the kubic-manager once the seeder has finished with the control-plane
 - When `autoApproval=false` in the config file, remove the RBAC rules used for approvinfg nodes automatically.
 - Use leap15 as docker image
