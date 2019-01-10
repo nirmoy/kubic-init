@@ -17,5 +17,5 @@
 - Upgrade to k8s 1.13.0
 - Use the v1beta1 API
 - Use admin kubeconfig to deploy CRD's
-- Use a higher level kubeadm API and get rid of our custom stages. Get some config from environment variables.      
+- Use a higher level kubeadm API. Get some config from environment variables.
 - Honor the DynamicKubeletConfig feature gate
