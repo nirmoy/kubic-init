@@ -179,7 +179,7 @@ func EnsureCiliumAddon(cfg *config.KubicInitConfiguration, client clientset.Inte
 		return fmt.Errorf("error when trying to retrieve etcd server IP %v", err)
 	}
 	ciliumCniConfigMapBytes = nil
-	if cfg.Network.MultipleCni == false {
+	if !cfg.Network.MultipleCni {
 		ciliumCniConfigMapBytes, err = kubeadmutil.ParseTemplate(CiliumCniConfigMap,
 			struct {
 				EtcdServer string
