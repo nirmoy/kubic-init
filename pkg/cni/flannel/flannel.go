@@ -129,7 +129,7 @@ func EnsureFlannelAddon(cfg *config.KubicInitConfiguration, client clientset.Int
 	}
 
 	var flannelConfigMapBytes, flannelDaemonSetBytes []byte
-	if cfg.Network.MultipleCni == false {
+	if !cfg.Network.MultipleCni {
 		var err error
 		flannelConfigMapBytes, err = kubeadmutil.ParseTemplate(FlannelConfigMap19,
 			struct {
