@@ -1,6 +1,6 @@
-# kubic-init configuration
+# Quickstart:
 
-## Table of Contents
+- DEPLOY KUBIC-INIT instructions Manually on 2vms : TODO(dmaiocchi/inercia)
 
 ### Configuring Kubic before bootstrapping the cluster
 
