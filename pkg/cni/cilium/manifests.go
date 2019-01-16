@@ -36,7 +36,7 @@ data:
     }
 `
 
-	// CiliumConfigMap the config map for etcd credentials
+	// CiliumEtcdConfigMap the config map for etcd credentials
 	CiliumEtcdConfigMap = `
 kind: ConfigMap
 apiVersion: v1
