@@ -18,6 +18,7 @@
 package multus
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/golang/glog"
@@ -33,6 +34,8 @@ import (
 
 	kubicclient "github.com/kubic-project/kubic-init/pkg/client"
 	"github.com/kubic-project/kubic-init/pkg/cni"
+	"github.com/kubic-project/kubic-init/pkg/cni/cilium"
+	"github.com/kubic-project/kubic-init/pkg/cni/flannel"
 	"github.com/kubic-project/kubic-init/pkg/config"
 	kubiccfg "github.com/kubic-project/kubic-init/pkg/config"
 	"github.com/kubic-project/kubic-init/pkg/loader"
@@ -49,8 +52,8 @@ const (
 	// multusServiceAccountName describes the name of the ServiceAccount for the multus addon
 	multusServiceAccountName = "kubic-multus"
 
-	// multusHealthPort Default health port for Glannel
-	multusHealthPort = 8471
+	// multusNetworkName describes the name of the cni config
+	multusNetworkName = "multus-cni-network"
 )
 
 var (
@@ -146,6 +149,13 @@ var (
 	}
 )
 
+type multusCniStruct struct {
+	Name       string                   `json:"name,omitempty"`
+	Type       string                   `json:"type,omitempty"`
+	Kubeconfig string                   `json:"kubeconfig"`
+	Delegates  []map[string]interface{} `json:"delegates"`
+}
+
 func init() {
 	// self-register in the CNI plugins registry
 	cni.Registry.Register("multus", EnsuremultusAddon)
@@ -160,9 +170,9 @@ func EnsuremultusAddon(cfg *config.KubicInitConfiguration, client clientset.Inte
 	multusConfigMap := ""
 	switch cfg.Network.Cni.Driver {
 	case "cilium":
-		multusConfigMap = MultusConfigMapforCilium
+		multusConfigMap = cilium.CiliumCniConfigMap
 	case "flannel":
-		multusConfigMap = MultusConfigMapforFlannel
+		multusConfigMap = flannel.FlannelConfigMap19
 	}
 
 	var multusConfigMapBytes []byte
@@ -181,7 +191,7 @@ func EnsuremultusAddon(cfg *config.KubicInitConfiguration, client clientset.Inte
 		return fmt.Errorf("error when parsing multus configmap template: %v", err)
 	}
 
-	if err := createmultusAddon(multusConfigMapBytes, client); err != nil {
+	if err := createmultusAddon(multusConfigMapBytes, client, cfg.Network.Cni.Driver); err != nil {
 		return fmt.Errorf("error when creating multus addons: %v", err)
 	}
 
@@ -210,10 +220,39 @@ func createServiceAccount(client clientset.Interface) error {
 	return apiclient.CreateOrUpdateServiceAccount(client, &serviceAccount)
 }
 
-func createmultusAddon(configMapBytes []byte, client clientset.Interface) error {
-	multusConfigMap := &v1.ConfigMap{}
-	if err := kuberuntime.DecodeInto(clientsetscheme.Codecs.UniversalDecoder(), configMapBytes, multusConfigMap); err != nil {
+func createmultusAddon(configMapBytes []byte, client clientset.Interface, driver string) error {
+	delegateConfigMap := &v1.ConfigMap{}
+
+	if err := kuberuntime.DecodeInto(clientsetscheme.Codecs.UniversalDecoder(), configMapBytes, delegateConfigMap); err != nil {
 		return fmt.Errorf("unable to decode multus configmap %v", err)
+	}
+
+	delegateCniJSON := []byte(delegateConfigMap.Data["cni-conf.json"])
+	var multusCniJSON map[string]interface{}
+	json.Unmarshal(delegateCniJSON, &multusCniJSON)
+	multusCniConfig := multusCniStruct{
+		Name:       multusNetworkName,
+		Type:       "multus",
+		Kubeconfig: kubiccfg.DefaultKubicKubeconfig,
+		Delegates:  []map[string]interface{}{multusCniJSON},
+	}
+	marshaledCniJSON, _ := json.Marshal(multusCniConfig)
+	multusConfigMap := &v1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "cni-config",
+			Namespace: metav1.NamespaceSystem,
+			Labels: map[string]string{
+				"tier": "node",
+				"app":  "multus",
+			},
+		},
+		Data: map[string]string{
+			"cni-conf.json": string(marshaledCniJSON),
+		},
+	}
+
+	if driver == "flannel" {
+		multusConfigMap.Data["net-conf.json"] = delegateConfigMap.Data["net-conf.json"]
 	}
 
 	// Create the ConfigMap for multus or update it in case it already exists
