@@ -150,9 +150,11 @@ func EnsureFlannelAddon(cfg *config.KubicInitConfiguration, client clientset.Int
 		image = config.DefaultFlannelImage
 	}
 
-	confType := "conflist"
+	confName := "10-flannel.conflist"
+	daemonSetName := "kube-flannel"
 	if cfg.Network.MultipleCni {
-		confType = "conf"
+		daemonSetName = "kube-flannel-with-multus"
+		confName = "10-multus-flannel.conf"
 	}
 	glog.V(1).Infof("[kubic] using %s as cni image", image)
 	flannelDaemonSetBytes, err := kubeadmutil.ParseTemplate(FlannelDaemonSet19,
@@ -164,7 +166,8 @@ func EnsureFlannelAddon(cfg *config.KubicInitConfiguration, client clientset.Int
 			ConfDir        string
 			BinDir         string
 			ServiceAccount string
-			ConfType       string
+			DaemonSetName  string
+			ConfName       string
 		}{
 			image,
 			config.DefaultMultusImage,
@@ -173,7 +176,8 @@ func EnsureFlannelAddon(cfg *config.KubicInitConfiguration, client clientset.Int
 			cfg.Network.Cni.ConfDir,
 			cfg.Network.Cni.BinDir,
 			FlannelServiceAccountName,
-			confType,
+			daemonSetName,
+			confName,
 		})
 
 	if err != nil {

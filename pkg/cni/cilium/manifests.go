@@ -75,7 +75,7 @@ data:
 kind: DaemonSet
 apiVersion: apps/v1
 metadata:
-  name: cilium
+  name: {{ .DaemonSetName}}
   namespace: kube-system
 spec:
   updateStrategy:
@@ -110,7 +110,7 @@ spec:
         command:
           - /bin/sh
           - "-c"
-          - "cp -f /etc/cilium-cni/cni-conf.json /host/etc/cni/net.d/10-cilium-cni.conf"
+          - "cp -f /etc/cilium-cni/cni-conf.json /host/etc/cni/net.d/{{ .ConfName}}"
         volumeMounts:
         - name: host-cni-conf
           mountPath: /host/etc/cni/net.d

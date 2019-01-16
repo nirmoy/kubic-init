@@ -224,6 +224,13 @@ func EnsureCiliumAddon(cfg *config.KubicInitConfiguration, client clientset.Inte
 	}
 
 	glog.V(1).Infof("[kubic] using %s as cni image", image)
+
+	daemonSetName := "cilium"
+	confName := "10-cilium.conf"
+	if cfg.Network.MultipleCni {
+		daemonSetName = "cilium-with-multus"
+		confName = "10-cilium-multus.conf"
+	}
 	ciliumDaemonSetBytes, err = kubeadmutil.ParseTemplate(CiliumDaemonSet,
 		struct {
 			Image          string
@@ -232,6 +239,8 @@ func EnsureCiliumAddon(cfg *config.KubicInitConfiguration, client clientset.Inte
 			BinDir         string
 			SecretName     string
 			ServiceAccount string
+			DaemonSetName  string
+			ConfName       string
 		}{
 			image,
 			config.DefaultMultusImage,
@@ -239,6 +248,8 @@ func EnsureCiliumAddon(cfg *config.KubicInitConfiguration, client clientset.Inte
 			cfg.Network.Cni.BinDir,
 			CiliumCertSecret,
 			CiliumServiceAccountName,
+			daemonSetName,
+			confName,
 		})
 
 	if err != nil {
