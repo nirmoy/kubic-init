@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 SUSE LINUX GmbH, Nuernberg, Germany..
+ * Copyright 2019 SUSE LINUX GmbH, Nuernberg, Germany..
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -129,17 +129,20 @@ func EnsureFlannelAddon(cfg *config.KubicInitConfiguration, client clientset.Int
 	}
 
 	var flannelConfigMapBytes, flannelDaemonSetBytes []byte
-	flannelConfigMapBytes, err := kubeadmutil.ParseTemplate(FlannelConfigMap19,
-		struct {
-			Network string
-			Backend string
-		}{
-			cfg.Network.PodSubnet,
-			"vxlan", // TODO: replace by some config arg
-		})
+	if cfg.Network.MultipleCni == false {
+		var err error
+		flannelConfigMapBytes, err = kubeadmutil.ParseTemplate(FlannelConfigMap19,
+			struct {
+				Network string
+				Backend string
+			}{
+				cfg.Network.PodSubnet,
+				"vxlan", // TODO: replace by some config arg
+			})
 
-	if err != nil {
-		return fmt.Errorf("error when parsing flannel configmap template: %v", err)
+		if err != nil {
+			return fmt.Errorf("error when parsing flannel configmap template: %v", err)
+		}
 	}
 
 	image := cfg.Network.Cni.Image
@@ -147,8 +150,12 @@ func EnsureFlannelAddon(cfg *config.KubicInitConfiguration, client clientset.Int
 		image = config.DefaultFlannelImage
 	}
 
+	confType := "conflist"
+	if cfg.Network.MultipleCni {
+		confType = "conf"
+	}
 	glog.V(1).Infof("[kubic] using %s as cni image", image)
-	flannelDaemonSetBytes, err = kubeadmutil.ParseTemplate(FlannelDaemonSet19,
+	flannelDaemonSetBytes, err := kubeadmutil.ParseTemplate(FlannelDaemonSet19,
 		struct {
 			Image          string
 			LogLevel       int
@@ -156,6 +163,7 @@ func EnsureFlannelAddon(cfg *config.KubicInitConfiguration, client clientset.Int
 			ConfDir        string
 			BinDir         string
 			ServiceAccount string
+			ConfType       string
 		}{
 			image,
 			1, // TODO: replace by some config arg
@@ -163,6 +171,7 @@ func EnsureFlannelAddon(cfg *config.KubicInitConfiguration, client clientset.Int
 			cfg.Network.Cni.ConfDir,
 			cfg.Network.Cni.BinDir,
 			FlannelServiceAccountName,
+			confType,
 		})
 
 	if err != nil {
@@ -187,16 +196,16 @@ func createServiceAccount(client clientset.Interface) error {
 }
 
 func createFlannelAddon(configMapBytes, daemonSetbytes []byte, client clientset.Interface) error {
-	flannelConfigMap := &v1.ConfigMap{}
-	if err := kuberuntime.DecodeInto(clientsetscheme.Codecs.UniversalDecoder(), configMapBytes, flannelConfigMap); err != nil {
-		return fmt.Errorf("unable to decode flannel configmap %v", err)
+	if configMapBytes != nil {
+		flannelConfigMap := &v1.ConfigMap{}
+		if err := kuberuntime.DecodeInto(clientsetscheme.Codecs.UniversalDecoder(), configMapBytes, flannelConfigMap); err != nil {
+			return fmt.Errorf("unable to decode flannel configmap %v", err)
+		}
+		// Create the ConfigMap for flannel or update it in case it already exists
+		if err := apiclient.CreateOrUpdateConfigMap(client, flannelConfigMap); err != nil {
+			return err
+		}
 	}
-
-	// Create the ConfigMap for flannel or update it in case it already exists
-	if err := apiclient.CreateOrUpdateConfigMap(client, flannelConfigMap); err != nil {
-		return err
-	}
-
 	flannelDaemonSet := &apps.DaemonSet{}
 	if err := kuberuntime.DecodeInto(clientsetscheme.Codecs.UniversalDecoder(), daemonSetbytes, flannelDaemonSet); err != nil {
 		return fmt.Errorf("unable to decode flannel daemonset %v", err)

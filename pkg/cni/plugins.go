@@ -20,6 +20,8 @@ package cni
 import (
 	"fmt"
 
+	"github.com/golang/glog"
+
 	clientset "k8s.io/client-go/kubernetes"
 
 	"github.com/kubic-project/kubic-init/pkg/config"
@@ -43,6 +45,10 @@ func (registry registryMap) Has(name string) bool {
 
 // Load loads a registry
 func (registry registryMap) Load(name string, cfg *config.KubicInitConfiguration, client clientset.Interface) error {
+	if cfg.Network.MultipleCni {
+		glog.V(1).Infoln("[kubic] MultipleCni is enabled, registring multus")
+		registry["multus"](cfg, client)
+	}
 	if registry.Has(name) {
 		return registry[name](cfg, client)
 	}

@@ -41,6 +41,7 @@ import (
 	"github.com/kubic-project/kubic-init/pkg/cni"
 	_ "github.com/kubic-project/kubic-init/pkg/cni/cilium"
 	_ "github.com/kubic-project/kubic-init/pkg/cni/flannel"
+	_ "github.com/kubic-project/kubic-init/pkg/cni/multus"
 	kubiccfg "github.com/kubic-project/kubic-init/pkg/config"
 	"github.com/kubic-project/kubic-init/pkg/kubeadm"
 	"github.com/kubic-project/kubic-init/pkg/loader"

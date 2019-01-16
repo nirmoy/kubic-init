@@ -178,18 +178,19 @@ func EnsureCiliumAddon(cfg *config.KubicInitConfiguration, client clientset.Inte
 	if err != nil {
 		return fmt.Errorf("error when trying to retrieve etcd server IP %v", err)
 	}
+	ciliumCniConfigMapBytes = nil
+	if cfg.Network.MultipleCni == false {
+		ciliumCniConfigMapBytes, err = kubeadmutil.ParseTemplate(CiliumCniConfigMap,
+			struct {
+				EtcdServer string
+			}{
+				etcdServer.String(),
+			})
 
-	ciliumCniConfigMapBytes, err = kubeadmutil.ParseTemplate(CiliumCniConfigMap,
-		struct {
-			EtcdServer string
-		}{
-			etcdServer.String(),
-		})
-
-	if err != nil {
-		return fmt.Errorf("error when parsing cilium cni configmap template: %v", err)
+		if err != nil {
+			return fmt.Errorf("error when parsing cilium cni configmap template: %v", err)
+		}
 	}
-
 	ciliumEtcdConfigMapBytes, err = kubeadmutil.ParseTemplate(CiliumEtcdConfigMap,
 		struct {
 			EtcdServer string
@@ -260,14 +261,15 @@ func createServiceAccount(client clientset.Interface) error {
 }
 
 func createCiliumAddon(cniConfigMapBytes, etcdConfigMapBytes, daemonSetbytes []byte, client clientset.Interface) error {
-	ciliumCniConfigMap := &v1.ConfigMap{}
-	if err := kuberuntime.DecodeInto(clientsetscheme.Codecs.UniversalDecoder(), cniConfigMapBytes, ciliumCniConfigMap); err != nil {
-		return fmt.Errorf("unable to decode cilium configmap %v", err)
-	}
-
-	// Create the ConfigMap for cilium or update it in case it already exists
-	if err := apiclient.CreateOrUpdateConfigMap(client, ciliumCniConfigMap); err != nil {
-		return err
+	if cniConfigMapBytes != nil {
+		ciliumCniConfigMap := &v1.ConfigMap{}
+		if err := kuberuntime.DecodeInto(clientsetscheme.Codecs.UniversalDecoder(), cniConfigMapBytes, ciliumCniConfigMap); err != nil {
+			return fmt.Errorf("unable to decode cilium configmap %v", err)
+		}
+		// Create the ConfigMap for cilium or update it in case it already exists
+		if err := apiclient.CreateOrUpdateConfigMap(client, ciliumCniConfigMap); err != nil {
+			return err
+		}
 	}
 
 	ciliumEtcdConfigMap := &v1.ConfigMap{}

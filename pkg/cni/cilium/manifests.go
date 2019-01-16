@@ -23,7 +23,7 @@ const (
 kind: ConfigMap
 apiVersion: v1
 metadata:
-  name: cilium-cni-config-map
+  name: cni-config
   namespace: kube-system
   labels:
     tier: node
@@ -117,6 +117,17 @@ spec:
         - name: cilium-cni-config
           mountPath: /etc/cilium-cni/
 
+      - name: install-multus-cni-bin
+        # TODO add SUSE image
+        image: nirmoy/multus
+        command:
+          - /bin/sh
+          - "-c"
+          - "cp -f /usr/bin/multus /host/opt/cni/bin/"
+        volumeMounts:
+        - name: host-cni-bin
+          mountPath: /host/opt/cni/bin/
+
       - name: install-cni-bin
         image: {{ .Image }}
         command:
@@ -197,6 +208,9 @@ spec:
             readOnly: true
           - name: cilium-etcd-secret-mount
             mountPath: /tmp/cilium-etcd
+          - name: cilium-cni-config
+            mountPath: /etc/cilium-cni/
+
         securityContext:
           capabilities:
             add:
@@ -236,7 +250,7 @@ spec:
             secretName: {{.SecretName}}
         - name: cilium-cni-config
           configMap:
-            name: cilium-cni-config-map
+            name: cni-config
             
       restartPolicy: Always
       tolerations:
