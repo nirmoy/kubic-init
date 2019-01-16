@@ -1,4 +1,4 @@
-package clusterhealthtest
+package clusterhealth
 
 import (
 	"fmt"
