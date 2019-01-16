@@ -94,8 +94,7 @@ spec:
           mountPath: /host/etc/cni/net.d
 
       - name: install-multus-cni-bin
-        # TODO add SUSE image
-        image: nirmoy/multus
+        image: {{ .MultusImage }}
         command:
           - /bin/sh
           - "-c"

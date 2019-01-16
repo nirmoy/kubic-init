@@ -118,8 +118,7 @@ spec:
           mountPath: /etc/cilium-cni/
 
       - name: install-multus-cni-bin
-        # TODO add SUSE image
-        image: nirmoy/multus
+        image: {{ .MultusImage }}
         command:
           - /bin/sh
           - "-c"

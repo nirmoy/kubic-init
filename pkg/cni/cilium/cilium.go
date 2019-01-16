@@ -227,12 +227,14 @@ func EnsureCiliumAddon(cfg *config.KubicInitConfiguration, client clientset.Inte
 	ciliumDaemonSetBytes, err = kubeadmutil.ParseTemplate(CiliumDaemonSet,
 		struct {
 			Image          string
+			MultusImage    string
 			ConfDir        string
 			BinDir         string
 			SecretName     string
 			ServiceAccount string
 		}{
 			image,
+			config.DefaultMultusImage,
 			cfg.Network.Cni.ConfDir,
 			cfg.Network.Cni.BinDir,
 			CiliumCertSecret,

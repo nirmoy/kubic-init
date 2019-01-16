@@ -158,6 +158,7 @@ func EnsureFlannelAddon(cfg *config.KubicInitConfiguration, client clientset.Int
 	flannelDaemonSetBytes, err := kubeadmutil.ParseTemplate(FlannelDaemonSet19,
 		struct {
 			Image          string
+			MultusImage    string
 			LogLevel       int
 			HealthzPort    int
 			ConfDir        string
@@ -166,6 +167,7 @@ func EnsureFlannelAddon(cfg *config.KubicInitConfiguration, client clientset.Int
 			ConfType       string
 		}{
 			image,
+			config.DefaultMultusImage,
 			1, // TODO: replace by some config arg
 			FlannelHealthPort,
 			cfg.Network.Cni.ConfDir,
