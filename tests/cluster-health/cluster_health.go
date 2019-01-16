@@ -1,1 +1,1 @@
-package cluster_health
+package clusterhealth

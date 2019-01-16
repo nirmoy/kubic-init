@@ -29,7 +29,7 @@ import (
 )
 
 const (
-	// DefaultCNIConflist is the default configuration for CNI
+	// DefaultCNIConfName is the default configuration for CNI
 	DefaultCNIConfName = "default.conflist"
 
 	// DefaultCNIConflistContents is the default contents in the CNI file
