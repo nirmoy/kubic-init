@@ -40,6 +40,10 @@ jobs:
           name: Execute unit-tests
           command: make test
 
+      - run:
+          name: Check configuration files samples
+          command: make check-config
+
   build-docker-image:
     executor: golang-executor
     steps:

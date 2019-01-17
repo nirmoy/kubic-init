@@ -1,0 +1,101 @@
+##
+## sample kubic-init configuration file
+##
+apiVersion: kubic.suse.com/v1alpha2
+kind: KubicInitConfiguration
+features:
+  PSP: true
+runtime:
+  engine: crio
+paths:
+  kubeadm: /usr/bin/kubeadm
+auth:
+  oidc:
+    # will use the <network.DNS.ExternalFQDN>:32000 by default
+    issuer: https://some.name.com:32000
+    clientID: kubernetes
+    ca: /etc/kubernetes/pki/ca.crt
+    username: email
+    groups: groups
+certificates:
+  # where certificates are stored
+  directory: /etc/kubernetes/pki
+  # a caCrt can be used for verifying the identity of the seeder
+  caCrt:
+  # (or we can use the "hash" of the ca.crt instead)
+  caCrtHash:
+etcd:
+  local:
+    serverCertSANs: []
+    peerCertSANs: []
+manager:
+  # the kubic-manager image. by default, it is the same kubic-init image
+  image: "kubic-init:latest"
+clusterFormation:
+  # the seeder for the cluster formation
+  # when no seeder is specified, this node will be the seeder
+  seeder: some-node.com
+  # token for both discovery-token and tls-bootstrap-token
+  token: 94dcda.c271f4ff502789ca
+  # nodes with the right token will be automatically approved
+  autoApprove: false
+network:
+  bind:
+    # bind to a specific IP address (will be automatically detected when not provided)
+    address: 0.0.0.0
+    # ... or get the IP address from an interface
+    interface: eth0
+  # IP addresses for the Pods
+  podSubnet: "172.16.0.0/13"
+  # (virtual) IP addresses for the kubernetes Services
+  serviceSubnet: "172.24.0.0/16"
+  proxy:
+    http: my-proxy.com:8080
+    https: my-proxy.com:8080
+    noProxy: localdomain.com
+    systemwide: false
+  dns:
+    # internal domain for Services in kubernetes
+    domain: someDomain.local
+    # external name for the API server
+    # in an cluster with more than one control plane instances, this field should be
+    # assigned the address of the external load balancer in front of the
+    # control plane instances.
+    # in environments with enforced node recycling, this could also be used
+    # for assigning a stable DNS to the control plane.
+    externalFqdn: some.name.com
+  cni:
+    driver: flannel
+    # the CNI driver image
+    # do not set this unless you _really_ want to use something different that the
+    # default one (ie, for using a experimental version)
+    image: registry.opensuse.org/devel/caasp/kubic-container/container/kubic/flannel:0.9.1
+# the mirrors section will let you configure mirrors for the registries
+# multiple mirrors can be set
+# each mirror can have multiple fallback addresses
+bootstrap:
+  registries:
+    - prefix: https://registry.suse.com
+      mirrors:
+        - url: https://airgapped.suse.com
+        - url: https://airgapped2.suse.com
+          certificate: "-----BEGIN CERTIFICATE-----
+  MIIGJzCCBA+gAwIBAgIBATANBgkqhkiG9w0BAQUFADCBsjELMAkGA1UEBhMCRlIx
+  DzANBgNVBAgMBkFsc2FjZTETMBEGA1UEBwwKU3RyYXNib3VyZzEYMBYGA1UECgwP
+  hnx8SB3sVJZHeer8f/UQQwqbAO+Kdy70NmbSaqaVtp8jOxLiidWkwSyRTsuU6D8i
+  DiH5uEqBXExjrj0FslxcVKdVj5glVcSmkLwZKbEU1OKwleT/iXFhvooWhQ==
+  -----END CERTIFICATE-----"
+          fingerprint: "E8:73:0C:C5:84:B1:EB:17:2D:71:54:4D:89:13:EE:47:36:43:8D:BF:5D:3C:0F:5B:FC:75:7E:72:28:A9:7F:73"
+          hashalgorithm: "SHA256"
+    - prefix: https://registry.io
+      mirrors:
+        - url: https://airgapped.suse.com
+        - url: https://airgapped2.suse.com
+          certificate: "-----BEGIN CERTIFICATE-----
+  MIIGJzCCBA+gAwIBAgIBATANBgkqhkiG9w0BAQUFADCBsjELMAkGA1UEBhMCRlIx
+  DzANBgNVBAgMBkFsc2FjZTETMBEGA1UEBwwKU3RyYXNib3VyZzEYMBYGA1UECgwP
+  hnx8SB3sVJZHeer8f/UQQwqbAO+Kdy70NmbSaqaVtp8jOxLiidWkwSyRTsuU6D8i
+  DiH5uEqBXExjrj0FslxcVKdVj5glVcSmkLwZKbEU1OKwleT/iXFhvooWhQ==<
+  -----END CERTIFICATE-----"
+          fingerprint: "E8:73:0C:C5:84:B1:EB:17:2D:71:54:4D:89:13:EE:47:36:43:8D:BF:5D:3C:0F:5B:FC:75:7E:72:28:A9:7F:73"
+          hashalgorithm: "SHA256"

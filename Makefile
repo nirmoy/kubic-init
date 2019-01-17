@@ -21,7 +21,6 @@ DEEPCOPY_GENERATOR       := $(GO_BIN)/deepcopy-gen
 
 KUBIC_INIT_EXE  = cmd/kubic-init/kubic-init
 KUBIC_INIT_MAIN = cmd/kubic-init/main.go
-KUBIC_INIT_CFG  = $(CURDIR)/config/kubic-init.yaml
 .DEFAULT_GOAL: $(KUBIC_INIT_EXE)
 
 # These will be provided to the target
@@ -105,6 +104,15 @@ check: $(GO_BIN)/golint
 	@$(GO) tool vet ${KUBIC_INIT_SRCS}
 	terraform fmt
 lint: check
+
+check-config: $(KUBIC_INIT_EXE)
+	@YAMLS=`find config -type f -print0 | \
+		xargs -0 egrep "kind: KubicInitConfiguration" | \
+		cut -d':' -f1` ; \
+	for f in $$YAMLS ; do \
+		echo "Checking $$f..." ; \
+		$(KUBIC_INIT_EXE) checkconfig --config $$f ; \
+	done
 
 .PHONY: test
 test:

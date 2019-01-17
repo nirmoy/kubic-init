@@ -1,7 +1,7 @@
 IMAGE_BASENAME = kubic-init
 IMAGE_NAME     = kubic-project/$(IMAGE_BASENAME)
 IMAGE_TAR_GZ   = $(IMAGE_BASENAME)-latest.tar.gz
-IMAGE_DEPS     = $(KUBIC_INIT_EXE) $(KUBIC_INIT_CFG) Dockerfile
+IMAGE_DEPS     = $(KUBIC_INIT_EXE) Dockerfile
 
 # These will be provided to the target
 KUBIC_INIT_VERSION    := 1.0.0
@@ -37,7 +37,6 @@ VERBOSE_LEVEL = 3
 
 # volumes to mount when running locally
 CONTAINER_VOLUMES = \
-		-v $(KUBIC_INIT_CFG):/etc/kubic/kubic-init.yaml \
         -v /etc/kubernetes:/etc/kubernetes \
         -v /etc/hosts:/etc/hosts:ro \
         -v /usr/bin/kubelet:/usr/bin/kubelet:ro \
@@ -68,7 +67,6 @@ kubeadm-reset: local-reset
 local-reset: $(KUBIC_INIT_EXE)
 	@echo ">>> Resetting everything..."
 	$(SUDO_E) $(KUBIC_INIT_EXE) reset \
-		--config $(KUBIC_INIT_CFG) \
 		-v $(VERBOSE_LEVEL) \
 		$(KUBIC_INIT_EXTRA_ARGS)
 
@@ -82,20 +80,17 @@ local-reset: $(KUBIC_INIT_EXE)
 #    $ env SEEDER=1.2.3.4 TOKEN=XXXX make local-run
 #  - run a custom kubeadm, use docker, our own configuration and a higher debug level:
 #    $ make local-run \
-#     KUBIC_INIT_EXTRA_ARGS="--var Runtime.Engine=docker --var Paths.Kubeadm=/somewhere/linux/amd64/kubeadm" \
-#     KUBIC_INIT_CFG=test.yaml \
+#     KUBIC_INIT_EXTRA_ARGS="--config my-config-file.yaml --var Runtime.Engine=docker --var Paths.Kubeadm=/somewhere/linux/amd64/kubeadm" \
 #     VERBOSE_LEVEL=8
 #
 # You can customize the args with something like:
 #   make local-run VERBOSE_LEVEL=8 \
-#                  KUBIC_INIT_CFG="my-config-file.yaml" \
-#                  KUBIC_INIT_EXTRA_ARGS="--var Runtime.Engine=docker"
+#                  KUBIC_INIT_EXTRA_ARGS="--config my-config-file.yaml --var Runtime.Engine=docker"
 #
 local-run: $(KUBIC_INIT_EXE) $(KUBE_DROPIN_DST)
 	@echo ">>> Running $(KUBIC_INIT_EXE) as _root_"
 	$(SUDO_E) $(KUBIC_INIT_EXE) bootstrap \
 		-v $(VERBOSE_LEVEL) \
-		--config $(KUBIC_INIT_CFG) \
 		--load-assets=false \
 		$(KUBIC_INIT_EXTRA_ARGS)
 

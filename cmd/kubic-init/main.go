@@ -291,6 +291,7 @@ func newCmdReset(in io.Reader, out io.Writer) *cobra.Command {
 	return cmd
 }
 
+// newCmdVersion prints out the version, including the Go compiler and branch
 func newCmdVersion(out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "version",
@@ -303,6 +304,26 @@ func newCmdVersion(out io.Writer) *cobra.Command {
 			fmt.Fprintf(out, "            go:      %s\n", GoVersion)
 		},
 	}
+	return cmd
+}
+
+// newCmdCheckconfig checks that a configuration file can be parsed
+func newCmdCheckconfig(out io.Writer) *cobra.Command {
+	var kubicCfgFile string
+
+	cmd := &cobra.Command{
+		Use:   "checkconfig",
+		Short: "Check a configuration file",
+		Run: func(cmd *cobra.Command, args []string) {
+			_, err := kubiccfg.FileAndDefaultsToKubicInitConfig(kubicCfgFile)
+			kubeadmutil.CheckErr(err)
+			fmt.Fprintf(out, "Configuration file %s seems ok\n", kubicCfgFile)
+		},
+	}
+
+	flagSet := cmd.PersistentFlags()
+	flagSet.StringVar(&kubicCfgFile, "config", "", "Path to kubic-init config file.")
+
 	return cmd
 }
 
@@ -326,6 +347,7 @@ func main() {
 	cmds.ResetFlags()
 	cmds.AddCommand(newCmdBootstrap(os.Stdout))
 	cmds.AddCommand(newCmdReset(os.Stdin, os.Stdout))
+	cmds.AddCommand(newCmdCheckconfig(os.Stdout))
 	cmds.AddCommand(newCmdVersion(os.Stdout))
 
 	err := cmds.Execute()
