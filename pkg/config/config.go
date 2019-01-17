@@ -122,6 +122,7 @@ type NetworkConfiguration struct {
 	Proxy         ProxyConfiguration `yaml:"proxy,omitempty"`
 	PodSubnet     string             `yaml:"podSubnet,omitempty"`
 	ServiceSubnet string             `yaml:"serviceSubnet,omitempty"`
+	MultipleCni   bool               `yaml:"multipleCni,omitempty"`
 }
 
 // RuntimeConfiguration struct

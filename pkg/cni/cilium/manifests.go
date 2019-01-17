@@ -23,7 +23,7 @@ const (
 kind: ConfigMap
 apiVersion: v1
 metadata:
-  name: cilium-cni-config-map
+  name: cni-config
   namespace: kube-system
   labels:
     tier: node
@@ -75,7 +75,7 @@ data:
 kind: DaemonSet
 apiVersion: apps/v1
 metadata:
-  name: cilium
+  name: {{ .DaemonSetName}}
   namespace: kube-system
 spec:
   updateStrategy:
@@ -110,12 +110,22 @@ spec:
         command:
           - /bin/sh
           - "-c"
-          - "cp -f /etc/cilium-cni/cni-conf.json /host/etc/cni/net.d/10-cilium-cni.conf"
+          - "cp -f /etc/cilium-cni/cni-conf.json /host/etc/cni/net.d/{{ .ConfName}}"
         volumeMounts:
         - name: host-cni-conf
           mountPath: /host/etc/cni/net.d
         - name: cilium-cni-config
           mountPath: /etc/cilium-cni/
+
+      - name: install-multus-cni-bin
+        image: {{ .MultusImage }}
+        command:
+          - /bin/sh
+          - "-c"
+          - "cp -f /usr/bin/multus /host/opt/cni/bin/"
+        volumeMounts:
+        - name: host-cni-bin
+          mountPath: /host/opt/cni/bin/
 
       - name: install-cni-bin
         image: {{ .Image }}
@@ -197,6 +207,9 @@ spec:
             readOnly: true
           - name: cilium-etcd-secret-mount
             mountPath: /tmp/cilium-etcd
+          - name: cilium-cni-config
+            mountPath: /etc/cilium-cni/
+
         securityContext:
           capabilities:
             add:
@@ -236,7 +249,7 @@ spec:
             secretName: {{.SecretName}}
         - name: cilium-cni-config
           configMap:
-            name: cilium-cni-config-map
+            name: cni-config
             
       restartPolicy: Always
       tolerations:

@@ -58,6 +58,7 @@ const (
 
 	DefaultFlannelImage = "registry.opensuse.org/devel/caasp/kubic-container/container/kubic/flannel:0.9.1"
 	DefaultCiliumImage  = "registry.opensuse.org/devel/caasp/kubic-container/container/kubic/cilium:1.2"
+	DefaultMultusImage  = "registry.opensuse.org/devel/kubic/containers/container/kubic/multus:3.1"
 
 	// Default directory for CNI binaries
 	DefaultCniBinDir = "/var/lib/kubelet/cni/bin"

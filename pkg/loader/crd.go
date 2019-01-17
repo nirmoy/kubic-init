@@ -38,7 +38,8 @@ import (
 	"github.com/kubic-project/kubic-init/pkg/util"
 )
 
-type crdsSet map[string]*apiextensionsv1beta1.CustomResourceDefinition
+// CrdsSet stores CRDs to be used by loader APIs
+type CrdsSet map[string]*apiextensionsv1beta1.CustomResourceDefinition
 
 // CRDInstallOptions are the options for installing CRDs
 type CRDInstallOptions struct {
@@ -46,7 +47,7 @@ type CRDInstallOptions struct {
 	Paths []string
 
 	// CRDs is a map of CRDs to install
-	CRDs crdsSet
+	CRDs CrdsSet
 
 	// ErrorIfPathMissing will cause an error if a Path does not exist
 	ErrorIfPathMissing bool
@@ -85,7 +86,7 @@ func InstallCRDs(kubicCfg *kubiccfg.KubicInitConfiguration, restCfg *rest.Config
 
 // readCRDFiles reads the directories of CRDs in options.Paths and adds the CRD structs to options.CRDs
 func readCRDFiles(options *CRDInstallOptions) error {
-	options.CRDs = crdsSet{}
+	options.CRDs = CrdsSet{}
 	if len(options.Paths) > 0 {
 		for _, path := range util.RemoveDuplicates(options.Paths) {
 			if _, err := os.Stat(path); !options.ErrorIfPathMissing && os.IsNotExist(err) {
@@ -114,7 +115,7 @@ func defaultCRDOptions(o *CRDInstallOptions) {
 }
 
 // WaitForCRDs waits for the CRDs to appear in discovery
-func WaitForCRDs(config *rest.Config, crds crdsSet, options CRDInstallOptions) error {
+func WaitForCRDs(config *rest.Config, crds CrdsSet, options CRDInstallOptions) error {
 	// Add each CRD to a map of GroupVersion to Resource
 	waitingFor := map[schema.GroupVersion]*sets.String{}
 	for _, crd := range crds {
@@ -178,7 +179,7 @@ func (p *poller) poll() (done bool, err error) {
 }
 
 // CreateCRDs creates the CRDs
-func CreateCRDs(restCfg *rest.Config, crds crdsSet) error {
+func CreateCRDs(restCfg *rest.Config, crds CrdsSet) error {
 	cs, err := clientset.NewForConfig(restCfg)
 	if err != nil {
 		return err
@@ -186,7 +187,7 @@ func CreateCRDs(restCfg *rest.Config, crds crdsSet) error {
 
 	// Create each CRD
 	for name, crd := range crds {
-		glog.V(5).Infof("[kubic] creating CRD '%s'", name)
+		glog.V(1).Infof("[kubic] creating CRD '%s'", name)
 
 		existing, err := cs.Apiextensions().CustomResourceDefinitions().Get(crd.Name, metav1.GetOptions{})
 		if apierrors.IsNotFound(err) {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 SUSE LINUX GmbH, Nuernberg, Germany..
+ * Copyright 2019 SUSE LINUX GmbH, Nuernberg, Germany..
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ const (
 kind: ConfigMap
 apiVersion: v1
 metadata:
-  name: flannel-plugin-config-map
+  name: cni-config
   namespace: kube-system
   labels:
     tier: node
@@ -63,7 +63,7 @@ data:
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
-  name: kube-flannel
+  name: {{ .DaemonSetName }}
   namespace: kube-system
   labels:
     tier: node
@@ -86,12 +86,23 @@ spec:
         command:
           - /bin/sh
           - "-c"
-          - "cp -f /etc/kube-flannel/cni-conf.json /host/etc/cni/net.d/10-flannel.conflist"
+          - "cp -f /etc/kube-flannel/cni-conf.json /host/etc/cni/net.d/{{ .ConfName }}"
         volumeMounts:
         - name: flannel-plugin-config
           mountPath: /etc/kube-flannel/
         - name: host-cni-conf
           mountPath: /host/etc/cni/net.d
+
+      - name: install-multus-cni-bin
+        image: {{ .MultusImage }}
+        command:
+          - /bin/sh
+          - "-c"
+          - "cp -f /usr/bin/multus /host/opt/cni/bin/"
+        volumeMounts:
+        - name: host-cni-bin
+          mountPath: /host/opt/cni/bin/
+
       - name: install-cni-bin
         image: {{ .Image }}
         command:
@@ -175,7 +186,7 @@ spec:
             path: {{ .ConfDir }}
         - name: flannel-plugin-config
           configMap:
-            name: flannel-plugin-config-map
+            name: cni-config
         - name: host-cni-bin
           hostPath:
             path: {{ .BinDir }}
