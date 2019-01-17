@@ -1,0 +1,12 @@
+##
+## sample kubic-init configuration file for cilium
+##
+apiVersion: kubic.suse.com/v1alpha2
+kind: KubicInitConfiguration
+# TODO remove container runtime requirement after GH#169
+runtime:
+  engine: docker
+network:
+  multipleCni: true
+  cni:
+    driver: cilium
