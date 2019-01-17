@@ -1,4 +1,4 @@
-FROM opensuse:tumbleweed
+FROM opensuse/tumbleweed:latest
 
 RUN \
   zypper ar --refresh --enable --no-gpgcheck https://download.opensuse.org/repositories/devel:/kubic/openSUSE_Tumbleweed extra-repo0 && \
@@ -24,4 +24,4 @@ VOLUME /sys/fs/cgroup
 ENV SYSTEMCTL_FORCE_BUS 1
 ENV DBUS_SYSTEM_BUS_ADDRESS unix:path=/var/run/dbus/system_bus_socket
 
-CMD /usr/local/bin/kubic-init
+CMD ["/usr/local/bin/kubic-init"]
