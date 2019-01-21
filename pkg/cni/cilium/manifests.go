@@ -149,6 +149,7 @@ spec:
           - "--kvstore=etcd"
           - "--kvstore-opt=etcd.config=/var/lib/etcd-config/etcd.config"
           - "--disable-ipv4=$(DISABLE_IPV4)"
+          - "--container-runtime-endpoint={{ .ContainerRuntime }}={{ .ContainerRuntimeSocket }}"
         ports:
           - name: prometheus
             containerPort: 9090
@@ -191,16 +192,18 @@ spec:
           initialDelaySeconds: 5
           periodSeconds: 5
         volumeMounts:
+        {{ if .EnableBPF }}
           - name: bpf-maps
             mountPath: /sys/fs/bpf
+        {{end}}
           - name: cilium-run
             mountPath: /var/run/cilium
           - name: host-cni-bin
             mountPath: /host/opt/cni/bin/
           - name: host-cni-conf
             mountPath: /host/etc/cni/net.d
-          - name: docker-socket
-            mountPath: /var/run/docker.sock
+          - name: container-socket
+            mountPath: {{ .ContainerRuntimeSocket }}
             readOnly: true
           - name: etcd-config-path
             mountPath: /var/lib/etcd-config
@@ -221,14 +224,16 @@ spec:
         - name: cilium-run
           hostPath:
             path: /var/run/cilium
+        {{ if .EnableBPF }}
           # To keep state between restarts / upgrades
         - name: bpf-maps
           hostPath:
             path: /sys/fs/bpf
+        {{end}}
           # To read docker events from the node
-        - name: docker-socket
+        - name: container-socket
           hostPath:
-            path: /var/run/docker.sock
+            path: {{ .ContainerRuntimeSocket }}
           # To install cilium cni plugin in the host
         - name: host-cni-bin
           hostPath:

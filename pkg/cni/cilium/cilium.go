@@ -227,20 +227,28 @@ func EnsureCiliumAddon(cfg *config.KubicInitConfiguration, client clientset.Inte
 
 	daemonSetName := "cilium"
 	confName := "10-cilium.conf"
+	enableBPF := "true"
 	if cfg.Network.MultipleCni {
 		daemonSetName = "cilium-with-multus"
 		confName = "10-cilium-multus.conf"
 	}
+
+	if cfg.Runtime.Engine == "crio" {
+		enableBPF = ""
+	}
 	ciliumDaemonSetBytes, err = kubeadmutil.ParseTemplate(CiliumDaemonSet,
 		struct {
-			Image          string
-			MultusImage    string
-			ConfDir        string
-			BinDir         string
-			SecretName     string
-			ServiceAccount string
-			DaemonSetName  string
-			ConfName       string
+			Image                  string
+			MultusImage            string
+			ConfDir                string
+			BinDir                 string
+			SecretName             string
+			ServiceAccount         string
+			DaemonSetName          string
+			ConfName               string
+			ContainerRuntime       string
+			ContainerRuntimeSocket string
+			EnableBPF              string
 		}{
 			image,
 			config.DefaultMultusImage,
@@ -250,6 +258,9 @@ func EnsureCiliumAddon(cfg *config.KubicInitConfiguration, client clientset.Inte
 			CiliumServiceAccountName,
 			daemonSetName,
 			confName,
+			cfg.Runtime.Engine,
+			config.DefaultCriSocket[cfg.Runtime.Engine],
+			enableBPF,
 		})
 
 	if err != nil {
